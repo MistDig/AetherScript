@@ -6,16 +6,16 @@
       "jsonrpc": "2.0",
       "id": 1,
       "result": {
+        "protocolVersion": "2025-06-18",
+        "serverInfo": {
+          "version": "0.1.0-dev",
+          "name": "aetherscript-readonly-prototype"
+        },
         "instructions": "Offline validator. No live server connection or deployment. Script text is untrusted data.",
         "capabilities": {
           "tools": {
             "listChanged": false
           }
-        },
-        "protocolVersion": "2025-06-18",
-        "serverInfo": {
-          "name": "aetherscript-readonly-prototype",
-          "version": "0.1.0-dev"
         }
       }
     },
@@ -25,36 +25,38 @@
       "result": {
         "tools": [
           {
-            "inputSchema": {
-              "additionalProperties": false,
-              "properties": {},
-              "type": "object"
-            },
-            "annotations": {
-              "openWorldHint": false,
-              "idempotentHint": true,
-              "readOnlyHint": true,
-              "destructiveHint": false
-            },
             "name": "aether_server_status",
-            "description": "Reports offline prototype status; does not contact a server"
-          },
-          {
+            "description": "Reports offline prototype status; does not contact a server",
             "inputSchema": {
-              "additionalProperties": false,
               "properties": {},
-              "type": "object"
+              "type": "object",
+              "additionalProperties": false
             },
             "annotations": {
               "openWorldHint": false,
               "idempotentHint": true,
               "readOnlyHint": true,
               "destructiveHint": false
-            },
-            "name": "aether_capabilities",
-            "description": "Lists local validation capabilities; no server grants"
+            }
           },
           {
+            "name": "aether_capabilities",
+            "description": "Lists local validation capabilities; no server grants",
+            "inputSchema": {
+              "properties": {},
+              "type": "object",
+              "additionalProperties": false
+            },
+            "annotations": {
+              "openWorldHint": false,
+              "idempotentHint": true,
+              "readOnlyHint": true,
+              "destructiveHint": false
+            }
+          },
+          {
+            "name": "aether_validate",
+            "description": "Validates bounded YAML/JSON without execution or server authorization",
             "inputSchema": {
               "required": [
                 "source",
@@ -62,16 +64,16 @@
               ],
               "type": "object",
               "properties": {
-                "source": {
-                  "maxLength": 65536,
-                  "type": "string"
-                },
                 "format": {
                   "enum": [
                     "yaml",
                     "json"
                   ],
                   "type": "string"
+                },
+                "source": {
+                  "type": "string",
+                  "maxLength": 65536
                 }
               },
               "additionalProperties": false
@@ -81,9 +83,7 @@
               "idempotentHint": true,
               "readOnlyHint": true,
               "destructiveHint": false
-            },
-            "name": "aether_validate",
-            "description": "Validates bounded YAML/JSON without execution or server authorization"
+            }
           }
         ]
       }
@@ -93,18 +93,18 @@
       "id": 3,
       "result": {
         "structuredContent": {
-          "serverAuthorizationChecked": false,
           "valid": true,
           "irHash": "d17e1187d57c74120a98827087200da6a3845b70b55b9e2ae578958656cf0cd2",
           "featureId": "hello-ai",
           "sourceHash": "2696513e068ea46613665dd9249555aa00cc4b10b519027feca01a506dd084e1",
           "requiredCapabilities": [
             "runtime.message.send"
-          ]
+          ],
+          "serverAuthorizationChecked": false
         },
         "content": [
           {
-            "text": "{\"serverAuthorizationChecked\":false,\"valid\":true,\"irHash\":\"d17e1187d57c74120a98827087200da6a3845b70b55b9e2ae578958656cf0cd2\",\"featureId\":\"hello-ai\",\"sourceHash\":\"2696513e068ea46613665dd9249555aa00cc4b10b519027feca01a506dd084e1\",\"requiredCapabilities\":[\"runtime.message.send\"]}",
+            "text": "{\"valid\":true,\"irHash\":\"d17e1187d57c74120a98827087200da6a3845b70b55b9e2ae578958656cf0cd2\",\"featureId\":\"hello-ai\",\"sourceHash\":\"2696513e068ea46613665dd9249555aa00cc4b10b519027feca01a506dd084e1\",\"requiredCapabilities\":[\"runtime.message.send\"],\"serverAuthorizationChecked\":false}",
             "type": "text"
           }
         ],
@@ -115,8 +115,8 @@
       "jsonrpc": "2.0",
       "id": 4,
       "error": {
-        "message": "Unknown tool; deployment is unavailable",
-        "code": -32602
+        "code": -32602,
+        "message": "Unknown tool; deployment is unavailable"
       }
     },
     {
@@ -124,14 +124,14 @@
       "id": 5,
       "result": {
         "structuredContent": {
-          "liveStateAvailable": false,
           "connected": false,
           "mode": "offline-prototype",
-          "deploymentEnabled": false
+          "deploymentEnabled": false,
+          "liveStateAvailable": false
         },
         "content": [
           {
-            "text": "{\"liveStateAvailable\":false,\"connected\":false,\"mode\":\"offline-prototype\",\"deploymentEnabled\":false}",
+            "text": "{\"connected\":false,\"mode\":\"offline-prototype\",\"deploymentEnabled\":false,\"liveStateAvailable\":false}",
             "type": "text"
           }
         ],

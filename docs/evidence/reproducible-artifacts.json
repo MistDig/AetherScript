@@ -1,0 +1,12 @@
+{
+  "plugin-paper": {
+    "workingCopy": "217c1ac8c8fc0f1013ca1e17643eccb75e2e499606c7b0a16d5231a7826843d5",
+    "cleanCopy": "217c1ac8c8fc0f1013ca1e17643eccb75e2e499606c7b0a16d5231a7826843d5",
+    "identical": true
+  },
+  "gateway-mcp": {
+    "workingCopy": "37d1eaeb47aab166639137c13bac5e3f71fff2930859a9da1e5126e02325e7c6",
+    "cleanCopy": "37d1eaeb47aab166639137c13bac5e3f71fff2930859a9da1e5126e02325e7c6",
+    "identical": true
+  }
+}
