@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "hello-ai",
+  "version": "1.0.0",
+  "requires": [
+    "runtime.message.send"
+  ],
+  "commands": [
+    {
+      "name": "helloai",
+      "permission": "aetherscript.example.hello",
+      "sender": "any",
+      "actions": [
+        {
+          "type": "message.send",
+          "target": "sender",
+          "text": "Hello from AetherScript!"
+        }
+      ]
+    }
+  ]
+}

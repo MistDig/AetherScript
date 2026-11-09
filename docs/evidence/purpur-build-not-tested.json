@@ -1,0 +1,33 @@
+{
+  "project": "purpur",
+  "version": "26.3",
+  "build": "2657",
+  "result": "SUCCESS",
+  "timestamp": 1794019498859,
+  "duration": 478782,
+  "commits": [
+    {
+      "author": "noreply",
+      "email": "noreply@github.com",
+      "description": "fix burp-delay, remove burp-when-full, configurable burp volume (#1832)\n",
+      "hash": "d66a2d44ade981f4cdf2737c33fd05130b321371",
+      "timestamp": 1793934601000
+    },
+    {
+      "author": "granny",
+      "email": "granny@purpurmc.org",
+      "description": "[ci skip] minor build file cleanup\n",
+      "hash": "fed80c2c0487a1a13275c5410c0b1704bac33d01",
+      "timestamp": 1794019105000
+    },
+    {
+      "author": "granny",
+      "email": "granny@purpurmc.org",
+      "description": "Updated Upstream (Paper)\n\nUpstream has released updates that appear to apply and compile correctly\n\nPaper Changes:\nPaperMC/Paper@35a2d155 Fix dimension suggestions for dynamically loaded worlds PaperMC/Paper#14399\n",
+      "hash": "9002a556bab075d2b9ee085bc7f286c4ba912d51",
+      "timestamp": 1794019105000
+    }
+  ],
+  "metadata": {},
+  "md5": "92c4e3ce94e6413c2cc9b1bb5918159b"
+}

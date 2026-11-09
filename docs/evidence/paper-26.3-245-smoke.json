@@ -1,0 +1,62 @@
+[
+  {
+    "test": "startup",
+    "result": "pass",
+    "detail": "[14:40:25 INFO]: AetherScript 0.1.0-dev; 26.3-245-cd1c3b6 (MC: 26.3); ready=true; generation=0; features=0; busy=false; AI deployment=ABSENT; restart recovery=NOT IMPLEMENTED"
+  },
+  {
+    "test": "validate",
+    "result": "pass",
+    "detail": "[14:40:25 INFO]: VALIDATED 1 feature(s); active generation unchanged"
+  },
+  {
+    "test": "initial-reload",
+    "result": "pass",
+    "detail": "[14:40:25 INFO]: ACTIVE generation=1 features=1"
+  },
+  {
+    "test": "message-A",
+    "result": "pass",
+    "detail": "[14:40:25 INFO]: Hello from AetherScript!"
+  },
+  {
+    "test": "live-reload",
+    "result": "pass",
+    "detail": "[14:40:26 INFO]: ACTIVE generation=2 features=1"
+  },
+  {
+    "test": "message-B",
+    "result": "pass",
+    "detail": "[14:40:26 INFO]: Live revision B"
+  },
+  {
+    "test": "invalid-reload",
+    "result": "pass",
+    "detail": "[14:40:26 INFO]: VALIDATION_FAILED $.requires: must exactly declare inferred runtime.message.send capability; active generation unchanged"
+  },
+  {
+    "test": "preserved-generation",
+    "result": "pass",
+    "detail": "[14:40:26 INFO]: AetherScript 0.1.0-dev; 26.3-245-cd1c3b6 (MC: 26.3); ready=true; generation=2; features=1; busy=false; AI deployment=ABSENT; restart recovery=NOT IMPLEMENTED"
+  },
+  {
+    "test": "preserved-message",
+    "result": "pass",
+    "detail": "[14:40:26 INFO]: Live revision B"
+  },
+  {
+    "test": "100-reloads",
+    "result": "pass",
+    "detail": "[14:40:41 INFO]: AetherScript 0.1.0-dev; 26.3-245-cd1c3b6 (MC: 26.3); ready=true; generation=102; features=1; busy=false; AI deployment=ABSENT; restart recovery=NOT IMPLEMENTED"
+  },
+  {
+    "test": "one-active-feature",
+    "result": "pass",
+    "detail": "[14:40:41 INFO]: Active: hello-ai"
+  },
+  {
+    "test": "message-after-100",
+    "result": "pass",
+    "detail": "[14:40:41 INFO]: Live revision B"
+  }
+]

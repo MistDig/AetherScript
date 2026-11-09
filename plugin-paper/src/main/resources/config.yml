@@ -1,0 +1,4 @@
+configVersion: 1
+# No network listener or AI deployment exists in v0.1.
+bridge:
+  enabled: false

@@ -1,0 +1,6 @@
+AetherScript
+Copyright 2026 AetherScript contributors
+
+The plugin distribution includes relocated Jackson (FasterXML) and SnakeYAML,
+both licensed under Apache License 2.0. Their original license/notice resources
+are retained where available. Gradle wrapper files carry their upstream license.

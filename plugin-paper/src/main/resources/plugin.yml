@@ -1,0 +1,14 @@
+name: AetherScript
+version: 0.1.0-dev
+main: dev.aetherscript.paper.AetherScriptPlugin
+api-version: '26.3'
+description: Bounded scripts with transactional in-memory hot reload
+commands:
+  ais:
+    description: AetherScript local administration and feature dispatch
+    usage: /ais <status|list|validate|reload|run> [feature]
+permissions:
+  aetherscript.admin:
+    default: op
+  aetherscript.example.hello:
+    default: op
