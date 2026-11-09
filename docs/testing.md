@@ -1,5 +1,11 @@
 # Actual test results
 
+## Release 0.0.1 — 2026-11-09
+
+Rebuilt with the single release version in `gradle.properties`: `clean check build` passed, with 42 tests and no failures/errors/skips. The packaged MCP subprocess also passed and checked the plugin metadata, engine build properties, and MCP version all report 0.0.1. Separate release evidence is in `docs/evidence/0.0.1/`. The disposable Paper 26.3-245 console harness passed startup, live A-to-B reload, invalid-update preservation, and 100 repeated reloads for this version. Connected-player and Purpur tests remain unrun.
+
+## Historical development verification
+
 Date: 2026-11-09, Asia/Calcutta. Windows amd64; Oracle JDK 25.0.2+10; Gradle 9.1.0. Paper 26.3 build 245. These results apply to the implementation and packaging milestones recorded in local Git; no public release or deployment is claimed.
 
 ## Build and automated tests

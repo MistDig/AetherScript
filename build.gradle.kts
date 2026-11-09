@@ -1,7 +1,7 @@
 plugins { base; id("com.gradleup.shadow") version "9.1.0" apply false }
 allprojects {
     group = "dev.aetherscript"
-    version = "0.1.0-dev"
+    version = providers.gradleProperty("version").get()
     repositories { mavenCentral(); maven("https://repo.papermc.io/repository/maven-public/") }
 }
 subprojects {

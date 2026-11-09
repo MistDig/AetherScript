@@ -1,0 +1,16 @@
+[
+  {
+    "name": "dev.aetherscript.core.EngineTest",
+    "tests": "35",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "dev.aetherscript.mcp.ProtocolTest",
+    "tests": "7",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  }
+]

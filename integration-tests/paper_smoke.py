@@ -1,4 +1,4 @@
-import subprocess, threading, queue, time, shutil, json, sys, argparse, hashlib, os
+import subprocess, threading, queue, time, shutil, json, sys, argparse, hashlib, os, re
 from pathlib import Path
 parser=argparse.ArgumentParser(description='Disposable loopback-only Paper 26.3 smoke test')
 parser.add_argument('--server-jar',type=Path,required=True)
@@ -14,7 +14,8 @@ expected='192d277ea1ce29b2df3933dd488521d4555cc82be864ea8df811fe536e8aed43'
 if hashlib.sha256(jar.read_bytes()).hexdigest()!=expected: parser.error('Paper server checksum mismatch; expected 26.3 build 245')
 (server/'plugins').mkdir(parents=True)
 shutil.copy2(jar,server/'paper.jar')
-shutil.copy2(repo/'plugin-paper/build/libs/plugin-paper-0.1.0-dev.jar',server/'plugins/AetherScript.jar')
+version=re.search(r'^version=(.+)$',(repo/'gradle.properties').read_text(),re.M).group(1)
+shutil.copy2(repo/'plugin-paper/build/libs'/f'plugin-paper-{version}.jar',server/'plugins/AetherScript.jar')
 (server/'eula.txt').write_text('eula=true\n')
 (server/'server.properties').write_text('server-ip=127.0.0.1\nserver-port=25591\nonline-mode=false\nenforce-secure-profile=false\nview-distance=2\nsimulation-distance=2\nmax-players=2\nlevel-type=minecraft:flat\ngenerate-structures=false\nspawn-protection=0\n')
 lines=[]; q=queue.Queue(); evidence=[]

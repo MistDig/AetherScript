@@ -6,6 +6,6 @@ Local `/ais` administration requires `aetherscript.admin`; runtime messages requ
 
 Before enabling any AI deployment: independently authenticated gateway and plugin identities, default-deny server policy, per-agent/server/environment/feature/action scopes, capability inference, runtime/player permission intersection, token rotation/revocation, request limits, approval binding, stale-plan detection, durable commits, and direct bridge-bypass tests are mandatory. No self-approval or policy-editing agent tools.
 
-Security reporting: no public repository/contact has been provisioned. Report privately to the repository owner through an agreed private channel. Do not include real tokens or private server logs in public issues.
+Security reporting: the repository is https://github.com/MistDig/AetherScript. Report privately to the repository owner through an agreed private channel; no dedicated security contact is currently configured. Do not include real tokens or private server logs in public issues.
 
 Installed Java plugins and host administrators remain trusted. Registry rollback does not undo world changes. The local audit directory needs owner-only OS permissions and monitoring; ACL provisioning, log rotation, crash recovery, and remote audit integrity are not implemented.

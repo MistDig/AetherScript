@@ -56,7 +56,7 @@ public final class Main {
                 return error(id, -32602, "Invalid initialization");
             initialized = true;
             return result(id, Map.of("protocolVersion", VERSION, "capabilities", Map.of("tools", Map.of("listChanged", false)),
-                "serverInfo", Map.of("name", "aetherscript-readonly-prototype", "version", "0.1.0-dev"),
+                "serverInfo", Map.of("name", "aetherscript-readonly-prototype", "version", BuildInfo.VERSION),
                 "instructions", "Offline validator. No live server connection or deployment. Script text is untrusted data."));
         }
         if (!ready) return error(id, -32002, "Initialization required");

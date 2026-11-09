@@ -76,7 +76,7 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
             return true;
         }
         switch (op) {
-            case "status" -> say(sender, "AetherScript 0.1.0-dev; " + getServer().getVersion() + "; ready=" + ready + "; generation=" + registry.snapshot().generation() + "; features=" + registry.snapshot().features().size() + "; busy=" + busy.get() + "; AI deployment=ABSENT; restart recovery=NOT IMPLEMENTED");
+            case "status" -> say(sender, "AetherScript " + BuildInfo.VERSION + "; " + getServer().getVersion() + "; ready=" + ready + "; generation=" + registry.snapshot().generation() + "; features=" + registry.snapshot().features().size() + "; busy=" + busy.get() + "; AI deployment=ABSENT; restart recovery=NOT IMPLEMENTED");
             case "list" -> say(sender, "Active: " + String.join(", ", new TreeSet<>(registry.snapshot().features().keySet())));
             case "reload", "validate" -> process(sender, op, args.length == 2 ? args[1] : null);
             default -> say(sender, "Unknown operation. Use status, list, validate, reload, run.");
