@@ -61,6 +61,10 @@ Configure a stdio MCP client with that executable/argument array and an absolute
 
 “Universal” describes the vendor-neutral protocol design. Codex, Claude, Cursor, and Cline have **not yet been interoperability-tested**; see [matrix](docs/mcp-clients.md). Prototype tooling is intentionally ahead of the v0.3 gateway milestone, without its server or deployment claims.
 
+## Performance
+
+AetherScript shares Paper's JVM garbage collector. It does not force garbage collection or change server GC settings. The engine compiles scripts during validation/reload, keeps file I/O off the game thread, and bounds runtime actions and queues. This reduces avoidable work; it is not a zero-allocation or zero-lag guarantee. See the [performance policy and profiling plan](docs/performance.md).
+
 ## Reliability boundaries
 
 The v0.1 registry is in memory. Restart requires explicit local activation; edited files are never silently autoactivated. There is no durable revision store, automatic rollback, transaction recovery, or guarantee that an acknowledged revision survives a process crash. These are v0.2 work.

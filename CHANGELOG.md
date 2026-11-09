@@ -15,6 +15,8 @@ First experimental release. The previous local `0.1.0-dev` name was an unpublish
 - Hello feature examples, JSON Schema, documentation, security boundaries, and expanded gameplay/remote-connectivity roadmap.
 - Gradle wrapper/checksums, dependency locks/verification, automated tests, disposable-server/MCP process harnesses, CI, and versioned release workflow.
 - Repository README, changelog, release policy, and a single build-version source in `gradle.properties`.
+- Performance policy: no forced collection, bounded work, and lower allocation pressure while retaining Paper's JVM garbage collector.
+- Complete dependency verification for fresh-cache builds, including an independently verified Jackson parent POM checksum.
 
 ### Verification
 

@@ -5,3 +5,7 @@ Use Java 25 and the pinned Gradle wrapper. Run clean check build before committi
 
 Canonical repository: https://github.com/MistDig/AetherScript . First release: 0.0.1.
 For every completed change batch (including docs), increment the version in gradle.properties, update CHANGELOG.md with concrete changes and actual verification, commit/push, and publish a new GitHub release with plugin/MCP JARs and checksums. Small follow-up changes increment the patch version. Do not create a release for each intermediate edit or failed build. Never overwrite an existing tag or release asset. Follow docs/releasing.md and wait for release CI to finish. Keep historical evidence accurate; do not relabel old test runs as new results.
+
+## Performance policy
+
+The owner's intent is fast execution with minimal GC pressure. AetherScript shares Paper's JVM GC; never promise GC-free Java execution, force GC, or disable the collector. Keep parsing/I/O outside invocation/tick paths, bound work/queues, minimize unnecessary allocations, and require profiling evidence for performance claims. See docs/performance.md.

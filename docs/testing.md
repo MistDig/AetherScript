@@ -4,6 +4,10 @@
 
 Rebuilt with the single release version in `gradle.properties`: `clean check build` passed, with 42 tests and no failures/errors/skips. The packaged MCP subprocess also passed and checked the plugin metadata, engine build properties, and MCP version all report 0.0.1. Separate release evidence is in `docs/evidence/0.0.1/`. The disposable Paper 26.3-245 console harness passed startup, live A-to-B reload, invalid-update preservation, and 100 repeated reloads for this version. Connected-player and Purpur tests remain unrun.
 
+The first GitHub CI run failed closed because verification metadata omitted `com.fasterxml.jackson:jackson-base:2.19.2`'s parent POM. Its SHA-256 was checked against Maven Central's published checksum and added without disabling verification. A subsequent full build from an empty Gradle user-home downloaded every dependency and passed all 42 tests; see `docs/evidence/0.0.1/fresh-cache-build.txt`.
+
+Source inspection found no explicit `System.gc()`/`Runtime.gc()` calls in engine/plugin/gateway Java sources. This is not a GC-free execution or performance benchmark claim; see `docs/performance.md`.
+
 ## Historical development verification
 
 Date: 2026-11-09, Asia/Calcutta. Windows amd64; Oracle JDK 25.0.2+10; Gradle 9.1.0. Paper 26.3 build 245. These results apply to the implementation and packaging milestones recorded in local Git; no public release or deployment is claimed.
