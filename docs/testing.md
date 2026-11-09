@@ -41,3 +41,14 @@ The first harness attempt failed because it sent `validate` before asynchronous 
 | A25–A26 rollback/approval | Not implemented | Future gates |
 
 Full v0.1 release acceptance remains open until connected-player and resource checks are completed. No AI deployment can be enabled by configuration.
+
+## Reproduce integration checks
+
+Build first, then:
+
+```text
+python integration-tests/mcp_stdio.py --java /path/to/jdk25/bin/java
+python integration-tests/paper_smoke.py --java /path/to/jdk25/bin/java --server-jar /path/to/paper-26.3-245.jar --work-dir /new/disposable/directory --accept-eula
+```
+
+Review Minecraft's EULA before passing `--accept-eula`. The harness refuses an existing work directory and verifies the server checksum, uses loopback port 25591, records evidence there, and stops its server in `finally`. Port 25591 must be free. The console test is not a simulated connected-player test.
