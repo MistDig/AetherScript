@@ -20,7 +20,7 @@ The Paper adapter compiles and is exercised on a real server; it has no mock uni
 
 Disposable server bound to `127.0.0.1:25591`, offline mode, 1.5 GiB max heap, view/simulation distance 2. No production world touched. Server started and shut down normally.
 
-Passed: plugin enable, readiness, validation, initial activation, message A, live reload to B, invalid replacement rejection, unchanged generation 2 and B, 100 additional reloads, generation 102, one active feature, and B still dispatching. Evidence: `evidence/paper-26.3-245-smoke.json`. All invocations used the console, **not a connected player**. No quantitative memory/leak or TPS benchmark was performed.
+Passed: plugin enable, readiness, validation, initial activation, message A, live reload to B, invalid replacement rejection, unchanged generation 2 and B, 100 additional reloads, generation 102, one active feature, and B still dispatching. Evidence: `evidence/paper-26.3-245-smoke.json`. The portable harness was repeated against the final reproducible plugin JAR from implementation commit `b63c6fd`; all checks passed. All invocations used the console, **not a connected player**. No quantitative memory/leak or TPS benchmark was performed.
 
 The first harness attempt failed because it sent `validate` before asynchronous initialization completed. Plugin returned `NOT_READY`. The harness was corrected to wait for readiness; the repeat completed successfully. This was a test-harness synchronization failure, not a hidden pass.
 
@@ -32,17 +32,17 @@ The first harness attempt failed because it sent `validate` before asynchronous 
 | A02 startup | Pass | Real Paper 26.3-245 |
 | A03 formats | Pass | Shared IR and duplicate-ID tests |
 | A04 permissions | Partial | Runtime unit tests; connected-player test not run |
-| A05 valid reload | Partial | Console Aâ†’B passed; connected-player continuity not run |
+| A05 valid reload | Partial | Console AÃ¢â€ â€™B passed; connected-player continuity not run |
 | A06 rejected reload | Pass | Unit and real Paper behavior/generation preserved |
 | A07 repeated reload | Partial | 100 unit and server reloads; resource profiling not run |
 | A08 alias lifecycle | Not run | No alias shipped |
 | A09 parser attacks | Pass for tested corpus | Bounded hostile-input tests; not formal verification |
-| A10â€“A19 security/deployment | Not implemented | Mutating bridge absent; future v0.2 gates |
+| A10Ã¢â‚¬â€œA19 security/deployment | Not implemented | Mutating bridge absent; future v0.2 gates |
 | A20 MCP clients | Partial | Automated protocol tests only; named clients untested |
-| A21â€“A22 events/GUI | Not implemented | Future work |
+| A21Ã¢â‚¬â€œA22 events/GUI | Not implemented | Future work |
 | A23 load | Partial | Static action/queue limits; no load benchmark |
 | A24 Purpur | Not run | No compatibility claim |
-| A25â€“A26 rollback/approval | Not implemented | Future gates |
+| A25Ã¢â‚¬â€œA26 rollback/approval | Not implemented | Future gates |
 
 Full v0.1 release acceptance remains open until connected-player and resource checks are completed. No AI deployment can be enabled by configuration.
 
