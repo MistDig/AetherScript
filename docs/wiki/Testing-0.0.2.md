@@ -34,7 +34,7 @@ If a check fails, record version, Paper build, command, diagnostic and expected 
 
 ### Automated evidence
 
-**70 automated tests passed:** 63 core cases and 7 MCP protocol cases, including retention, corruption, interrupted saves and abrupt child-JVM exits. The packaged MCP subprocess passed. A real disposable Paper 26.3-245 server passed **27 checks across five boots and 100 distinct live reloads**, including invalid-edit restart recovery, held rollback and corrupt storage.
+**70 automated tests passed:** 63 core cases and 7 MCP protocol cases, including retention, corruption, interrupted saves and abrupt child-JVM exits. The packaged MCP subprocess passed. A real disposable Paper 26.3-245 server passed **28 checks across five boots and 100 distinct live reloads**, including invalid-edit restart recovery, held rollback and corrupt storage.
 
 [Versioned evidence](https://github.com/MistDig/AetherScript/tree/v0.0.2/docs/evidence/0.0.2) · [Test notes](https://github.com/MistDig/AetherScript/blob/v0.0.2/docs/testing.md)
 

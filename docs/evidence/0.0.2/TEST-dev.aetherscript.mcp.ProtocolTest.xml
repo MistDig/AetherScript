@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="dev.aetherscript.mcp.ProtocolTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-09T16:13:40.601Z" hostname="VARUN" time="0.882">
+<testsuite name="dev.aetherscript.mcp.ProtocolTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-10T10:53:19.212Z" hostname="VARUN" time="0.797">
   <properties/>
-  <testcase name="lifecycleAndDiscovery()" classname="dev.aetherscript.mcp.ProtocolTest" time="0.689"/>
-  <testcase name="noMutationToolsOrFileTools()" classname="dev.aetherscript.mcp.ProtocolTest" time="0.003"/>
-  <testcase name="validAndInvalidSourcesUseSharedParser()" classname="dev.aetherscript.mcp.ProtocolTest" time="0.101"/>
-  <testcase name="stdioIsJsonOnlyAndNotificationsHaveNoResponse()" classname="dev.aetherscript.mcp.ProtocolTest" time="0.036"/>
+  <testcase name="lifecycleAndDiscovery()" classname="dev.aetherscript.mcp.ProtocolTest" time="0.635"/>
+  <testcase name="noMutationToolsOrFileTools()" classname="dev.aetherscript.mcp.ProtocolTest" time="0.005"/>
+  <testcase name="validAndInvalidSourcesUseSharedParser()" classname="dev.aetherscript.mcp.ProtocolTest" time="0.109"/>
+  <testcase name="stdioIsJsonOnlyAndNotificationsHaveNoResponse()" classname="dev.aetherscript.mcp.ProtocolTest" time="0.009"/>
   <testcase name="malformedAndDuplicateJsonRejected()" classname="dev.aetherscript.mcp.ProtocolTest" time="0.004"/>
-  <testcase name="oversizedFramesTerminateWithoutResponse()" classname="dev.aetherscript.mcp.ProtocolTest" time="0.027"/>
-  <testcase name="statusNeverPretendsLiveConnection()" classname="dev.aetherscript.mcp.ProtocolTest" time="0.005"/>
+  <testcase name="oversizedFramesTerminateWithoutResponse()" classname="dev.aetherscript.mcp.ProtocolTest" time="0.023"/>
+  <testcase name="statusNeverPretendsLiveConnection()" classname="dev.aetherscript.mcp.ProtocolTest" time="0.002"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

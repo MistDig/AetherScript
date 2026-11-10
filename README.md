@@ -59,7 +59,7 @@ Linux/macOS: `./gradlew clean check build`. Gradle 9.1.0 wrapper, dependency loc
 - `plugin-paper/build/libs/plugin-paper-0.0.2.jar`: standalone plugin; do not install the thin JAR.
 - `gateway-mcp/build/libs/gateway-mcp-0.0.2.jar`: separate executable MCP process.
 
-Actual local verification: **70 tests passed**, packaged MCP passed, and **27 Paper console checks across five boots and 100 distinct reloads passed**. Tests cover invalid edits, restart, rollback, retention, corrupt storage and abruptly halted JVM saves. See [evidence](docs/evidence/0.0.2) and [testing notes](docs/testing.md). Connected-player 0.0.2 checks, Purpur, named MCP clients and performance benchmarks remain open.
+Actual local verification: **70 tests passed**, packaged MCP passed, and **28 Paper console checks across five boots and 100 distinct reloads passed**. Tests cover invalid edits, restart, rollback, retention, corrupt storage and abruptly halted JVM saves. See [evidence](docs/evidence/0.0.2) and [testing notes](docs/testing.md). Connected-player 0.0.2 checks, Purpur, named MCP clients and performance benchmarks remain open.
 
 ## Read-only MCP
 

@@ -21,14 +21,14 @@ Daemon will be stopped at the end of the build
 > Task :core:compileTestJava
 > Task :core:processTestResources NO-SOURCE
 > Task :core:testClasses
-> Task :gateway-mcp:shadowJar
 > Task :plugin-paper:compileJava
-> Task :plugin-paper:classes
-> Task :plugin-paper:jar
+> Task :gateway-mcp:shadowJar
 > Task :gateway-mcp:compileTestJava
 > Task :gateway-mcp:testClasses
+> Task :plugin-paper:classes
 > Task :gateway-mcp:test
 > Task :gateway-mcp:check
+> Task :plugin-paper:jar
 > Task :gateway-mcp:startScripts
 > Task :gateway-mcp:distTar
 > Task :gateway-mcp:distZip
@@ -38,10 +38,10 @@ Daemon will be stopped at the end of the build
 > Task :gateway-mcp:assemble
 > Task :gateway-mcp:build
 > Task :core:test
-> Task :plugin-paper:shadowJar
 > Task :core:check
 > Task :core:assemble
 > Task :core:build
+> Task :plugin-paper:shadowJar
 > Task :plugin-paper:compileTestJava NO-SOURCE
 > Task :plugin-paper:testClasses UP-TO-DATE
 > Task :plugin-paper:test NO-SOURCE
@@ -57,5 +57,5 @@ You can use '--warning-mode all' to show the individual deprecation warnings and
 
 For more on this, please refer to https://docs.gradle.org/9.1.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
 
-BUILD SUCCESSFUL in 2m 22s
+BUILD SUCCESSFUL in 2m 16s
 24 actionable tasks: 24 executed

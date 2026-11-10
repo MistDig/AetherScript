@@ -6,17 +6,17 @@
       "jsonrpc": "2.0",
       "id": 1,
       "result": {
-        "protocolVersion": "2025-06-18",
+        "serverInfo": {
+          "name": "aetherscript-readonly-prototype",
+          "version": "0.0.2"
+        },
+        "instructions": "Offline validator. No live server connection or deployment. Script text is untrusted data.",
         "capabilities": {
           "tools": {
             "listChanged": false
           }
         },
-        "instructions": "Offline validator. No live server connection or deployment. Script text is untrusted data.",
-        "serverInfo": {
-          "name": "aetherscript-readonly-prototype",
-          "version": "0.0.2"
-        }
+        "protocolVersion": "2025-06-18"
       }
     },
     {
@@ -25,65 +25,65 @@
       "result": {
         "tools": [
           {
-            "annotations": {
-              "idempotentHint": true,
-              "openWorldHint": false,
-              "destructiveHint": false,
-              "readOnlyHint": true
-            },
-            "inputSchema": {
-              "properties": {},
-              "additionalProperties": false,
-              "type": "object"
-            },
+            "name": "aether_server_status",
             "description": "Reports offline prototype status; does not contact a server",
-            "name": "aether_server_status"
-          },
-          {
-            "annotations": {
-              "idempotentHint": true,
-              "openWorldHint": false,
-              "destructiveHint": false,
-              "readOnlyHint": true
-            },
             "inputSchema": {
-              "properties": {},
               "additionalProperties": false,
+              "properties": {},
               "type": "object"
             },
-            "description": "Lists local validation capabilities; no server grants",
-            "name": "aether_capabilities"
+            "annotations": {
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "openWorldHint": false,
+              "idempotentHint": true
+            }
           },
           {
-            "annotations": {
-              "idempotentHint": true,
-              "openWorldHint": false,
-              "destructiveHint": false,
-              "readOnlyHint": true
-            },
+            "name": "aether_capabilities",
+            "description": "Lists local validation capabilities; no server grants",
             "inputSchema": {
-              "required": [
-                "source",
-                "format"
-              ],
               "additionalProperties": false,
+              "properties": {},
+              "type": "object"
+            },
+            "annotations": {
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "openWorldHint": false,
+              "idempotentHint": true
+            }
+          },
+          {
+            "name": "aether_validate",
+            "description": "Validates bounded YAML/JSON without execution or server authorization",
+            "inputSchema": {
+              "type": "object",
               "properties": {
                 "source": {
-                  "maxLength": 65536,
-                  "type": "string"
+                  "type": "string",
+                  "maxLength": 65536
                 },
                 "format": {
-                  "type": "string",
                   "enum": [
                     "yaml",
                     "json"
-                  ]
+                  ],
+                  "type": "string"
                 }
               },
-              "type": "object"
+              "additionalProperties": false,
+              "required": [
+                "source",
+                "format"
+              ]
             },
-            "description": "Validates bounded YAML/JSON without execution or server authorization",
-            "name": "aether_validate"
+            "annotations": {
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "openWorldHint": false,
+              "idempotentHint": true
+            }
           }
         ]
       }
@@ -92,22 +92,22 @@
       "jsonrpc": "2.0",
       "id": 3,
       "result": {
-        "isError": false,
         "content": [
           {
-            "type": "text",
-            "text": "{\"valid\":true,\"serverAuthorizationChecked\":false,\"requiredCapabilities\":[\"runtime.message.send\"],\"sourceHash\":\"2696513e068ea46613665dd9249555aa00cc4b10b519027feca01a506dd084e1\",\"featureId\":\"hello-ai\",\"irHash\":\"d17e1187d57c74120a98827087200da6a3845b70b55b9e2ae578958656cf0cd2\"}"
+            "text": "{\"irHash\":\"d17e1187d57c74120a98827087200da6a3845b70b55b9e2ae578958656cf0cd2\",\"featureId\":\"hello-ai\",\"sourceHash\":\"2696513e068ea46613665dd9249555aa00cc4b10b519027feca01a506dd084e1\",\"requiredCapabilities\":[\"runtime.message.send\"],\"serverAuthorizationChecked\":false,\"valid\":true}",
+            "type": "text"
           }
         ],
+        "isError": false,
         "structuredContent": {
-          "valid": true,
-          "serverAuthorizationChecked": false,
+          "irHash": "d17e1187d57c74120a98827087200da6a3845b70b55b9e2ae578958656cf0cd2",
+          "featureId": "hello-ai",
+          "sourceHash": "2696513e068ea46613665dd9249555aa00cc4b10b519027feca01a506dd084e1",
           "requiredCapabilities": [
             "runtime.message.send"
           ],
-          "sourceHash": "2696513e068ea46613665dd9249555aa00cc4b10b519027feca01a506dd084e1",
-          "featureId": "hello-ai",
-          "irHash": "d17e1187d57c74120a98827087200da6a3845b70b55b9e2ae578958656cf0cd2"
+          "serverAuthorizationChecked": false,
+          "valid": true
         }
       }
     },
@@ -115,26 +115,26 @@
       "jsonrpc": "2.0",
       "id": 4,
       "error": {
-        "message": "Unknown tool; deployment is unavailable",
-        "code": -32602
+        "code": -32602,
+        "message": "Unknown tool; deployment is unavailable"
       }
     },
     {
       "jsonrpc": "2.0",
       "id": 5,
       "result": {
-        "isError": false,
         "content": [
           {
-            "type": "text",
-            "text": "{\"liveStateAvailable\":false,\"deploymentEnabled\":false,\"mode\":\"offline-prototype\",\"connected\":false}"
+            "text": "{\"connected\":false,\"mode\":\"offline-prototype\",\"deploymentEnabled\":false,\"liveStateAvailable\":false}",
+            "type": "text"
           }
         ],
+        "isError": false,
         "structuredContent": {
-          "liveStateAvailable": false,
-          "deploymentEnabled": false,
+          "connected": false,
           "mode": "offline-prototype",
-          "connected": false
+          "deploymentEnabled": false,
+          "liveStateAvailable": false
         }
       }
     }

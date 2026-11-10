@@ -19,11 +19,13 @@ Every published change batch receives a new version and GitHub release. Dates us
 - Invalid edits and unchanged reloads consume no history. Unchanged reloads do not advance registry generation.
 - Storage/audit failure attempts compensation; uncertain restoration quarantines operations.
 
+- Startup preserves an existing JSON/.yaml hello example instead of creating a duplicate bundled YAML file.
+
 ### Verification
 
 - Java 25 / Gradle clean check build: 70 tests passed, zero failures/errors/skips.
 - Packaged MCP subprocess passed.
-- Paper 26.3 build 245: 27 console checks across five boots and 100 distinct live reloads passed, including restart recovery, rollback, retention and corrupted storage.
+- Paper 26.3 build 245: 28 console checks across five boots and 100 distinct live reloads passed, including restart recovery, rollback, retention and corrupted storage.
 - See `docs/evidence/0.0.2/` for local evidence.
 
 ### Upgrade and limitations

@@ -7,6 +7,7 @@ parser.add_argument('--server-jar', type=Path, required=True)
 parser.add_argument('--work-dir', type=Path, required=True)
 parser.add_argument('--java', default='java')
 parser.add_argument('--accept-eula', action='store_true')
+parser.add_argument('--existing-json', action='store_true', help='Seed a JSON example as an upgrade with no revision storage')
 args = parser.parse_args()
 if not args.accept_eula:
     parser.error('Review https://aka.ms/MinecraftEULA and pass --accept-eula')
@@ -87,6 +88,9 @@ def stop():
 data = server/'plugins/AetherScript'
 source = data/'scripts/hello-ai.yml'
 original = (repo/'examples/hello-ai.yml').read_text()
+if args.existing_json:
+    source.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(repo/'examples/hello-ai.json', source.with_suffix('.json'))
 def edit(message):
     source.write_text(original.replace('Hello from AetherScript!', message), encoding='utf-8')
 def history():
@@ -97,6 +101,10 @@ try:
     check('message-A', 'ais run hello-ai', 'Hello from AetherScript!')
     check('validate', 'ais validate', 'VALIDATED 1')
     check('unchanged-reload', 'ais reload hello-ai', 'UNCHANGED: no new revision; generation=1')
+    if args.existing_json:
+        assert not source.exists(), 'Bundled YAML must not conflict with existing JSON'
+        evidence.append(dict(test='existing-json-upgrade', result='pass', detail='JSON activated; no conflicting bundled YAML was created'))
+        source.with_suffix('.json').unlink()  # This disposable fixture switches to YAML for the following edits.
     edit('Live revision B')
     check('live-reload', 'ais reload hello-ai', 'ACTIVE generation=2')
     check('message-B', 'ais run hello-ai', 'Live revision B')
