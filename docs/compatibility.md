@@ -1,4 +1,4 @@
-# Compatibility verification â€” 2026-11-09 (Asia/Calcutta)
+# Compatibility verification — 2026-11-09 (Asia/Calcutta)
 
 | Component | Pin / result |
 |---|---|

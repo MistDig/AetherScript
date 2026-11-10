@@ -4,13 +4,13 @@
 
 Local Java 25 / Gradle 9.1 clean check build passed: **70 tests, zero failures/errors/skips** (35 existing core, 28 recovery, 7 protocol). Interrupted writes and three separate JVM halts cover pre-replacement and post-commit recovery. Additional cases cover retention reduction while recovering older content, corrupt manifests/content, rollback holds, unchanged/invalid saves, settings bounds and source diagnostics.
 
-The packaged MCP process passed. Real Paper 26.3 build 245 passed **27 console checks over five boots, including 100 distinct live reloads**, invalid-edit restart recovery, retained rollback, explicit release of rollback hold, five-version pruning, corrupt active-content fallback and corrupt-manifest startup blocking. No live server was used. Evidence is in `docs/evidence/0.0.2/`; local execution was November 9, release preparation November 10, 2026 (Asia/Calcutta).
+The packaged MCP process passed. Real Paper 26.3 build 245 passed **27 console checks over five boots, including 100 distinct live reloads**, invalid-edit restart recovery, retained rollback, explicit release of rollback hold, five-version pruning, corrupt active-content fallback and corrupt-manifest startup blocking. No live server was used. Evidence is in `docs/evidence/0.0.2/`; initial local execution was November 9; the final clean build and packaged MCP passed again November 10, 2026 (Asia/Calcutta). Final JAR hashes matched the Paper-tested binaries.
 
 The first new unit run had two wrong expected line numbers (12 instead of the fixture's actual 11); corrected assertions then passed. No parser-location bug was hidden. The new Paper harness passed its complete run. Console tests are not connected-player or performance tests. The owner reported 0.0.1 in-game reload, invalid-edit preservation and permission denial working; 0.0.2 player acceptance remains for the checklist. Purpur and named MCP clients remain unverified.
 
 Below is historical evidence, preserved as the status at those earlier milestones.
 
-## Release 0.0.1 â€” 2026-11-09
+## Release 0.0.1 — 2026-11-09
 
 Rebuilt with the single release version in `gradle.properties`: `clean check build` passed, with 42 tests and no failures/errors/skips. The packaged MCP subprocess also passed and checked the plugin metadata, engine build properties, and MCP version all report 0.0.1. Separate release evidence is in `docs/evidence/0.0.1/`. The disposable Paper 26.3-245 console harness passed startup, live A-to-B reload, invalid-update preservation, and 100 repeated reloads for this version. Connected-player and Purpur tests remain unrun.
 
@@ -52,17 +52,17 @@ The first harness attempt failed because it sent `validate` before asynchronous 
 | A02 startup | Pass | Real Paper 26.3-245 |
 | A03 formats | Pass | Shared IR and duplicate-ID tests |
 | A04 permissions | Partial | Runtime unit tests; connected-player test not run |
-| A05 valid reload | Partial | Console AÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢B passed; connected-player continuity not run |
+| A05 valid reload | Partial | Console AÃ¢â€ â€™B passed; connected-player continuity not run |
 | A06 rejected reload | Pass | Unit and real Paper behavior/generation preserved |
 | A07 repeated reload | Partial | 100 unit and server reloads; resource profiling not run |
 | A08 alias lifecycle | Not run | No alias shipped |
 | A09 parser attacks | Pass for tested corpus | Bounded hostile-input tests; not formal verification |
-| A10ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“A19 security/deployment | Not implemented | Mutating bridge absent; future v0.2 gates |
+| A10Ã¢â‚¬â€œA19 security/deployment | Not implemented | Mutating bridge absent; future v0.2 gates |
 | A20 MCP clients | Partial | Automated protocol tests only; named clients untested |
-| A21ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“A22 events/GUI | Not implemented | Future work |
+| A21Ã¢â‚¬â€œA22 events/GUI | Not implemented | Future work |
 | A23 load | Partial | Static action/queue limits; no load benchmark |
 | A24 Purpur | Not run | No compatibility claim |
-| A25ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“A26 rollback/approval | Not implemented | Future gates |
+| A25Ã¢â‚¬â€œA26 rollback/approval | Not implemented | Future gates |
 
 Full v0.1 release acceptance remains open until connected-player and resource checks are completed. No AI deployment can be enabled by configuration.
 
