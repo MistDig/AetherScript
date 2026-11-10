@@ -1,4 +1,4 @@
-# Compatibility verification — 2026-11-09 (Asia/Calcutta)
+# Compatibility verification â€” 2026-11-09 (Asia/Calcutta)
 
 | Component | Pin / result |
 |---|---|
@@ -14,7 +14,7 @@
 | Gradle distribution SHA-256 | `a17ddd85a26b6a7f5ddb71ff8b05fc5104c0202c6e64782429790c933686c806` |
 | Purpur | 26.3 build 2657 discovered, **not downloaded or tested** |
 | Purpur API-reported MD5 | `92c4e3ce94e6413c2cc9b1bb5918159b`; not independently verified; no SHA-256 claim |
-| Player client | No connected Minecraft player test performed |
+| Player client | 0.0.1 checks user-reported; 0.0.2 connected-player automation not performed |
 
 Paper download: https://fill-data.papermc.io/v1/objects/192d277ea1ce29b2df3933dd488521d4555cc82be864ea8df811fe536e8aed43/paper-26.3-245.jar
 

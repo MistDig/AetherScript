@@ -86,7 +86,8 @@ public final class Main {
             }
             return toolResult(id, value, false);
         } catch (ValidationException e) {
-            return toolResult(id, Map.of("valid", false, "code", "VALIDATION_FAILED", "path", e.path(), "message", e.getMessage()), true);
+            return toolResult(id, Map.of("valid", false, "code", "VALIDATION_FAILED", "path", e.path(), "message", e.getMessage(),
+                "reason", e.reason(), "line", e.line(), "column", e.column()), true);
         } catch (IllegalArgumentException e) { return error(id, -32602, "Invalid tool arguments"); }
     }
     private static void noArguments(JsonNode args) { if (!args.isEmpty()) throw new IllegalArgumentException(); }

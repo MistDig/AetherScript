@@ -32,6 +32,10 @@ class ProtocolTest {
         assertFalse(valid.path("structuredContent").path("serverAuthorizationChecked").asBoolean());
         var bad=request("tools/call",Map.of("name","aether_validate","arguments",Map.of("source",source.replace("message.send","console.run"),"format","json"))).path("result");
         assertTrue(bad.path("isError").asBoolean());
+        var target=request("tools/call",Map.of("name","aether_validate","arguments",Map.of("source",source.replace("\"target\": \"sender\"","\"target\": \"everyone\""),"format","json"))).path("result").path("structuredContent");
+        assertTrue(target.path("line").asInt() > 0); assertTrue(target.path("column").asInt() > 0);
+        assertEquals("$.commands[0].actions[0].target", target.path("path").asText());
+        assertTrue(target.path("reason").asText().contains("Fix: set target to sender"));
     }
     @Test void statusNeverPretendsLiveConnection() {
         initialize(); var status=request("tools/call",Map.of("name","aether_server_status","arguments",Map.of())).path("result").path("structuredContent");

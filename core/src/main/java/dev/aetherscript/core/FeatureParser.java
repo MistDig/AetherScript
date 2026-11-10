@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.*;
 import org.yaml.snakeyaml.*;
 import org.yaml.snakeyaml.events.*;
 import org.yaml.snakeyaml.nodes.*;
+import org.yaml.snakeyaml.error.MarkedYAMLException;
 import java.io.*;
 import java.nio.*;
 import java.nio.charset.*;
@@ -20,6 +21,7 @@ public final class FeatureParser {
         .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION).build());
 
     public CompiledFeature parse(byte[] source, String format) {
+        Map<String, int[]> locations = new HashMap<>();
         if (source.length > MAX_BYTES) throw fail("$", "source exceeds 65536 bytes");
         try {
             String text = StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
@@ -27,7 +29,8 @@ public final class FeatureParser {
             JsonNode root;
             if (format.equals("json")) {
                 try (JsonParser parser = JSON.createParser(text)) {
-                    root = JSON.readTree(parser);
+                    parser.nextToken();
+                    root = jsonNode(parser, "$", locations);
                     if (parser.nextToken() != null) throw fail("$", "one document required");
                 }
             } else if (format.equals("yaml") || format.equals("yml")) {
@@ -46,7 +49,7 @@ public final class FeatureParser {
                     if (event instanceof ScalarEvent s && s.getTag() != null) throw fail("$", "explicit tags forbidden");
                     if (event instanceof CollectionStartEvent c && c.getTag() != null) throw fail("$", "explicit tags forbidden");
                 }
-                root = yamlNode(yaml.compose(new StringReader(text)), 0);
+                root = yamlNode(yaml.compose(new StringReader(text)), 0, "$", locations);
             } else throw fail("$", "format must be yaml or json");
             fields(root, "$", "schemaVersion", "id", "version", "requires", "commands");
             if (!root.get("schemaVersion").isIntegralNumber() || !root.get("schemaVersion").canConvertToInt() || root.get("schemaVersion").intValue() != 1)
@@ -75,33 +78,47 @@ public final class FeatureParser {
                 JsonNode action = actions.get(i);
                 fields(action, path, "type", "target", "text");
                 if (!"message.send".equals(string(action.get("type"), path + ".type", 64))) throw fail(path + ".type", "unsupported action");
-                if (!"sender".equals(string(action.get("target"), path + ".target", 64))) throw fail(path + ".target", "only invoking sender is permitted");
+                if (!"sender".equals(string(action.get("target"), path + ".target", 64))) throw fail(path + ".target", "Found \"" + action.get("target").textValue() + "\". Allowed: sender. Fix: set target to sender; only the invoking sender is permitted");
                 String message = string(action.get("text"), path + ".text", MAX_TEXT);
                 if (message.codePoints().anyMatch(c -> Character.isISOControl(c) || c == 0xA7)) throw fail(path + ".text", "plain text only; controls and legacy formatting forbidden");
                 result.add(new Feature.MessageAction(message));
             }
             Feature feature = new Feature(1, id, version, List.of("runtime.message.send"), new Feature.Command(name, permission, sender, result));
             return new CompiledFeature(feature, hash(source), hash(JSON.writeValueAsBytes(feature)));
-        } catch (ValidationException e) { throw e; }
-        catch (Exception e) { throw fail("$", "invalid encoding or document structure"); }
+        } catch (ValidationException e) {
+            String path = e.path();
+            while (!locations.containsKey(path) && path.length() > 1) {
+                int dot = path.lastIndexOf('.'), bracket = path.lastIndexOf('[');
+                int cut = Math.max(dot, bracket); path = cut > 0 ? path.substring(0, cut) : "$";
+            }
+            int[] location = locations.getOrDefault(path, new int[]{0, 0});
+            throw e.located(location[0], location[1]);
+        } catch (MarkedYAMLException e) {
+            var mark = e.getProblemMark();
+            throw new ValidationException("$", "Invalid YAML syntax. Check indentation, quotes, and duplicate keys.", mark == null ? 0 : mark.getLine() + 1, mark == null ? 0 : mark.getColumn() + 1);
+        } catch (JsonProcessingException e) {
+            var location = e.getLocation();
+            throw new ValidationException("$", "Invalid JSON syntax. Check quotes, commas, nesting, and duplicate keys.", location == null ? 0 : location.getLineNr(), location == null ? 0 : location.getColumnNr());
+        } catch (Exception e) { throw fail("$", "Invalid UTF-8 encoding or document structure. Check syntax and nesting limits."); }
     }
     public static void requireId(String id) {
         if (id == null || !id.matches("[a-z][a-z0-9-]{0,63}")) throw fail("$.id", "expected lowercase logical ID, not a path");
     }
-    private static JsonNode yamlNode(Node node, int depth) {
+    private static JsonNode yamlNode(Node node, int depth, String path, Map<String, int[]> locations) {
         if (node == null || depth > MAX_DEPTH) throw fail("$", "empty document or nesting limit");
+        if (node.getStartMark() != null) locations.put(path, new int[]{node.getStartMark().getLine() + 1, node.getStartMark().getColumn() + 1});
         if (node instanceof MappingNode m && node.getTag().equals(Tag.MAP)) {
             ObjectNode out = JSON.createObjectNode();
             for (NodeTuple pair : m.getValue()) {
                 if (!(pair.getKeyNode() instanceof ScalarNode s) || !s.getTag().equals(Tag.STR)) throw fail("$", "string keys required");
-                if (out.has(s.getValue())) throw fail("$", "duplicate key");
-                out.set(s.getValue(), yamlNode(pair.getValueNode(), depth + 1));
+                if (out.has(s.getValue())) throw new ValidationException(path + "." + s.getValue(), "Duplicate key. Keep only one entry with this name.", s.getStartMark().getLine() + 1, s.getStartMark().getColumn() + 1);
+                out.set(s.getValue(), yamlNode(pair.getValueNode(), depth + 1, path + "." + s.getValue(), locations));
             }
             return out;
         }
         if (node instanceof SequenceNode s && node.getTag().equals(Tag.SEQ)) {
             ArrayNode out = JSON.createArrayNode();
-            for (Node child : s.getValue()) out.add(yamlNode(child, depth + 1));
+            for (int i = 0; i < s.getValue().size(); i++) out.add(yamlNode(s.getValue().get(i), depth + 1, path + "[" + i + "]", locations));
             return out;
         }
         if (node instanceof ScalarNode s) {
@@ -110,10 +127,33 @@ public final class FeatureParser {
         }
         throw fail("$", "unsupported scalar or tag; quote string values");
     }
+    private static JsonNode jsonNode(JsonParser parser, String path, Map<String, int[]> locations) throws IOException {
+        var location = parser.currentTokenLocation();
+        locations.put(path, new int[]{location.getLineNr(), location.getColumnNr()});
+        if (parser.currentToken() == JsonToken.START_OBJECT) {
+            ObjectNode object = JSON.createObjectNode();
+            while (parser.nextToken() != JsonToken.END_OBJECT) {
+                if (parser.currentToken() != JsonToken.FIELD_NAME) throw fail(path, "JSON object key required");
+                String key = parser.currentName(); parser.nextToken();
+                object.set(key, jsonNode(parser, path + "." + key, locations));
+            }
+            return object;
+        }
+        if (parser.currentToken() == JsonToken.START_ARRAY) {
+            ArrayNode array = JSON.createArrayNode();
+            while (parser.nextToken() != JsonToken.END_ARRAY) {
+                if (parser.currentToken() == null) throw fail(path, "Unclosed array");
+                array.add(jsonNode(parser, path + "[" + array.size() + "]", locations));
+            }
+            return array;
+        }
+        if (parser.currentToken() == null) throw fail(path, "Empty or incomplete document");
+        return JSON.readTree(parser);
+    }
     private static void fields(JsonNode node, String path, String... expected) {
         if (node == null || !node.isObject()) throw fail(path, "object required");
         Set<String> allowed = Set.of(expected);
-        node.fieldNames().forEachRemaining(k -> { if (!allowed.contains(k)) throw fail(path, "unknown field: " + k.substring(0, Math.min(k.length(), 64))); });
+        node.fieldNames().forEachRemaining(k -> { if (!allowed.contains(k)) throw fail(path + "." + k, "unknown field: " + k.substring(0, Math.min(k.length(), 64))); });
         for (String key : expected) if (!node.hasNonNull(key)) throw fail(path + "." + key, "required field");
     }
     private static String string(JsonNode n, String path, int max) {

@@ -2,6 +2,37 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.2] - 2026-11-10
+
+### Added
+
+- Durable successful source revisions with checksummed metadata, startup recovery and configurable retention (default five, range 1–50).
+- `/ais history`, `/ais diff`, `/ais rollback` and per-feature status distinguishing running source from the editable file.
+- File/line/column/field diagnostics, with invalid-target correction; structured MCP locations use the same parser.
+- Rollback held across restarts without overwriting editable source; explicit reload releases the hold.
+- Recovery, retention, corruption, interrupted-save and abruptly halted child-JVM tests.
+- Cloud-themed README and 13 wiki pages covering installation, language, commands, recovery, diagnostics, testing, security, performance and expanded gameplay roadmap.
+
+### Changed
+
+- Valid editable sources activate automatically at startup. Invalid/missing files can recover saved working source; corrupt metadata blocks startup.
+- Invalid edits and unchanged reloads consume no history. Unchanged reloads do not advance registry generation.
+- Storage/audit failure attempts compensation; uncertain restoration quarantines operations.
+
+### Verification
+
+- Java 25 / Gradle clean check build: 70 tests passed, zero failures/errors/skips.
+- Packaged MCP subprocess passed.
+- Paper 26.3 build 245: 27 console checks across five boots and 100 distinct live reloads passed, including restart recovery, rollback, retention and corrupted storage.
+- See `docs/evidence/0.0.2/` for local evidence.
+
+### Upgrade and limitations
+
+- Stop Paper, back up the data directory, replace the old JAR, then restart. 0.0.1 has no revision history; first successful 0.0.2 activation creates it.
+- Only message actions exist. Block health/events and richer gameplay remain planned. AI deployment and server connectivity remain absent.
+- Atomic process-crash recovery is not a power-loss guarantee; filesystem directory-flush support varies. Keep owner backups.
+- 0.0.2 connected-player checks, Purpur, named MCP client interoperability and resource benchmarks remain open.
+
 ## [0.0.1] - 2026-11-09
 
 First experimental release. The previous local `0.1.0-dev` name was an unpublished development label; published versioning starts at **0.0.1**.
@@ -33,3 +64,5 @@ First experimental release. The previous local `0.1.0-dev` name was an unpublish
 - AI deployment remains unavailable until authoritative server permissions and security gates are implemented and tested.
 
 [0.0.1]: https://github.com/MistDig/AetherScript/releases/tag/v0.0.1
+
+[0.0.2]: https://github.com/MistDig/AetherScript/releases/tag/v0.0.2

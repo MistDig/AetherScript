@@ -1,0 +1,137 @@
+[
+  {
+    "test": "startup-autoload",
+    "result": "pass",
+    "detail": "[21:46:02 INFO]: AetherScript 0.0.2; 26.3-245-cd1c3b6 (MC: 26.3); ready=true; generation=1; features=1; busy=false; AI deployment=ABSENT; recovery=ENABLED"
+  },
+  {
+    "test": "message-A",
+    "result": "pass",
+    "detail": "[21:46:02 INFO]: Hello from AetherScript!"
+  },
+  {
+    "test": "validate",
+    "result": "pass",
+    "detail": "[21:46:02 INFO]: VALIDATED 1 feature(s); active generation unchanged"
+  },
+  {
+    "test": "unchanged-reload",
+    "result": "pass",
+    "detail": "[21:46:03 INFO]: UNCHANGED: no new revision; generation=1"
+  },
+  {
+    "test": "live-reload",
+    "result": "pass",
+    "detail": "[21:46:03 INFO]: ACTIVE generation=2 features=1; saved successfully"
+  },
+  {
+    "test": "message-B",
+    "result": "pass",
+    "detail": "[21:46:03 INFO]: Live revision B"
+  },
+  {
+    "test": "invalid-edit-rejected",
+    "result": "pass",
+    "detail": "[21:46:03 INFO]: Rejected; active generation unchanged. Last working scripts remain active."
+  },
+  {
+    "test": "invalid-file-status",
+    "result": "pass",
+    "detail": "[21:46:04 INFO]: File status: RUNNING SAVED VERSION - file has errors"
+  },
+  {
+    "test": "actionable-diagnostic",
+    "result": "pass",
+    "detail": "[21:46:04 INFO]: Found \"everyone\". Allowed: sender. Fix: set target to sender; only the invoking sender is permitted"
+  },
+  {
+    "test": "diff-running-vs-editable",
+    "result": "pass",
+    "detail": "[21:46:04 INFO]: + 11:         target: everyone"
+  },
+  {
+    "test": "last-working-message",
+    "result": "pass",
+    "detail": "[21:46:04 INFO]: Live revision B"
+  },
+  {
+    "test": "restart-invalid-edit-recovers-B",
+    "result": "pass",
+    "detail": "[21:46:23 INFO]: Live revision B"
+  },
+  {
+    "test": "restart-active-revision",
+    "result": "pass",
+    "detail": "[21:46:23 INFO]: hello-ai | Running: saved revision #2 (a00af8970ea1)"
+  },
+  {
+    "test": "100-changed-reloads",
+    "result": "pass",
+    "detail": "[21:46:52 INFO]: AetherScript 0.0.2; 26.3-245-cd1c3b6 (MC: 26.3); ready=true; generation=101; features=1; busy=false; AI deployment=ABSENT; recovery=ENABLED"
+  },
+  {
+    "test": "retention-five",
+    "result": "pass",
+    "detail": "[21:46:52 INFO]: hello-ai: 5/5 saved versions (internal copies; edit scripts/ only)"
+  },
+  {
+    "test": "rollback",
+    "result": "pass",
+    "detail": "[21:46:53 INFO]: ACTIVE generation=102 features=1; saved successfully"
+  },
+  {
+    "test": "rollback-message",
+    "result": "pass",
+    "detail": "[21:46:53 INFO]: Live revision 101"
+  },
+  {
+    "test": "rollback-edit-status",
+    "result": "pass",
+    "detail": "[21:46:53 INFO]: File status: RUNNING SAVED VERSION - file has unapplied changes"
+  },
+  {
+    "test": "rollback-held-on-restart",
+    "result": "pass",
+    "detail": "[21:47:07 INFO]: Live revision 101"
+  },
+  {
+    "test": "rollback-held-explanation",
+    "result": "pass",
+    "detail": "[21:47:07 INFO]: Rollback is held across restart. /ais reload hello-ai opts into the editable file."
+  },
+  {
+    "test": "explicit-reload-releases-hold",
+    "result": "pass",
+    "detail": "[21:47:08 INFO]: ACTIVE generation=2 features=1; saved successfully"
+  },
+  {
+    "test": "editable-message-restored",
+    "result": "pass",
+    "detail": "[21:47:08 INFO]: Live revision 102"
+  },
+  {
+    "test": "corrupt-active-falls-back",
+    "result": "pass",
+    "detail": "[21:47:23 INFO]: Live revision 101"
+  },
+  {
+    "test": "corrupt-active-new-pointer",
+    "result": "pass",
+    "detail": "[21:47:23 INFO]: hello-ai | Running: saved revision #101 (dcc30e4cc1e5)"
+  },
+  {
+    "test": "corrupt-manifest-blocks-startup",
+    "result": "pass",
+    "detail": "[21:47:37 INFO]: AetherScript 0.0.2; 26.3-245-cd1c3b6 (MC: 26.3); ready=false; generation=0; features=0; busy=false; AI deployment=ABSENT; recovery=ENABLED; STORAGE_CORRUPT: storage/manifest.json failed validation; restore it from an owner backup before retrying"
+  },
+  {
+    "test": "corrupt-manifest-explanation",
+    "result": "pass",
+    "detail": "[21:47:37 INFO]: AetherScript 0.0.2; 26.3-245-cd1c3b6 (MC: 26.3); ready=false; generation=0; features=0; busy=false; AI deployment=ABSENT; recovery=ENABLED; STORAGE_CORRUPT: storage/manifest.json failed validation; restore it from an owner backup before retrying"
+  },
+  {
+    "test": "corrupt-manifest-blocks-run",
+    "result": "pass",
+    "detail": "[21:47:37 INFO]: Feature unavailable or permission denied."
+  }
+]

@@ -1,71 +1,157 @@
-import subprocess, threading, queue, time, shutil, json, sys, argparse, hashlib, os, re
+"""Exercise a new loopback-only Paper server across saves, restarts and corruption."""
+import argparse, hashlib, json, os, queue, re, shutil, subprocess, threading, time
 from pathlib import Path
-parser=argparse.ArgumentParser(description='Disposable loopback-only Paper 26.3 smoke test')
-parser.add_argument('--server-jar',type=Path,required=True)
-parser.add_argument('--work-dir',type=Path,required=True,help='New disposable directory; must not already exist')
-parser.add_argument('--java',default='java')
-parser.add_argument('--accept-eula',action='store_true',help='Confirm acceptance of the Minecraft EULA for this disposable server')
-args=parser.parse_args()
-if not args.accept_eula: parser.error('Review https://aka.ms/MinecraftEULA and pass --accept-eula to run the server')
-repo=Path(__file__).resolve().parents[1];server=args.work_dir.resolve()
-if server.exists(): parser.error('work-dir already exists; choose a new disposable directory')
-jar=args.server_jar.resolve()
-expected='192d277ea1ce29b2df3933dd488521d4555cc82be864ea8df811fe536e8aed43'
-if hashlib.sha256(jar.read_bytes()).hexdigest()!=expected: parser.error('Paper server checksum mismatch; expected 26.3 build 245')
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--server-jar', type=Path, required=True)
+parser.add_argument('--work-dir', type=Path, required=True)
+parser.add_argument('--java', default='java')
+parser.add_argument('--accept-eula', action='store_true')
+args = parser.parse_args()
+if not args.accept_eula:
+    parser.error('Review https://aka.ms/MinecraftEULA and pass --accept-eula')
+repo = Path(__file__).resolve().parents[1]
+server = args.work_dir.resolve()
+if server.exists():
+    parser.error('work-dir must be a NEW disposable directory')
+jar = args.server_jar.resolve()
+if hashlib.sha256(jar.read_bytes()).hexdigest() != '192d277ea1ce29b2df3933dd488521d4555cc82be864ea8df811fe536e8aed43':
+    parser.error('Expected Paper 26.3 build 245 checksum')
+version = re.search(r'^version=(.+)$', (repo/'gradle.properties').read_text(), re.M).group(1)
 (server/'plugins').mkdir(parents=True)
-shutil.copy2(jar,server/'paper.jar')
-version=re.search(r'^version=(.+)$',(repo/'gradle.properties').read_text(),re.M).group(1)
-shutil.copy2(repo/'plugin-paper/build/libs'/f'plugin-paper-{version}.jar',server/'plugins/AetherScript.jar')
+shutil.copy2(jar, server/'paper.jar')
+shutil.copy2(repo/'plugin-paper/build/libs'/f'plugin-paper-{version}.jar', server/'plugins/AetherScript.jar')
 (server/'eula.txt').write_text('eula=true\n')
 (server/'server.properties').write_text('server-ip=127.0.0.1\nserver-port=25591\nonline-mode=false\nenforce-secure-profile=false\nview-distance=2\nsimulation-distance=2\nmax-players=2\nlevel-type=minecraft:flat\ngenerate-structures=false\nspawn-protection=0\n')
-lines=[]; q=queue.Queue(); evidence=[]
-p=subprocess.Popen([args.java,'-Xms512M','-Xmx1536M','-jar','paper.jar','--nogui'],cwd=server,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,encoding='utf-8',errors='replace',creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
-def read():
- for line in p.stdout:
-  lines.append(line); q.put(line)
-threading.Thread(target=read,daemon=True).start()
-def expect(text,timeout=120):
- deadline=time.monotonic()+timeout
- while time.monotonic()<deadline:
-  try: line=q.get(timeout=1)
-  except queue.Empty:
-   if p.poll() is not None: raise AssertionError(f'server exited {p.returncode}: '+''.join(lines[-20:]))
-   continue
-  if text in line: return line.strip()
- raise AssertionError('Timeout waiting for '+text+'\n'+''.join(lines[-15:]))
-def command(text,match):
- while not q.empty(): q.get_nowait()
- p.stdin.write(text+'\n');p.stdin.flush()
- return expect(match,30)
+evidence = []
+lines = []
+p = None
+q = queue.Queue()
+
+def expect(text, timeout=60):
+    deadline = time.monotonic()+timeout
+    while time.monotonic() < deadline:
+        try:
+            line = q.get(timeout=0.5)
+        except queue.Empty:
+            if p.poll() is not None:
+                raise AssertionError(f'Server exited {p.returncode}: '+''.join(lines[-20:]))
+            continue
+        if text in line:
+            return line.strip()
+    raise AssertionError('Timeout waiting for '+text+'\n'+''.join(lines[-20:]))
+
+def command(text, match):
+    # The response is posted at a main-thread boundary; give the I/O worker time to finish cleanup.
+    time.sleep(0.15)
+    while not q.empty():
+        q.get_nowait()
+    p.stdin.write(text+'\n')
+    p.stdin.flush()
+    return expect(match, 30)
+
+def check(name, text, match):
+    detail = command(text, match)
+    evidence.append(dict(test=name, result='pass', detail=detail))
+    print(name+': pass', flush=True)
+    return detail
+
+def start(blocked=False):
+    global p, q
+    q = queue.Queue()
+    offset = len(lines)
+    p = subprocess.Popen([args.java, '-Xms512M', '-Xmx1536M', '-jar', 'paper.jar', '--nogui'], cwd=server,
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding='utf-8', errors='replace',
+        creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
+    stream, output_queue = p.stdout, q
+    def read():
+        for line in stream:
+            lines.append(line)
+            output_queue.put(line)
+    threading.Thread(target=read, daemon=True).start()
+    expect('Done (', 180)
+    target = 'Startup blocked:' if blocked else 'Ready. Restored'
+    if not any(target in line for line in lines[offset:]):
+        expect(target, 60)
+
+def stop():
+    if p is not None and p.poll() is None:
+        p.stdin.write('stop\n')
+        p.stdin.flush()
+        try:
+            p.wait(timeout=45)
+        except subprocess.TimeoutExpired:
+            p.terminate()
+            p.wait(timeout=15)
+
+data = server/'plugins/AetherScript'
+source = data/'scripts/hello-ai.yml'
+original = (repo/'examples/hello-ai.yml').read_text()
+def edit(message):
+    source.write_text(original.replace('Hello from AetherScript!', message), encoding='utf-8')
+def history():
+    return json.loads((data/'storage/manifest.json').read_text())['state']['features']['hello-ai']
 try:
- expect('Done (',180)
- if not any('Ready. AI deployment absent' in line for line in lines): expect('Ready. AI deployment absent',30)
- evidence.append(dict(test='startup',result='pass',detail=command('ais status','AI deployment=ABSENT')))
- source=server/'plugins/AetherScript/scripts/hello-ai.yml'
- original=(repo/'examples/hello-ai.yml').read_text();source.write_text(original)
- evidence.append(dict(test='validate',result='pass',detail=command('ais validate','VALIDATED')))
- evidence.append(dict(test='initial-reload',result='pass',detail=command('ais reload','ACTIVE generation=1')))
- evidence.append(dict(test='message-A',result='pass',detail=command('ais run hello-ai','Hello from AetherScript!')))
- source.write_text(original.replace('Hello from AetherScript!','Live revision B'))
- evidence.append(dict(test='live-reload',result='pass',detail=command('ais reload hello-ai','ACTIVE generation=2')))
- evidence.append(dict(test='message-B',result='pass',detail=command('ais run hello-ai','Live revision B')))
- source.write_text(original.replace('message.send','console.run'))
- evidence.append(dict(test='invalid-reload',result='pass',detail=command('ais reload hello-ai','active generation unchanged')))
- evidence.append(dict(test='preserved-generation',result='pass',detail=command('ais status','generation=2')))
- evidence.append(dict(test='preserved-message',result='pass',detail=command('ais run hello-ai','Live revision B')))
- source.write_text(original.replace('Hello from AetherScript!','Live revision B'))
- for i in range(100): command('ais reload hello-ai',f'ACTIVE generation={i+3}')
- evidence.append(dict(test='100-reloads',result='pass',detail=command('ais status','generation=102')))
- evidence.append(dict(test='one-active-feature',result='pass',detail=command('ais list','Active: hello-ai')))
- evidence.append(dict(test='message-after-100',result='pass',detail=command('ais run hello-ai','Live revision B')))
- print(json.dumps(evidence,indent=2),flush=True)
-except Exception as exc:
- evidence.append(dict(test='smoke',result='fail',detail=str(exc)));print(str(exc),flush=True)
+    start()
+    check('startup-autoload', 'ais status', 'generation=1; features=1')
+    check('message-A', 'ais run hello-ai', 'Hello from AetherScript!')
+    check('validate', 'ais validate', 'VALIDATED 1')
+    check('unchanged-reload', 'ais reload hello-ai', 'UNCHANGED: no new revision; generation=1')
+    edit('Live revision B')
+    check('live-reload', 'ais reload hello-ai', 'ACTIVE generation=2')
+    check('message-B', 'ais run hello-ai', 'Live revision B')
+    source.write_text(original.replace('target: sender', 'target: everyone'), encoding='utf-8')
+    check('invalid-edit-rejected', 'ais reload hello-ai', 'active generation unchanged')
+    check('invalid-file-status', 'ais status hello-ai', 'RUNNING SAVED VERSION - file has errors')
+    check('actionable-diagnostic', 'ais status hello-ai', 'Fix: set target to sender')
+    check('diff-running-vs-editable', 'ais diff hello-ai', 'target: everyone')
+    check('last-working-message', 'ais run hello-ai', 'Live revision B')
+    assert history()['active'] == 2 and len(history()['revisions']) == 2
+    stop()
+    start()
+    check('restart-invalid-edit-recovers-B', 'ais run hello-ai', 'Live revision B')
+    check('restart-active-revision', 'ais status hello-ai', 'Running: saved revision #2')
+    # Each change is distinct, so this checks actual swaps and pruning rather than 100 no-ops.
+    for number in range(3, 103):
+        edit(f'Live revision {number}')
+        command('ais reload hello-ai', f'ACTIVE generation={number-1}')
+    check('100-changed-reloads', 'ais status', 'generation=101; features=1')
+    check('retention-five', 'ais history hello-ai', '5/5 saved versions')
+    assert [r['number'] for r in history()['revisions']] == [98, 99, 100, 101, 102]
+    assert len(list((data/'storage/revisions/hello-ai').glob('*.source'))) == 5
+    before = source.read_bytes()
+    check('rollback', 'ais rollback hello-ai', 'ACTIVE generation=102')
+    assert source.read_bytes() == before and history()['active'] == 101
+    check('rollback-message', 'ais run hello-ai', 'Live revision 101')
+    check('rollback-edit-status', 'ais status hello-ai', 'file has unapplied changes')
+    stop()
+    start()
+    check('rollback-held-on-restart', 'ais run hello-ai', 'Live revision 101')
+    check('rollback-held-explanation', 'ais status hello-ai', 'Rollback is held across restart')
+    check('explicit-reload-releases-hold', 'ais reload hello-ai', 'ACTIVE generation=2')
+    check('editable-message-restored', 'ais run hello-ai', 'Live revision 102')
+    stop()
+    # Corrupt the active saved bytes AND leave an invalid editable source: an older valid revision must win.
+    h = history()
+    active = next(r for r in h['revisions'] if r['number'] == h['active'])
+    (data/'storage/revisions/hello-ai'/f"{active['hash']}.source").write_text('damaged')
+    source.write_text(original.replace('target: sender', 'target: everyone'), encoding='utf-8')
+    start()
+    check('corrupt-active-falls-back', 'ais run hello-ai', 'Live revision 101')
+    check('corrupt-active-new-pointer', 'ais status hello-ai', 'Running: saved revision #101')
+    stop()
+    (data/'storage/manifest.json').write_text('{"broken":true}')
+    start(blocked=True)
+    check('corrupt-manifest-blocks-startup', 'ais status', 'ready=false')
+    check('corrupt-manifest-explanation', 'ais status', 'STORAGE_CORRUPT')
+    check('corrupt-manifest-blocks-run', 'ais run hello-ai', 'Feature unavailable or permission denied')
+except Exception as error:
+    evidence.append(dict(test='smoke', result='fail', detail=str(error)))
+    print(str(error), flush=True)
 finally:
- if p.poll() is None:
-  p.stdin.write('stop\n');p.stdin.flush()
-  try:p.wait(timeout=60)
-  except subprocess.TimeoutExpired:p.terminate();p.wait(timeout=15)
- (server/'smoke-console.log').write_text(''.join(lines),encoding='utf-8')
- (server/'smoke-results.json').write_text(json.dumps(evidence,indent=2),encoding='utf-8')
-if any(e['result']=='fail' for e in evidence): sys.exit(1)
+    stop()
+    (server/'smoke-console.log').write_text(''.join(lines), encoding='utf-8')
+    (server/'smoke-results.json').write_text(json.dumps(evidence, indent=2), encoding='utf-8')
+if any(e['result']=='fail' for e in evidence):
+    raise SystemExit(1)
+print(f'PASS: {len(evidence)} Paper checks; five server boots; 100 distinct reloads', flush=True)

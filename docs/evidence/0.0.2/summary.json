@@ -1,0 +1,19 @@
+{
+  "version": "0.0.2",
+  "automated": {
+    "tests": 70,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "paper": {
+    "checks": 27,
+    "boots": 5,
+    "distinctReloads": 100,
+    "sender": "console"
+  },
+  "artifacts": {
+    "plugin-paper\\build\\libs\\plugin-paper-0.0.2.jar": "fb11b2d734e143c35ac76adf8a0ff1a9276aa01511693dcccc5e7800fe89fc4d",
+    "gateway-mcp\\build\\libs\\gateway-mcp-0.0.2.jar": "fc21eda1be3e287426d877b73b893fe02780134e7455c4667da4d6c402dc9835"
+  }
+}

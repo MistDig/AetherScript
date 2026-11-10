@@ -17,110 +17,166 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
     private final ExecutorService io = new ThreadPoolExecutor(1, 1, 0, TimeUnit.MILLISECONDS,
         new ArrayBlockingQueue<>(8), r -> { Thread t = new Thread(r, "AetherScript-IO"); t.setDaemon(true); return t; });
     private volatile boolean running, ready;
-    private ScriptStore scripts;
+    private volatile String startupError = "";
+    private FeatureManager manager;
     private AuditLog audit;
 
     @Override public void onEnable() {
-        running = true;
+        running = true; busy.set(true);
         Objects.requireNonNull(getCommand("ais")).setExecutor(this);
         Objects.requireNonNull(getCommand("ais")).setTabCompleter((s,c,a,args) -> List.of());
         io.execute(() -> {
             try {
                 Path data = getDataFolder().toPath().toAbsolutePath().normalize();
-                Files.createDirectories(data.resolve("scripts"));
-                Files.createDirectories(data.resolve("audit"));
-                if (!data.toRealPath().equals(data) || !data.resolve("audit").toRealPath().equals(data.resolve("audit"))) throw new IOException("Unsafe data directory");
-                scripts = new ScriptStore(data.resolve("scripts"));
-                audit = new AuditLog(data.resolve("audit/local.jsonl"));
-                Path example = data.resolve("scripts/hello-ai.yml");
-                if (!Files.exists(example, LinkOption.NOFOLLOW_LINKS)) {
-                    try (InputStream input = getResource("hello-ai.yml")) { Files.copy(Objects.requireNonNull(input), example); }
+                Files.createDirectories(data);
+                if (!data.toRealPath().equals(data)) throw new IOException("Unsafe plugin data directory");
+                for (String directory : List.of("scripts", "audit")) {
+                    Path path = data.resolve(directory); Files.createDirectories(path);
+                    if (!path.toRealPath().equals(path) || Files.isSymbolicLink(path)) throw new IOException("Unsafe " + directory + " directory");
                 }
-                audit.append(UUID.randomUUID().toString(), "server", "startup", "EMPTY_REGISTRY", 0, Map.of());
-                ready = true;
-                getLogger().info("Ready. AI deployment absent. Use /ais reload to activate owner-reviewed local scripts.");
-            } catch (Exception e) { getLogger().severe("Initialization failed; mutations disabled: " + e.getClass().getSimpleName()); }
+                copyDefault("config.yml", data.resolve("config.yml"));
+                if (!Files.exists(data.resolve("storage"), LinkOption.NOFOLLOW_LINKS))
+                    copyDefault("hello-ai.yml", data.resolve("scripts/hello-ai.yml"));
+                EngineSettings settings = EngineSettings.load(data.resolve("config.yml"));
+                audit = new AuditLog(data.resolve("audit/local.jsonl"));
+                manager = new FeatureManager(new ScriptStore(data.resolve("scripts")), new RevisionStore(data.resolve("storage"), settings.retainVersions()));
+                var startup = manager.startup();
+                apply(null, "server", "startup", UUID.randomUUID().toString(), registry.snapshot(), startup);
+                onMain(() -> {
+                    ready = true;
+                    getLogger().info("Ready. Restored " + registry.snapshot().features().size() + " feature(s); saved-version limit=" + settings.retainVersions() + "; AI deployment absent.");
+                    return null;
+                });
+            } catch (Exception e) {
+                startupError = safeError(e);
+                getLogger().severe("Startup blocked: " + startupError);
+            } finally { busy.set(false); }
         });
+    }
+    private void copyDefault(String resource, Path destination) throws IOException {
+        if (!Files.exists(destination, LinkOption.NOFOLLOW_LINKS))
+            try (InputStream input = getResource(resource)) { Files.copy(Objects.requireNonNull(input), destination); }
     }
     @Override public void onDisable() {
         running = false; ready = false;
-        getServer().getScheduler().cancelTasks(this);
-        io.shutdownNow();
+        getServer().getScheduler().cancelTasks(this); io.shutdownNow();
         registry.replace(registry.snapshot().generation(), Map.of());
     }
-    private void main(Runnable action) {
-        if (!running) return;
-        try { getServer().getScheduler().runTask(this, () -> { if (running) action.run(); }); }
-        catch (org.bukkit.plugin.IllegalPluginAccessException ignored) { /* disabling */ }
+    /** The worker waits for a main-thread boundary; the main thread never waits for disk I/O. */
+    private <T> T onMain(Callable<T> action) throws Exception {
+        if (!running) throw new InterruptedException("Plugin stopping");
+        CompletableFuture<T> completion = new CompletableFuture<>();
+        getServer().getScheduler().runTask(this, () -> {
+            try {
+                if (!running) throw new IllegalStateException("Plugin stopping");
+                completion.complete(action.call());
+            } catch (Throwable e) { completion.completeExceptionally(e); }
+        });
+        try { return completion.get(); }
+        catch (ExecutionException e) { if (e.getCause() instanceof Exception cause) throw cause; throw e; }
     }
     private void say(CommandSender sender, String text) { sender.sendMessage(Component.text(text)); }
-    private String principal(CommandSender sender) {
-        return sender instanceof Player p ? "player:" + p.getUniqueId() : "local:" + sender.getName();
+    private void reply(CommandSender sender, List<String> lines) throws Exception {
+        onMain(() -> {
+            int limit = sender instanceof Player ? 30 : 400;
+            lines.stream().limit(limit).forEach(line -> { if (sender == null) getLogger().info(line); else say(sender, line); });
+            if (lines.size() > limit && sender != null) say(sender, "More entries omitted. Inspect /ais status <feature> or use the server console.");
+            return null;
+        });
     }
+    private String principal(CommandSender sender) { return sender instanceof Player p ? "player:" + p.getUniqueId() : "local:" + sender.getName(); }
     @Override public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (args.length < 1 || args.length > 2) { say(sender, "/ais <status|list|validate|reload|run> [feature]"); return true; }
-        String op = args[0].toLowerCase(Locale.ROOT);
+        if (args.length < 1 || args.length > 2) { say(sender, "/ais <status|list|validate|reload|run|history|diff|rollback> [feature]"); return true; }
+        String op = args[0].toLowerCase(Locale.ROOT), selected = args.length == 2 ? args[1] : null;
         if (op.equals("run")) {
-            if (args.length != 2 || !registry.run(args[1], sender instanceof Player, sender::hasPermission, text -> say(sender, text))) {
+            if (!ready || selected == null || !registry.run(selected, sender instanceof Player, sender::hasPermission, text -> say(sender, text)))
                 say(sender, "Feature unavailable or permission denied.");
-            }
             return true;
         }
         if (!sender.hasPermission("aetherscript.admin")) {
             say(sender, "PERMISSION_DENIED");
             if (ready && !busy.get()) {
                 String who = principal(sender);
-                try { io.execute(() -> { try { audit.append(UUID.randomUUID().toString(), who, "admin", "DENIED", registry.snapshot().generation(), Map.of()); } catch (IOException ignored) { getLogger().warning("Denied-request audit unavailable"); } }); }
-                catch (RejectedExecutionException ignored) { /* bounded denial queue */ }
+                try { io.execute(() -> { try { audit.append(UUID.randomUUID().toString(), who, "admin", "DENIED", registry.snapshot().generation(), Map.of()); }
+                    catch (IOException ignored) { getLogger().warning("Denied-request audit unavailable"); } }); }
+                catch (RejectedExecutionException ignored) { }
             }
             return true;
         }
-        switch (op) {
-            case "status" -> say(sender, "AetherScript " + BuildInfo.VERSION + "; " + getServer().getVersion() + "; ready=" + ready + "; generation=" + registry.snapshot().generation() + "; features=" + registry.snapshot().features().size() + "; busy=" + busy.get() + "; AI deployment=ABSENT; restart recovery=NOT IMPLEMENTED");
-            case "list" -> say(sender, "Active: " + String.join(", ", new TreeSet<>(registry.snapshot().features().keySet())));
-            case "reload", "validate" -> process(sender, op, args.length == 2 ? args[1] : null);
-            default -> say(sender, "Unknown operation. Use status, list, validate, reload, run.");
+        if (op.equals("status") && selected == null) {
+            say(sender, "AetherScript " + BuildInfo.VERSION + "; " + getServer().getVersion() + "; ready=" + ready + "; generation=" + registry.snapshot().generation()
+                + "; features=" + registry.snapshot().features().size() + "; busy=" + busy.get() + "; AI deployment=ABSENT; recovery=ENABLED"
+                + (startupError.isEmpty() ? "" : "; " + startupError));
+            return true;
         }
-        return true;
-    }
-    private void process(CommandSender sender, String op, String selected) {
-        if (!ready) { say(sender, "NOT_READY"); return; }
-        if (!busy.compareAndSet(false, true)) { say(sender, "BUSY: another validation/reload is pending"); return; }
-        String who = principal(sender), request = UUID.randomUUID().toString();
-        Registry.Snapshot before = registry.snapshot();
+        if (!Set.of("status", "list", "validate", "reload", "history", "diff", "rollback").contains(op)) { say(sender, "Unknown operation."); return true; }
+        if (Set.of("history", "diff", "rollback").contains(op) && selected == null) { say(sender, "/ais " + op + " <feature>"); return true; }
+        if (!ready) { say(sender, "NOT_READY: " + (startupError.isEmpty() ? "startup recovery in progress" : startupError)); return true; }
+        if (!busy.compareAndSet(false, true)) { say(sender, "BUSY: another inspection/reload is pending"); return true; }
+        Registry.Snapshot before = registry.snapshot(); String who = principal(sender), request = UUID.randomUUID().toString();
         try {
             io.execute(() -> {
                 try {
-                    Map<String, CompiledFeature> loaded = scripts.read(selected);
-                    Map<String, CompiledFeature> target = new TreeMap<>(selected == null ? Map.of() : before.features());
-                    target.putAll(loaded);
-                    // Validate whole candidate, including collisions, without touching the active registry.
-                    new Registry().replace(0, target);
-                    audit.append(request, who, op, op.equals("reload") ? "INTENT" : "VALIDATED", before.generation(), target);
-                    main(() -> {
-                        if (!sender.hasPermission("aetherscript.admin")) { busy.set(false); say(sender, "PERMISSION_DENIED: permission changed"); return; }
-                        if (op.equals("validate")) { busy.set(false); say(sender, "VALIDATED " + loaded.size() + " feature(s); active generation unchanged"); return; }
-                        try {
-                            Registry.Snapshot activated = registry.replace(before.generation(), target);
-                            io.execute(() -> {
-                                try {
-                                    audit.append(request, who, op, "ACTIVE", activated.generation(), target);
-                                    main(() -> { busy.set(false); say(sender, "ACTIVE generation=" + activated.generation() + " features=" + target.size()); });
-                                } catch (IOException e) {
-                                    main(() -> {
-                                        registry.replace(activated.generation(), before.features());
-                                        busy.set(false); say(sender, "AUDIT_FAILED: previous registry restored as a new generation");
-                                    });
-                                }
-                            });
-                        } catch (RuntimeException e) { busy.set(false); say(sender, "RELOAD_FAILED: active registry unchanged"); }
-                    });
+                    switch (op) {
+                        case "status" -> reply(sender, manager.status(selected, before));
+                        case "list" -> reply(sender, manager.list(before));
+                        case "history" -> reply(sender, manager.history(selected));
+                        case "diff" -> reply(sender, manager.diff(selected));
+                        case "validate" -> {
+                            int count = manager.validate(selected, before);
+                            audit.append(request, who, op, "VALIDATED", before.generation(), before.features());
+                            reply(sender, List.of("VALIDATED " + count + " feature(s); active generation unchanged"));
+                        }
+                        case "reload", "rollback" -> apply(sender, who, op, request, before,
+                            op.equals("reload") ? manager.reload(selected, before) : manager.rollback(selected, before));
+                    }
                 } catch (Exception e) {
-                    try { audit.append(request, who, op, "REJECTED", before.generation(), Map.of()); } catch (IOException ignored) { /* mutation has not happened */ }
-                    String diagnostic = e instanceof ValidationException ? e.getMessage() : "SOURCE_OR_AUDIT_IO_FAILED";
-                    main(() -> { busy.set(false); say(sender, diagnostic + "; active generation unchanged"); });
-                }
+                    try { audit.append(request, who, op, "REJECTED", registry.snapshot().generation(), Map.of()); }
+                    catch (IOException ignored) { getLogger().warning("Rejected-operation audit unavailable"); }
+                    List<String> errors = new ArrayList<>();
+                    if (e instanceof FeatureManager.Rejected rejected) errors.addAll(rejected.diagnostics()); else errors.add(safeError(e));
+                    errors.add(registry.snapshot() == before ? "Rejected; active generation unchanged. Last working scripts remain active." : "Operation failed; inspect /ais status before retrying.");
+                    try { reply(sender, errors); } catch (Exception ignored) { }
+                } finally { busy.set(false); }
             });
         } catch (RejectedExecutionException e) { busy.set(false); say(sender, "BUSY"); }
+        return true;
+    }
+    private void apply(CommandSender sender, String who, String operation, String request, Registry.Snapshot before, FeatureManager.Change change) throws Exception {
+        if (!change.durable().changed() && before.features().equals(change.target())) {
+            audit.append(request, who, operation, "UNCHANGED", before.generation(), before.features());
+            List<String> messages = new ArrayList<>(change.messages());
+            messages.add("UNCHANGED: no new revision; generation=" + before.generation());
+            reply(sender, messages); return;
+        }
+        audit.append(request, who, operation, "INTENT", before.generation(), change.target());
+        Registry.Snapshot activated = onMain(() -> {
+            if (sender != null && !sender.hasPermission("aetherscript.admin")) throw new SecurityException("PERMISSION_DENIED: permission changed before activation");
+            return registry.replace(before.generation(), change.target());
+        });
+        try {
+            manager.store().commit(change.durable());
+            audit.append(request, who, operation, "ACTIVE", activated.generation(), change.target());
+        } catch (Exception failure) {
+            boolean restored = true;
+            try { manager.store().restore(change.durable().before()); }
+            catch (Exception restoreFailure) { restored = false; getLogger().severe("Storage recovery uncertain; operations quarantined. Restore an owner backup before restarting."); }
+            boolean safe = restored;
+            onMain(() -> {
+                registry.replace(activated.generation(), safe ? before.features() : Map.of());
+                if (!safe) { ready = false; startupError = "STORAGE_QUARANTINED"; } return null;
+            });
+            throw new IOException(safe ? "SAVE_FAILED: previous working registry restored as a new generation; editable files untouched" : "STORAGE_QUARANTINED: restore owner backup", failure);
+        }
+        List<String> messages = new ArrayList<>(change.messages());
+        messages.add("ACTIVE generation=" + activated.generation() + " features=" + change.target().size() + "; saved successfully");
+        reply(sender, messages);
+        try { manager.store().prune(); }
+        catch (IOException e) { getLogger().warning("Old revision cleanup incomplete; active saved versions remain protected."); }
+    }
+    private static String safeError(Exception e) {
+        if (e instanceof ValidationException || e instanceof SecurityException || e instanceof IOException)
+            return FeatureManager.display(e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+        return "OPERATION_FAILED: " + e.getClass().getSimpleName();
     }
 }
