@@ -74,7 +74,10 @@ public final class Main {
                 }
                 case "aether_capabilities" -> {
                     noArguments(args);
-                    value = Map.of("schemas", List.of(1), "actions", List.of("message.send"), "tools", List.of("aether_server_status", "aether_capabilities", "aether_validate"), "serverGrants", List.of(), "deploymentEnabled", false);
+                    value = Map.of("schemas", List.of(1), "actions", List.of("message.send"),
+                        "tools", List.of("aether_server_status", "aether_capabilities", "aether_validate"),
+                        "formats", List.of("yaml", "json", "aether"), "authoring", AuthoringGuide.metadata(),
+                        "serverGrants", List.of(), "deploymentEnabled", false);
                 }
                 case "aether_validate" -> {
                     if (args.size() != 2 || !args.path("source").isTextual() || !args.path("format").isTextual()) throw new IllegalArgumentException();
@@ -95,8 +98,8 @@ public final class Main {
         Map<String, Object> empty = Map.of("type", "object", "properties", Map.of(), "additionalProperties", false);
         return List.of(tool("aether_server_status", "Reports offline prototype status; does not contact a server", empty),
             tool("aether_capabilities", "Lists local validation capabilities; no server grants", empty),
-            tool("aether_validate", "Validates bounded YAML/JSON without execution or server authorization", Map.of("type", "object", "required", List.of("source", "format"),
-                "properties", Map.of("source", Map.of("type", "string", "maxLength", FeatureParser.MAX_BYTES), "format", Map.of("type", "string", "enum", List.of("yaml", "json"))), "additionalProperties", false)));
+            tool("aether_validate", "Validates bounded YAML/JSON/AetherScript source without server authorization", Map.of("type", "object", "required", List.of("source", "format"),
+                "properties", Map.of("source", Map.of("type", "string", "maxLength", FeatureParser.MAX_BYTES), "format", Map.of("type", "string", "enum", List.of("yaml", "json", "aether"))), "additionalProperties", false)));
     }
     private static Map<String, Object> tool(String name, String description, Map<String, Object> schema) {
         return Map.of("name", name, "description", description, "inputSchema", schema,

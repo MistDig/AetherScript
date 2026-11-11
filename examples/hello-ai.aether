@@ -1,0 +1,10 @@
+feature hello-ai version "1.0.0"
+command helloai permission "aetherscript.example.hello" sender any {
+  let greeting = "Hello"
+  let count = 2 + 3
+  if count == 5 {
+    send greeting + " from AetherScript!"
+  } else {
+    send "Unexpected count"
+  }
+}

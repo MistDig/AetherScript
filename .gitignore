@@ -42,3 +42,5 @@ site/.vitepress/cache/
 site/guide/
 site/changelog.md
 site/public/cloud-mascot.png
+site/public/llms.txt
+site/public/authoring-v1.json

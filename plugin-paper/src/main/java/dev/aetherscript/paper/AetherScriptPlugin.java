@@ -37,6 +37,7 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
                 copyDefault("config.yml", data.resolve("config.yml"));
                 if (!Files.exists(data.resolve("storage"), LinkOption.NOFOLLOW_LINKS)
                     && !Files.exists(data.resolve("scripts/hello-ai.json"), LinkOption.NOFOLLOW_LINKS)
+                    && !Files.exists(data.resolve("scripts/hello-ai.aether"), LinkOption.NOFOLLOW_LINKS)
                     && !Files.exists(data.resolve("scripts/hello-ai.yaml"), LinkOption.NOFOLLOW_LINKS))
                     copyDefault("hello-ai.yml", data.resolve("scripts/hello-ai.yml"));
                 EngineSettings settings = EngineSettings.load(data.resolve("config.yml"));

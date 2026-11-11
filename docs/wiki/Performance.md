@@ -1,4 +1,4 @@
-[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.2)
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.4)
 
 ---
 
@@ -24,8 +24,8 @@ Rust normally releases owned memory deterministically without a tracing collecto
 
 The immediate work is keeping invocation small and profiling realistic workloads: allocations, retained heap, GC pauses, invocation latency and p95/p99 tick time. The 100-reload test is a behavior test, not a leak or TPS benchmark.
 
-[Performance policy](https://github.com/MistDig/AetherScript/blob/v0.0.2/docs/performance.md)
+[Performance policy](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/performance.md)
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.2
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.4

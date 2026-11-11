@@ -42,6 +42,27 @@ class ProtocolTest {
         assertFalse(status.path("connected").asBoolean());assertFalse(status.path("deploymentEnabled").asBoolean());
         assertEquals(-32602,request("tools/call",Map.of("name","aether_server_status","arguments",Map.of("path","secret"))).path("error").path("code").asInt());
     }
+    @Test void textualAuthoringIsDiscoverableAndUsesTheSharedValidator() throws Exception {
+        initialize();
+        var capabilities = request("tools/call", Map.of("name", "aether_capabilities", "arguments", Map.of()))
+            .path("result").path("structuredContent");
+        assertTrue(capabilities.path("formats").toString().contains("aether"));
+        assertTrue(capabilities.path("authoring").isObject());
+        var tools = request("tools/list", Map.of()).path("result").path("tools");
+        assertTrue(tools.get(2).path("inputSchema").path("properties").path("format").path("enum").toString().contains("aether"));
+        String source = Files.readString(Path.of("../examples/hello-ai.aether"));
+        var valid = request("tools/call", Map.of("name", "aether_validate", "arguments", Map.of("source", source, "format", "aether")))
+            .path("result");
+        assertFalse(valid.path("isError").asBoolean());
+        assertEquals("hello-ai", valid.path("structuredContent").path("featureId").asText());
+        assertEquals(FeatureParser.hash(source.getBytes(java.nio.charset.StandardCharsets.UTF_8)), valid.path("structuredContent").path("sourceHash").asText());
+        var invalid = request("tools/call", Map.of("name", "aether_validate", "arguments", Map.of(
+            "source", source.replace("let count = 2 + 3", "let count = missing"), "format", "aether")))
+            .path("result");
+        assertTrue(invalid.path("isError").asBoolean());
+        assertEquals(4, invalid.path("structuredContent").path("line").asInt());
+        assertTrue(invalid.path("structuredContent").path("column").asInt() > 0);
+    }
     @Test void stdioIsJsonOnlyAndNotificationsHaveNoResponse() throws Exception {
         var input="{\"jsonrpc\":\"2.0\",\"method\":\"notifications/cancelled\"}\n{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"ping\"}\n";
         ByteArrayOutputStream output=new ByteArrayOutputStream(); server.serve(new ByteArrayInputStream(input.getBytes()),output);

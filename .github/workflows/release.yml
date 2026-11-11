@@ -23,6 +23,8 @@ jobs:
         run: ./gradlew --no-daemon clean check build
       - name: Verify packaged MCP process
         run: python integration-tests/mcp_stdio.py
+      - name: Verify AI authoring and CLI through packaged JAR
+        run: python integration-tests/ai_authoring.py
       - name: Prepare release and verify tag version
         env:
           RELEASE_TAG: ${{ github.ref_name }}

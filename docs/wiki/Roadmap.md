@@ -1,4 +1,4 @@
-[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.2)
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.4)
 
 ---
 
@@ -37,8 +37,8 @@ Remote servers need owner-provisioned identities, TLS/mTLS or a reviewed private
 
 Performance measurements and connected-player checks remain release gates. Purpur needs independent tests; Folia is outside the current claim.
 
-[Engineering roadmap](https://github.com/MistDig/AetherScript/blob/v0.0.2/docs/roadmap.md)
+[Capability matrix](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/capabilities.csv) · [Engineering roadmap](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/roadmap.md)
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.2
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.4

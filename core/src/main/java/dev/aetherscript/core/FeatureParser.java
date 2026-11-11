@@ -21,6 +21,7 @@ public final class FeatureParser {
         .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION).build());
 
     public CompiledFeature parse(byte[] source, String format) {
+        if (format.equals("aether")) return new TextFrontend().parse(source);
         Map<String, int[]> locations = new HashMap<>();
         if (source.length > MAX_BYTES) throw fail("$", "source exceeds 65536 bytes");
         try {
@@ -50,7 +51,7 @@ public final class FeatureParser {
                     if (event instanceof CollectionStartEvent c && c.getTag() != null) throw fail("$", "explicit tags forbidden");
                 }
                 root = yamlNode(yaml.compose(new StringReader(text)), 0, "$", locations);
-            } else throw fail("$", "format must be yaml or json");
+            } else throw fail("$", "format must be yaml, json, or aether");
             fields(root, "$", "schemaVersion", "id", "version", "requires", "commands");
             if (!root.get("schemaVersion").isIntegralNumber() || !root.get("schemaVersion").canConvertToInt() || root.get("schemaVersion").intValue() != 1)
                 throw fail("$.schemaVersion", "only version 1 is supported");

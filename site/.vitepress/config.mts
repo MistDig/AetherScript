@@ -7,7 +7,7 @@ export default defineConfig({
   head: [
     ['meta', { name: 'theme-color', content: '#1479ee' }],
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/AetherScript/favicon.svg' }],
-    ['meta', { property: 'og:title', content: 'AetherScript — your server, your little universe.' }],
+    ['meta', { property: 'og:title', content: 'AetherScript â€” your server, your little universe.' }],
     ['meta', { property: 'og:description', content: 'Build something lovely. Live script reloads, saved working versions, and a guide for every step.' }],
     ['meta', { property: 'og:image', content: 'https://mistdig.github.io/AetherScript/cloud-mascot.png' }]
   ],
@@ -27,6 +27,7 @@ export default defineConfig({
       { text: 'START SMALL', items: [
         { text: 'Getting started', link: '/guide/getting-started' },
         { text: 'Language & examples', link: '/guide/language' },
+        { text: 'Writing scripts with AI', link: '/guide/ai-authoring' },
         { text: 'Commands & permissions', link: '/guide/commands' }
       ] },
       { text: 'KEEP IT WORKING', items: [
@@ -44,7 +45,7 @@ export default defineConfig({
     search: { provider: 'local', options: { detailedView: true } },
     outline: { level: [2, 3], label: 'On this page' },
     socialLinks: [{ icon: 'github', link: 'https://github.com/MistDig/AetherScript' }],
-    footer: { message: 'A little cloud. A careful engine. Your next idea.', copyright: `AetherScript ${version} · Apache-2.0 · Experimental` },
+    footer: { message: 'A little cloud. A careful engine. Your next idea.', copyright: `AetherScript ${version} Â· Apache-2.0 Â· Experimental` },
     // Custom data is serialized by VitePress for the homepage download button.
     releaseVersion: version
   }

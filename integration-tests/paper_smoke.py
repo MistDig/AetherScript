@@ -8,7 +8,10 @@ parser.add_argument('--work-dir', type=Path, required=True)
 parser.add_argument('--java', default='java')
 parser.add_argument('--accept-eula', action='store_true')
 parser.add_argument('--existing-json', action='store_true', help='Seed a JSON example as an upgrade with no revision storage')
+parser.add_argument('--aether', action='store_true', help='Exercise textual source, diagnostics and restart recovery')
 args = parser.parse_args()
+if args.existing_json and args.aether:
+    parser.error('Choose --existing-json or --aether')
 if not args.accept_eula:
     parser.error('Review https://aka.ms/MinecraftEULA and pass --accept-eula')
 repo = Path(__file__).resolve().parents[1]
@@ -86,13 +89,19 @@ def stop():
             p.wait(timeout=15)
 
 data = server/'plugins/AetherScript'
-source = data/'scripts/hello-ai.yml'
-original = (repo/'examples/hello-ai.yml').read_text()
+source = data/('scripts/hello-ai.aether' if args.aether else 'scripts/hello-ai.yml')
+original = (repo/('examples/hello-ai.aether' if args.aether else 'examples/hello-ai.yml')).read_text(encoding='utf-8')
 if args.existing_json:
     source.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(repo/'examples/hello-ai.json', source.with_suffix('.json'))
+elif args.aether:
+    source.parent.mkdir(parents=True, exist_ok=True)
+    source.write_text(original, encoding='utf-8')
+
+invalid_source = original.replace('let count = 2 + 3', 'let count = missing') if args.aether else original.replace('target: sender', 'target: everyone')
 def edit(message):
-    source.write_text(original.replace('Hello from AetherScript!', message), encoding='utf-8')
+    changed = original.replace('send greeting + " from AetherScript!"', 'send '+json.dumps(message)) if args.aether else original.replace('Hello from AetherScript!', message)
+    source.write_text(changed, encoding='utf-8')
 def history():
     return json.loads((data/'storage/manifest.json').read_text())['state']['features']['hello-ai']
 try:
@@ -105,14 +114,17 @@ try:
         assert not source.exists(), 'Bundled YAML must not conflict with existing JSON'
         evidence.append(dict(test='existing-json-upgrade', result='pass', detail='JSON activated; no conflicting bundled YAML was created'))
         source.with_suffix('.json').unlink()  # This disposable fixture switches to YAML for the following edits.
+    elif args.aether:
+        assert not source.with_suffix('.yml').exists(), 'Bundled YAML must not conflict with existing textual source'
+        evidence.append(dict(test='textual-startup', result='pass', detail='Textual variables, expressions and condition compiled and invoked through Paper'))
     edit('Live revision B')
     check('live-reload', 'ais reload hello-ai', 'ACTIVE generation=2')
     check('message-B', 'ais run hello-ai', 'Live revision B')
-    source.write_text(original.replace('target: sender', 'target: everyone'), encoding='utf-8')
+    source.write_text(invalid_source, encoding='utf-8')
     check('invalid-edit-rejected', 'ais reload hello-ai', 'active generation unchanged')
     check('invalid-file-status', 'ais status hello-ai', 'RUNNING SAVED VERSION - file has errors')
-    check('actionable-diagnostic', 'ais status hello-ai', 'Fix: set target to sender')
-    check('diff-running-vs-editable', 'ais diff hello-ai', 'target: everyone')
+    check('actionable-diagnostic', 'ais status hello-ai', 'Fix that editable file' if args.aether else 'Fix: set target to sender')
+    check('diff-running-vs-editable', 'ais diff hello-ai', 'let count = missing' if args.aether else 'target: everyone')
     check('last-working-message', 'ais run hello-ai', 'Live revision B')
     assert history()['active'] == 2 and len(history()['revisions']) == 2
     stop()
@@ -143,7 +155,7 @@ try:
     h = history()
     active = next(r for r in h['revisions'] if r['number'] == h['active'])
     (data/'storage/revisions/hello-ai'/f"{active['hash']}.source").write_text('damaged')
-    source.write_text(original.replace('target: sender', 'target: everyone'), encoding='utf-8')
+    source.write_text(invalid_source, encoding='utf-8')
     start()
     check('corrupt-active-falls-back', 'ais run hello-ai', 'Live revision 101')
     check('corrupt-active-new-pointer', 'ais status hello-ai', 'Running: saved revision #101')

@@ -1,23 +1,12 @@
 <script setup>
+import authoring from '../../../core/src/main/resources/aetherscript-authoring-v1.json'
 import { ref } from 'vue'
 import { withBase, useData } from 'vitepress'
 const { theme } = useData()
 const copyState = ref('')
-const example = `schemaVersion: 1
-id: hello-ai
-version: "1.0.0"
-requires:
-  - runtime.message.send
-commands:
-  - name: helloai
-    permission: aetherscript.example.hello
-    sender: any
-    actions:
-      - type: message.send
-        target: sender
-        text: "A little magic starts here."`
+const example = authoring.template
 async function copyExample() {
-  try { await navigator.clipboard.writeText(example); copyState.value = 'Copied. Save as hello-ai.yml.' }
+  try { await navigator.clipboard.writeText(example); copyState.value = 'Copied. Save as cloud-note.aether.' }
   catch { copyState.value = 'Copy unavailable. Select the example text to copy it.' }
 }
 const features = [
@@ -69,12 +58,12 @@ const features = [
       <h2 id="example-title">Your first bit<br>of server magic.</h2>
       <p>Start with a message. Make it yours. Then see it change in game with one reload.</p>
       <ol class="workflow-list"><li><span>1</span><div><strong>Write a little</strong><p>One editable file in your scripts folder.</p></div></li><li><span>2</span><div><strong>Reload your idea</strong><p>Validate it, then activate the change.</p></div></li><li><span>3</span><div><strong>Keep the good version</strong><p>Successful changes are saved for recovery.</p></div></li></ol>
-      <a class="text-link" :href="withBase('/guide/language.html')">Explore the language <span aria-hidden="true">→</span></a>
+      <a class="text-link" :href="withBase('/guide/ai-authoring.html')">Write and validate a script <span aria-hidden="true">→</span></a>
     </div>
     <div class="code-window">
-      <div class="window-bar"><div class="window-dots" aria-hidden="true"><i></i><i></i><i></i></div><span>hello-ai.yml</span><button type="button" @click="copyExample" aria-label="Copy the complete hello-ai YAML example">Copy</button></div>
-      <pre tabindex="0" aria-label="Complete hello-ai YAML script"><code>{{ example }}</code></pre>
-      <div class="example-console"><span>EXAMPLE SESSION</span><code>&gt; /ais reload hello-ai</code><p><span class="tiny-dot" aria-hidden="true"></span> ACTIVE · saved successfully</p></div>
+      <div class="window-bar"><div class="window-dots" aria-hidden="true"><i></i><i></i><i></i></div><span>cloud-note.aether</span><button type="button" @click="copyExample" aria-label="Copy the complete cloud-note AetherScript example">Copy</button></div>
+      <pre tabindex="0" aria-label="Complete cloud-note AetherScript script"><code>{{ example }}</code></pre>
+      <div class="example-console"><span>EXAMPLE SESSION</span><code>&gt; /ais reload cloud-note</code><p><span class="tiny-dot" aria-hidden="true"></span> ACTIVE · saved successfully</p></div>
       <p class="copy-feedback" role="status" aria-live="polite">{{ copyState }}</p>
     </div>
   </section>

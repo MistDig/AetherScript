@@ -13,3 +13,4 @@ jobs:
           java-version: '25'
       - run: chmod +x gradlew
       - run: ./gradlew --no-daemon clean check build
+      - run: python integration-tests/ai_authoring.py

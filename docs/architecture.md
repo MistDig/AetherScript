@@ -2,7 +2,7 @@
 
 Three modules share one bounded, typed engine:
 
-- `core`: strict YAML/JSON parser with source locations; immutable definitions/registry; source inspection; revision storage/recovery; strict owner settings; local audit.
+- `core`: bounded native text frontend and strict YAML/JSON parser with source locations; immutable definitions/registry; source inspection; revision storage/recovery; strict owner settings; local audit.
 - `plugin-paper`: static `/ais` dispatcher, permissions, Adventure plain-text messages, main-thread activation/effects, one bounded I/O worker.
 - `gateway-mcp`: isolated stdio process using the same parser. No server bridge, filesystem reads or mutation tools.
 
@@ -27,3 +27,7 @@ Startup normally loads valid editable files. Invalid/missing sources fall back t
 One command per feature; only `message.send` to sender; no aliases, events, variables, world mutation, network listener or AI deployment. Config only selects supported retention, not security bypasses. Future events/tasks must carry generation identity and implement cleanup, threading and quota rules before shipping.
 
 See `docs/wiki/Revisions-and-Recovery.md` for operator behavior and `docs/roadmap.md` for security gates.
+
+## Native script preparation
+
+The text frontend checks local bindings and both branches of a conditional during preparation. It evaluates the selected branch and emits the same immutable sender-message actions used by structured features. The Paper invocation path checks the command permission and sender restriction. Offline validation uses the same compiler through the CLI and MCP. The packaged JSON authoring contract supplies the template for the website and both tools.

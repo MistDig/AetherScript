@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 const dist = resolve(dirname(fileURLToPath(import.meta.url)), '../.vitepress/dist');
 const files = (path) => readdirSync(path).flatMap(name => { const p=resolve(path,name); return statSync(p).isDirectory()?files(p):[p] });
 const htmlFiles=files(dist).filter(p=>p.endsWith('.html'));
-assert.equal(htmlFiles.length,12,'Homepage, nine guides, changelog and 404 must be generated');
+assert.equal(htmlFiles.length,13,'Homepage, ten guides, changelog and 404 must be generated');
 let checked=0;
 for(const file of htmlFiles){
  const html=readFileSync(file,'utf8');
@@ -31,7 +31,7 @@ for(const file of htmlFiles){
 assert.ok(files(dist).filter(p => /404\.md\..*\.js$/.test(p)).some(p => readFileSync(p,'utf8').includes('Return to the guide')), 'Custom not-found page must provide a way home');
 const home=readFileSync(resolve(dist,'index.html'),'utf8');
 assert.match(home,/Your little universe/);
-assert.match(home,/Copy the complete hello-ai YAML example/);
+assert.match(home,/Copy the complete cloud-note AetherScript example/);
 assert.match(home,/AI deployment is absent/);
 assert.match(home,/cloud-mascot\.png/);
 const search=files(dist).find(p=>p.includes('@localSearchIndexroot'));
@@ -39,8 +39,12 @@ assert.ok(search,'Local full-text search index must exist');
 const serialized=(await import(pathToFileURL(search).href)).default;
 const fields=Object.keys(JSON.parse(serialized).fieldIds);
 const searchEngine=MiniSearch.loadJSON(serialized,{fields});
-for(const [query,route] of [['rollback','recovery'],['permission','commands'],['cooldowns','roadmap'],['target','language']]) {
+for(const [query,route] of [['rollback','recovery'],['permission','commands'],['cooldowns','roadmap'],['target','language'],['immutable','ai-authoring']]) {
  const matches=searchEngine.search(query,{prefix:true,fuzzy:0.2});
  assert.ok(matches.some(result=>result.id.includes(`/guide/${route}.html`)),`Search query ${query} did not find ${route}`);
 }
-console.log(JSON.stringify({result:'pass',htmlPages:htmlFiles.length,localTargetsChecked:checked,searchQueries:4,base:'/AetherScript/'},null,2));
+console.log(JSON.stringify({result:'pass',htmlPages:htmlFiles.length,localTargetsChecked:checked,searchQueries:5,base:'/AetherScript/'},null,2));
+
+const contract = readFileSync(resolve(dist, '../../../core/src/main/resources/aetherscript-authoring-v1.json'), 'utf8');
+assert.equal(readFileSync(resolve(dist, 'authoring-v1.json'), 'utf8'), contract);
+assert.ok(readFileSync(resolve(dist, 'llms.txt'), 'utf8').includes(JSON.parse(contract).template));

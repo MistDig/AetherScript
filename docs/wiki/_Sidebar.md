@@ -8,6 +8,7 @@
 
 - [Home](https://github.com/MistDig/AetherScript/wiki/Home)
 - [Getting Started](https://github.com/MistDig/AetherScript/wiki/Getting-Started)
+- [Writing scripts with AI](https://github.com/MistDig/AetherScript/wiki/AI-Authoring)
 - [Language Reference](https://github.com/MistDig/AetherScript/wiki/Language-Reference)
 - [Commands](https://github.com/MistDig/AetherScript/wiki/Commands)
 
@@ -25,4 +26,4 @@
 
 ---
 
-[↓ Download 0.0.2](https://github.com/MistDig/AetherScript/releases/tag/v0.0.2)
+[↓ Download 0.0.2](https://github.com/MistDig/AetherScript/releases/tag/v0.0.4)

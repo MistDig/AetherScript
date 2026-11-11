@@ -1,5 +1,9 @@
 # Roadmap and exit gates
 
+## Release 0.0.4 — native authoring
+
+The first language slice prepares checked expressions, local bindings and conditional sender messages. The CLI, Paper and read-only MCP share a compiler. The next engine milestone adds invocation-time expressions before functions, events and persistent player state. Follow the [dependency backlog](ecosystem/backlog.md) and [capability matrix](ecosystem/capabilities.csv) for the scope and acceptance criteria of each feature.
+
 ## Release 0.0.2 — recovery and diagnostics
 
 Implemented: saved successful revisions, startup loading/recovery, field/line/column diagnostics, running-versus-editable status, bounded diffs, history and rollback held across restarts. Default retention is five, configurable 1–50. Tests include abruptly halted JVMs and real Paper recovery/corruption checks. This is a subset of durable deployment work, not completion of the security milestone.

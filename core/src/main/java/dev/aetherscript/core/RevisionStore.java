@@ -215,7 +215,7 @@ public final class RevisionStore {
     }
     private static void validateRevision(Revision revision) throws IOException {
         if (revision == null || revision.number() < 1 || revision.hash() == null || !revision.hash().matches("[a-f0-9]{64}")
-            || !Set.of("yaml", "yml", "json").contains(revision.format()) || revision.savedAt() == null) throw new IOException("Invalid saved revision");
+            || !Set.of("yaml", "yml", "json", "aether").contains(revision.format()) || revision.savedAt() == null) throw new IOException("Invalid saved revision");
         try { Instant.parse(revision.savedAt()); } catch (RuntimeException e) { throw new IOException("Invalid revision timestamp", e); }
     }
     private static byte[] readBounded(Path file, int max) throws IOException {

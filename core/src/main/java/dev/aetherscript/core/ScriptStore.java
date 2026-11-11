@@ -22,13 +22,13 @@ public final class ScriptStore {
                 String name = file.getFileName().toString(); int dot = name.lastIndexOf('.');
                 if (dot < 0) continue;
                 String format = name.substring(dot + 1), id = name.substring(0, dot);
-                if (!Set.of("yml", "yaml", "json").contains(format) || (selected != null && !selected.equals(id))) continue;
+                if (!Set.of("yml", "yaml", "json", "aether").contains(format) || (selected != null && !selected.equals(id))) continue;
                 SourceFile source = null;
                 try {
                     FeatureParser.requireId(id);
                     if (result.containsKey(id)) {
                         result.put(id, new Inspection(id, result.get(id).fileName() + " + " + name, null, null,
-                            new ValidationException("$.id", "Duplicate feature ID. Keep one editable .yml, .yaml, or .json file for this ID.")));
+                            new ValidationException("$.id", "Duplicate feature ID. Keep one editable .yml, .yaml, .json, or .aether file for this ID.")));
                         continue;
                     }
                     if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS) || !file.toRealPath().getParent().equals(root)) throw new IOException("Unsafe source file");
@@ -42,7 +42,7 @@ public final class ScriptStore {
                 catch (IOException e) { result.put(id, new Inspection(id, name, null, null, new ValidationException("$", "Source file cannot be read safely. Check that it is a regular file inside scripts/."))); }
             }
         }
-        if (selected != null && result.isEmpty()) result.put(selected, new Inspection(selected, selected + ".yml/.json", null, null,
+        if (selected != null && result.isEmpty()) result.put(selected, new Inspection(selected, selected + ".yml/.yaml/.json/.aether", null, null,
             new ValidationException("$", "Editable file is missing. Restore it in scripts/ or use the existing saved version.")));
         return Collections.unmodifiableMap(result);
     }

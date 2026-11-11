@@ -1,0 +1,67 @@
+{
+  "languageVersion": 1,
+  "format": "aether",
+  "fileExtension": ".aether",
+  "exampleFile": "cloud-note.aether",
+  "template": "feature cloud-note version \"1.0.0\"\ncommand cloud-note permission \"aetherscript.example.cloud\" sender any {\n  let message = \"Welcome to the clouds.\"\n  let stars = 2 + 1\n  if stars >= 3 {\n    send message\n  } else {\n    send \"Keep exploring.\"\n  }\n}\n",
+  "evaluation": "Pure local expressions and branches are evaluated when preparing a revision. Emitted sender messages execute when the command is invoked.",
+  "entryPoint": "/ais run <feature-id>",
+  "capabilities": [
+    "runtime.message.send"
+  ],
+  "authoringRules": [
+    "Match the feature ID to the filename.",
+    "Keep the command name unique among active features.",
+    "Write each statement on its own line and delimit blocks with braces.",
+    "Keep permission nodes explicit and preserve them when editing message text.",
+    "Use quoted text, integer literals or booleans. Local types are inferred and bindings are immutable.",
+    "Check both branches for type errors. Use text(value) for explicit conversion.",
+    "Validate the complete edited source before requesting a local reload."
+  ],
+  "valueTypes": [
+    "text",
+    "integer",
+    "boolean"
+  ],
+  "statements": [
+    "let name = expression",
+    "send textExpression",
+    "if booleanExpression { ... } else { ... }"
+  ],
+  "operations": [
+    {
+      "id": "runtime.message.send",
+      "arguments": {
+        "text": "text"
+      },
+      "returns": "unit",
+      "target": "invoking sender",
+      "executionContext": "Paper main thread",
+      "permissions": "declared command permission on invocation and before each action",
+      "owner": "active feature revision",
+      "errors": "invalid text is rejected during preparation",
+      "example": "send \"Welcome!\"",
+      "platform": "Paper 26.3 build 245"
+    }
+  ],
+  "validation": {
+    "tool": "aether_validate",
+    "arguments": {
+      "format": "aether",
+      "source": "entire edited text"
+    },
+    "errorFields": [
+      "code",
+      "path",
+      "reason",
+      "line",
+      "column"
+    ],
+    "locations": "one-based when available"
+  },
+  "editExample": {
+    "before": "Welcome to the clouds.",
+    "after": "Welcome to our server.",
+    "expectedChange": "Only the greeting changes. Feature ID, permission and sender remain the same."
+  }
+}

@@ -1,5 +1,11 @@
 # Actual test results
 
+## Release 0.0.4 — native language and AI editing
+
+The Java 25 clean build passed all 113 tests. The packaged authoring test performed seven checks, including a valid single-line edit, comment-only edit and precise type error through both CLI and MCP. The packaged MCP stdio protocol check passed independently.
+
+Paper 26.3 build 245 passed 28 console checks on the final plugin across five boots and 100 distinct reloads of a native script. These exercised validation, changed messages, rejected edits, rollback, restart and corrupted storage. A connected-player test of the new version remains open. The documentation checks passed on 13 pages with five full-text search queries. [Verification records](evidence/0.0.4/)
+
 ## Release 0.0.3 — documentation site
 
 Java 25 clean check build passed all 70 automated tests and the packaged MCP process passed with 0.0.3 metadata. Documentation production build generated 12 pages; 384 local links/assets/anchors and four real MiniSearch queries passed. npm audit reported zero findings after the pinned Vite 6.4.6 override. Evidence is under `docs/evidence/0.0.3/`.

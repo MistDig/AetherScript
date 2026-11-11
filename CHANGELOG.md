@@ -2,6 +2,16 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.4] - 2026-11-11
+
+- Added native `.aether` command scripts with immutable local bindings, checked integer arithmetic, booleans, text conversion and conditionals. The compiler prepares sender messages during validation and reload. Paper checks the sender and permission on invocation.
+- Integrated native scripts with the existing revision store, rollback, diagnostics and restart recovery. YAML and JSON remain supported.
+- Published a machine-readable language contract, a complete editable template and an offline CLI. The read-only MCP exposes the same contract and compiler. The packaged authoring test checks a one-line change, an invalid expression and CLI/MCP agreement.
+- Added the language design decision, ecosystem gap report, 154-row capability matrix and dependency backlog. The matrix records existing evidence and future adapter work.
+- Added a copyable native example to the documentation homepage and a guide to authoring and validating edits. See the versioned verification records under `docs/evidence/0.0.4/`.
+
+- Verified 113 automated tests, seven packaged AI authoring checks and 28 Paper console checks across five boots and 100 distinct native-script reloads on Paper 26.3 build 245.
+
 ## [0.0.3] - 2026-11-10
 
 ### Added
