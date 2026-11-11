@@ -34,3 +34,11 @@ replay_pid*
 
 # Gradle wrapper is required for reproducible builds
 !gradle/wrapper/gradle-wrapper.jar
+
+# Generated documentation website
+site/node_modules/
+site/.vitepress/dist/
+site/.vitepress/cache/
+site/guide/
+site/changelog.md
+site/public/cloud-mascot.png

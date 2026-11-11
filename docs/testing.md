@@ -1,5 +1,13 @@
 # Actual test results
 
+## Release 0.0.3 — documentation site
+
+Java 25 clean check build passed all 70 automated tests and the packaged MCP process passed with 0.0.3 metadata. Documentation production build generated 12 pages; 384 local links/assets/anchors and four real MiniSearch queries passed. npm audit reported zero findings after the pinned Vite 6.4.6 override. Evidence is under `docs/evidence/0.0.3/`.
+
+The site reuses VitePress navigation, local search and appearance controls, with custom responsive/light/dark styles and native copy-example feedback. No computer-use/browser automation was used: these are build, generated-output and search-index checks, not interactive or pixel-level visual tests. Initial checks caught the generated default 404 lacking static navigation; a custom 404 was added, and its public asset path was corrected before the final passing build.
+
+Engine behavior is unchanged from 0.0.2. The real Paper run below belongs to 0.0.2 and was not repeated or relabeled for this docs release.
+
 ## Release 0.0.2
 
 Local Java 25 / Gradle 9.1 clean check build passed: **70 tests, zero failures/errors/skips** (35 existing core, 28 recovery, 7 protocol). Interrupted writes and three separate JVM halts cover pre-replacement and post-commit recovery. Additional cases cover retention reduction while recovering older content, corrupt manifests/content, rollback holds, unchanged/invalid saves, settings bounds and source diagnostics.

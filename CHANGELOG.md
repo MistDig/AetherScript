@@ -2,6 +2,24 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.3] - 2026-11-10
+
+### Added
+
+- Dedicated GitHub Pages documentation at https://mistdig.github.io/AetherScript/ using VitePress.
+- AetherScript homepage inspired by TicketPilot's blue gradients and rounded panels, with the existing smiling cloud mascot and original copy/artwork.
+- MistTags-style documentation structure: local full-text search, sidebar guides, dark/light appearance, mobile navigation, page outlines and copyable examples.
+- Nine guides generated from the existing wiki sources, plus changelog and a custom not-found page.
+- Pinned npm lockfile, patched Vite 6.4.6 build override (npm audit: zero findings), automated generated-link/anchor/search checks, and a Pages build/deploy workflow.
+- Wiki entry points and README links to the new documentation site.
+
+### Verification and scope
+
+- Documentation production build passed: 12 generated pages, 384 local links/assets/anchors checked, and four real full-text search queries passed.
+- Java 25 clean check build passed all 70 tests; the packaged MCP process passed for 0.0.3.
+- Engine behavior is unchanged from 0.0.2. Real Paper evidence remains the 0.0.2 run; no new gameplay or server compatibility claim.
+- No computer-use/browser automation was used. Responsive and theme styling is implemented, but an interactive browser visual test is not claimed.
+
 ## [0.0.2] - 2026-11-10
 
 ### Added
@@ -68,3 +86,5 @@ First experimental release. The previous local `0.1.0-dev` name was an unpublish
 [0.0.1]: https://github.com/MistDig/AetherScript/releases/tag/v0.0.1
 
 [0.0.2]: https://github.com/MistDig/AetherScript/releases/tag/v0.0.2
+
+[0.0.3]: https://github.com/MistDig/AetherScript/releases/tag/v0.0.3

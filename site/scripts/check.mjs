@@ -1,0 +1,46 @@
+import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import MiniSearch from 'minisearch';
+import assert from 'node:assert/strict';
+const dist = resolve(dirname(fileURLToPath(import.meta.url)), '../.vitepress/dist');
+const files = (path) => readdirSync(path).flatMap(name => { const p=resolve(path,name); return statSync(p).isDirectory()?files(p):[p] });
+const htmlFiles=files(dist).filter(p=>p.endsWith('.html'));
+assert.equal(htmlFiles.length,12,'Homepage, nine guides, changelog and 404 must be generated');
+let checked=0;
+for(const file of htmlFiles){
+ const html=readFileSync(file,'utf8');
+ assert.match(html, /name="viewport"/);
+ if(!file.endsWith('404.html')) assert.ok(html.includes('Skip to content'), `${file}: missing keyboard skip link`);
+ for(const match of html.matchAll(/(?:href|src)="([^"]+)"/g)){
+  const value=match[1].replaceAll('&amp;','&');
+  if(/^(https?:|data:|mailto:)/.test(value))continue;
+  const url=new URL(value,'https://mistdig.github.io/AetherScript/'+file.slice(dist.length+1).replaceAll('\\','/'));
+  assert.ok(url.pathname.startsWith('/AetherScript/'),`${file}: URL escaped repository base: ${value}`);
+  let target=resolve(dist,decodeURIComponent(url.pathname.slice('/AetherScript/'.length)));
+  if(existsSync(target)&&statSync(target).isDirectory())target=resolve(target,'index.html');
+  if(!existsSync(target)&&!target.endsWith('.html'))target+='.html';
+  assert.ok(existsSync(target),`${file}: missing target ${value}`);
+  if(url.hash&&target.endsWith('.html')){
+   const anchor=decodeURIComponent(url.hash.slice(1));
+   if(anchor)assert.ok(readFileSync(target,'utf8').includes(`id="${anchor}"`),`${file}: missing anchor ${value}`);
+  }
+  checked++;
+ }
+}
+assert.ok(files(dist).filter(p => /404\.md\..*\.js$/.test(p)).some(p => readFileSync(p,'utf8').includes('Return to the guide')), 'Custom not-found page must provide a way home');
+const home=readFileSync(resolve(dist,'index.html'),'utf8');
+assert.match(home,/Your little universe/);
+assert.match(home,/Copy the complete hello-ai YAML example/);
+assert.match(home,/AI deployment is absent/);
+assert.match(home,/cloud-mascot\.png/);
+const search=files(dist).find(p=>p.includes('@localSearchIndexroot'));
+assert.ok(search,'Local full-text search index must exist');
+const serialized=(await import(pathToFileURL(search).href)).default;
+const fields=Object.keys(JSON.parse(serialized).fieldIds);
+const searchEngine=MiniSearch.loadJSON(serialized,{fields});
+for(const [query,route] of [['rollback','recovery'],['permission','commands'],['cooldowns','roadmap'],['target','language']]) {
+ const matches=searchEngine.search(query,{prefix:true,fuzzy:0.2});
+ assert.ok(matches.some(result=>result.id.includes(`/guide/${route}.html`)),`Search query ${query} did not find ${route}`);
+}
+console.log(JSON.stringify({result:'pass',htmlPages:htmlFiles.length,localTargetsChecked:checked,searchQueries:4,base:'/AetherScript/'},null,2));

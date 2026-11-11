@@ -1,0 +1,19 @@
+{
+  "name": "aetherscript-docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sync": "node scripts/sync.mjs",
+    "dev": "npm run sync && vitepress dev . --host 127.0.0.1",
+    "build": "npm run sync && vitepress build .",
+    "check": "node scripts/check.mjs",
+    "preview": "vitepress preview . --host 127.0.0.1"
+  },
+  "devDependencies": {
+    "minisearch": "7.2.0",
+    "vitepress": "1.6.4"
+  },
+  "overrides": {
+    "vite": "6.4.6"
+  }
+}

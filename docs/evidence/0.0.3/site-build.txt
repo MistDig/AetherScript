@@ -1,0 +1,17 @@
+
+> build
+> npm run sync && vitepress build .
+
+
+> sync
+> node scripts/sync.mjs
+
+Synced 9 guides for 0.0.3
+
+  vitepress v1.6.4
+
+- building client + server bundles...
+✓ building client + server bundles...
+- rendering pages...
+✓ rendering pages...
+build complete in 13.92s.

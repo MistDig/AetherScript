@@ -1,3 +1,5 @@
+[**Open the documentation website ↗**](https://mistdig.github.io/AetherScript/)
+
 <p align="center"><img src="https://raw.githubusercontent.com/MistDig/AetherScript/v0.0.2/docs/assets/cloud-mascot.png" width="150" alt="Smiling AetherScript cloud"></p>
 
 **THE FIELD GUIDE**
