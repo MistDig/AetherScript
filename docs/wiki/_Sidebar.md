@@ -26,4 +26,4 @@
 
 ---
 
-[↓ Download 0.0.2](https://github.com/MistDig/AetherScript/releases/tag/v0.0.4)
+[↓ Download 0.0.2](https://github.com/MistDig/AetherScript/releases/tag/v0.0.5)

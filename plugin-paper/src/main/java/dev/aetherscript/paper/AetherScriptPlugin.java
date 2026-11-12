@@ -20,6 +20,7 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
     private volatile String startupError = "";
     private FeatureManager manager;
     private AuditLog audit;
+    private PairedStatusBridge bridge;
 
     @Override public void onEnable() {
         running = true; busy.set(true);
@@ -30,6 +31,7 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
                 Path data = getDataFolder().toPath().toAbsolutePath().normalize();
                 Files.createDirectories(data);
                 if (!data.toRealPath().equals(data)) throw new IOException("Unsafe plugin data directory");
+                Files.deleteIfExists(data.resolve("connection-details.json"));
                 for (String directory : List.of("scripts", "audit")) {
                     Path path = data.resolve(directory); Files.createDirectories(path);
                     if (!path.toRealPath().equals(path) || Files.isSymbolicLink(path)) throw new IOException("Unsafe " + directory + " directory");
@@ -62,6 +64,7 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
     }
     @Override public void onDisable() {
         running = false; ready = false;
+        if (bridge != null) { bridge.close(); bridge = null; }
         getServer().getScheduler().cancelTasks(this); io.shutdownNow();
         registry.replace(registry.snapshot().generation(), Map.of());
     }
@@ -89,8 +92,39 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
     }
     private String principal(CommandSender sender) { return sender instanceof Player p ? "player:" + p.getUniqueId() : "local:" + sender.getName(); }
     @Override public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (args.length < 1 || args.length > 2) { say(sender, "/ais <status|list|validate|reload|run|history|diff|rollback> [feature]"); return true; }
+        if (args.length < 1 || args.length > 2) { say(sender, "/ais <status|list|validate|reload|run|history|diff|rollback|pair|unpair> [feature]"); return true; }
         String op = args[0].toLowerCase(Locale.ROOT), selected = args.length == 2 ? args[1] : null;
+        if (op.equals("pair") || op.equals("unpair")) {
+            if (sender != getServer().getConsoleSender() || args.length != 1) { say(sender, "PAIRING_CONSOLE_ONLY: use the server console /ais " + op); return true; }
+            if (op.equals("unpair")) {
+                if (bridge != null) { bridge.close(); bridge = null; }
+                Path details = getDataFolder().toPath().resolve("connection-details.json");
+                try { io.execute(() -> { try { Files.deleteIfExists(details); } catch (IOException ignored) { } }); }
+                catch (RejectedExecutionException ignored) { }
+                say(sender, "Pairing revoked; status bridge stopped."); return true;
+            }
+            if (!ready) { say(sender, "NOT_READY: pairing requires completed startup recovery"); return true; }
+            try {
+                if (bridge == null) bridge = new PairedStatusBridge(() -> {
+                    Registry.Snapshot snapshot = registry.snapshot();
+                    return Map.of("version", BuildInfo.VERSION, "ready", ready, "busy", busy.get(),
+                        "generation", snapshot.generation(), "features", snapshot.features().size(),
+                        "aiDeployment", "ABSENT", "recovery", "ENABLED");
+                });
+                String code = bridge.pair();
+                say(sender, "AetherScript pairing endpoint: " + bridge.endpoint());
+                say(sender, "Pairing code (expires in 5 minutes, single use): " + code);
+                say(sender, "Scope: status only; session expires in 1 hour. Use an SSH loopback tunnel for remote access. /ais unpair revokes access.");
+                String endpoint = bridge.endpoint();
+                Path details = getDataFolder().toPath().resolve("connection-details.json");
+                try { io.execute(() -> {
+                    try { Files.writeString(details,
+                        "{\"endpoint\":\"" + endpoint + "\",\"scope\":\"status\",\"transport\":\"loopback-http\"}\n", StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE, LinkOption.NOFOLLOW_LINKS); }
+                    catch (IOException e) { getLogger().warning("Could not write non-secret connection details"); }
+                }); } catch (RejectedExecutionException ignored) { say(sender, "Connection details file pending; use endpoint above."); }
+            } catch (IOException e) { say(sender, "PAIRING_UNAVAILABLE"); }
+            return true;
+        }
         if (op.equals("run")) {
             if (!ready || selected == null || !registry.run(selected, sender instanceof Player, sender::hasPermission, text -> say(sender, text)))
                 say(sender, "Feature unavailable or permission denied.");

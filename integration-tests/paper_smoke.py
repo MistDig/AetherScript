@@ -9,6 +9,7 @@ parser.add_argument('--java', default='java')
 parser.add_argument('--accept-eula', action='store_true')
 parser.add_argument('--existing-json', action='store_true', help='Seed a JSON example as an upgrade with no revision storage')
 parser.add_argument('--aether', action='store_true', help='Exercise textual source, diagnostics and restart recovery')
+parser.add_argument('--pairing', action='store_true', help='Pair the packaged MCP with this disposable server and check live status and revocation')
 args = parser.parse_args()
 if args.existing_json and args.aether:
     parser.error('Choose --existing-json or --aether')
@@ -107,6 +108,14 @@ def history():
 try:
     start()
     check('startup-autoload', 'ais status', 'generation=1; features=1')
+    if args.pairing:
+        from paired_status import PairedClient
+        client = PairedClient(repo, version, args.java, server)
+        endpoint_line = command('ais pair', 'pairing endpoint:')
+        code_line = expect('Pairing code (')
+        client.pair(endpoint_line, code_line)
+        client.check_generation(1)
+        evidence.append(dict(test='packaged-mcp-pair', result='pass', detail='Console pairing granted status-only access to generation 1'))
     check('message-A', 'ais run hello-ai', 'Hello from AetherScript!')
     check('validate', 'ais validate', 'VALIDATED 1')
     check('unchanged-reload', 'ais reload hello-ai', 'UNCHANGED: no new revision; generation=1')
@@ -119,6 +128,11 @@ try:
         evidence.append(dict(test='textual-startup', result='pass', detail='Textual variables, expressions and condition compiled and invoked through Paper'))
     edit('Live revision B')
     check('live-reload', 'ais reload hello-ai', 'ACTIVE generation=2')
+    if args.pairing:
+        client.check_generation(2)
+        check('revoke-pairing', 'ais unpair', 'revoked')
+        client.check_revoked()
+        evidence.append(dict(test='live-status-and-revocation', result='pass', detail='Generation advanced to 2, then the paired client lost live access'))
     check('message-B', 'ais run hello-ai', 'Live revision B')
     source.write_text(invalid_source, encoding='utf-8')
     check('invalid-edit-rejected', 'ais reload hello-ai', 'active generation unchanged')
@@ -170,7 +184,8 @@ except Exception as error:
     print(str(error), flush=True)
 finally:
     stop()
-    (server/'smoke-console.log').write_text(''.join(lines), encoding='utf-8')
+    console = re.sub(r'(Pairing code[^\n]+?: )[^\r\n]+', r'\1[redacted]', ''.join(lines))
+    (server/'smoke-console.log').write_text(console, encoding='utf-8')
     (server/'smoke-results.json').write_text(json.dumps(evidence, indent=2), encoding='utf-8')
 if any(e['result']=='fail' for e in evidence):
     raise SystemExit(1)

@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/assets/aetherscript-banner.png" alt="AetherScript — little scripts, big possibilities" width="1200"></p>
 
-<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.4"><b>Download 0.0.4</b></a> · <a href="https://mistdig.github.io/AetherScript/">Explore the docs</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
+<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.5"><b>Download 0.0.5</b></a> · <a href="https://mistdig.github.io/AetherScript/">Explore the docs</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
 
 [![Build](https://github.com/MistDig/AetherScript/actions/workflows/ci.yml/badge.svg)](https://github.com/MistDig/AetherScript/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/MistDig/AetherScript)](https://github.com/MistDig/AetherScript/releases)
@@ -8,7 +8,11 @@
 
 An open-source Minecraft scripting engine with **live hot reloading**, saved working revisions and a path toward secure, vendor-neutral AI tooling. Target: **Paper 26.3 build 245 · Java 25**.
 
-## Text scripts in 0.0.4
+## Read-only server pairing in 0.0.5
+
+The MCP gateway can read an owner-paired server's status through an authenticated loopback bridge. The server console issues a five-minute single-use code, and the gateway stores a one-hour `status` credential in an owner-restricted profile. The [pairing guide](https://mistdig.github.io/AetherScript/guide/security.html) includes local setup, revocation and SSH tunnel instructions.
+
+## Text scripts introduced in 0.0.4
 
 The first `.aether` frontend supports immutable local values, checked integer arithmetic, text and boolean expressions, `if`/`else`, explicit `text(...)` conversion and source-located diagnostics. Expressions evaluate during validation/reload and compile into the existing permission-checked message actions.
 
@@ -35,13 +39,13 @@ The [documentation website](https://mistdig.github.io/AetherScript/) includes lo
 - Live reload with invalid edits preserving the running script.
 - Saved successful revisions, startup recovery and local rollback; five versions per feature by default.
 - Clear editable-file versus running-version status, field/line/column errors, history and bounded diffs.
-- A separate **offline read-only MCP** validator. AI deployment and a server bridge are absent.
+- A separate **read-only MCP** gateway with offline authoring/validation and opt-in paired live status.
 
 This experimental release supports sender-only message actions and preparation-time text-script logic. Events, block health, mutable runtime state, persistent gameplay variables and UI are recorded in the [dependency backlog](docs/ecosystem/backlog.md). Published versions begin at 0.0.1; milestone labels describe engineering phases.
 
 ## Get started
 
-1. Stop Paper, back up existing AetherScript data, and install **AetherScript-0.0.4.jar** from the release. Keep only one plugin JAR installed.
+1. Stop Paper, back up existing AetherScript data, and install **AetherScript-0.0.5.jar** from the release. Keep only one plugin JAR installed.
 2. Start with Java 25 and wait for `Ready. Restored ...`. A new install creates and activates `plugins/AetherScript/scripts/hello-ai.yml`.
 3. Run `/ais run hello-ai`. Players need `aetherscript.example.hello` (operators by default).
 4. Edit its quoted `text`, save, then `/ais validate hello-ai` and `/ais reload hello-ai`.
@@ -77,16 +81,32 @@ python integration-tests/mcp_stdio.py
 
 Linux/macOS: `./gradlew clean check build`. Gradle 9.1.0 wrapper, dependency locks and checksums are committed. First build needs network access.
 
-- `plugin-paper/build/libs/plugin-paper-0.0.4.jar`: standalone plugin; do not install the thin JAR.
-- `gateway-mcp/build/libs/gateway-mcp-0.0.4.jar`: separate executable MCP process.
+- `plugin-paper/build/libs/plugin-paper-0.0.5.jar`: standalone plugin; do not install the thin JAR.
+- `gateway-mcp/build/libs/gateway-mcp-0.0.5.jar`: separate executable MCP process.
 
 Verification history: 0.0.2 passed **70 automated tests**, the packaged MCP check, and **28 Paper console checks across five boots and 100 distinct reloads**. The 0.0.3 build repeats those automated tests and packaged MCP verification. Current 0.0.4 results are recorded in the [test notes](docs/testing.md). Tests cover invalid edits, restart, rollback, retention, corrupt storage and abruptly halted JVM saves. See [0.0.2 server evidence](docs/evidence/0.0.2) and [testing notes](docs/testing.md). Connected-player 0.0.4 checks, Purpur, named MCP clients and performance benchmarks remain open.
 
 ## Read-only MCP
 
-Run `java -jar AetherScript-MCP-0.0.4.jar` separately, using an absolute path in your stdio client configuration. Do not put it in Paper's plugin directory.
+Install the matching plugin and `AetherScript-MCP-0.0.5.jar`. Run `ais pair` from the server console, then use the endpoint it prints:
 
-Protocol `2025-06-18`: initialization, ping, discovery, `aether_capabilities`, `aether_server_status` (explicitly offline), and `aether_validate` for supplied YAML, JSON or Aether source. No model API key is needed by the gateway. No live server reads, file tools, arbitrary console commands or deployment are available. Universal describes protocol design; named client interoperability is [not yet verified](docs/mcp-clients.md).
+```text
+java -jar AetherScript-MCP-0.0.5.jar pair --endpoint http://127.0.0.1:49152 --profile C:/AetherScript/private/aether-profile.json
+```
+
+Enter the code at the prompt. Replace the sample endpoint and paths with your installation. Non-secret endpoint information is also written to `plugins/AetherScript/connection-details.json`.
+
+After pairing, a Codex CLI entry can launch the local stdio gateway:
+
+```text
+codex mcp add aetherscript -- java -jar C:/AetherScript/AetherScript-MCP-0.0.5.jar serve --profile C:/AetherScript/private/aether-profile.json
+```
+
+Use Java 25 on the executable path. `java -jar AetherScript-MCP-0.0.5.jar` with no arguments starts offline authoring. In paired mode, `aether_server_status` reads version/readiness/generation/feature-count information. `aether_capabilities` provides the language rules/template and `aether_validate` checks supplied source. The live grant has `status` scope. AI deployment remains gated by the server-authority requirements in the security policy.
+
+The server console's `ais unpair` revokes access and closes the listener. `forget --profile PATH` removes the local credential. For a remote host, use an authenticated SSH loopback tunnel and pair against its local forwarded endpoint. The [full pairing guide](https://mistdig.github.io/AetherScript/guide/security.html) contains copyable Codex configuration and the [official OpenAI MCP configuration reference](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
+
+0.0.4 remains an offline-authoring release. Upgrade both artifacts for pairing. Named-client verification is tracked in the [MCP compatibility matrix](docs/mcp-clients.md).
 
 ## Reliability and performance
 

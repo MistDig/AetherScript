@@ -78,7 +78,7 @@ const features = [
     </div>
   </section>
 
-  <section class="home-section honest-section" aria-labelledby="scope-title"><span class="scope-mark" aria-hidden="true">i</span><div><h2 id="scope-title">Small on purpose. Growing with care.</h2><p>Today's release supports plain messages, live reload and recovery. Events and richer gameplay are on the roadmap. The MCP prototype is offline and read-only; AI deployment is absent.</p></div><a class="text-link" :href="withBase('/guide/security.html')">Read the boundaries <span aria-hidden="true">↗</span></a></section>
+  <section class="home-section honest-section" aria-labelledby="scope-title"><span class="scope-mark" aria-hidden="true">i</span><div><h2 id="scope-title">Small on purpose. Growing with care.</h2><p>Today's release supports plain messages, live reload and recovery. Events and richer gameplay are on the roadmap. Pair the read-only MCP to check live server status. Script validation also works offline. AI deployment is absent.</p></div><a class="text-link" :href="withBase('/guide/security.html')">Read the boundaries <span aria-hidden="true">↗</span></a></section>
 
   <section class="closing-section" aria-labelledby="closing-title"><p class="section-kicker">YOUR NEXT IDEA STARTS HERE</p><h2 id="closing-title">Make a little magic.</h2><p>One file. One reload. Something that is yours.</p><a class="aether-button primary" :href="withBase('/guide/getting-started.html')">Let's build something <span aria-hidden="true">↗</span></a></section>
 </div>

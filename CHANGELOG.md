@@ -2,6 +2,14 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.5] - 2026-11-12
+
+- Added console pairing and revocation for a read-only Paper status connection. The server provides a loopback endpoint and a short-lived, single-use code. The connection-details file contains no credential.
+- Added local pairing profiles to the MCP JAR. A paired client can read readiness, feature count and generation. It can still validate scripts offline. Script activation stays with the server administrator.
+- Published separate setup steps for clients running on the Paper host and clients connecting over an SSH tunnel.
+
+- Verification passed 138 automated tests, offline subprocess checks and 31 real Paper checks across five server boots and 100 changed reloads, including live MCP status and revocation.
+
 ## [0.0.4] - 2026-11-11
 
 - Added native `.aether` command scripts with immutable local bindings, checked integer arithmetic, booleans, text conversion and conditionals. The compiler prepares sender messages during validation and reload. Paper checks the sender and permission on invocation.

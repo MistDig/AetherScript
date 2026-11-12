@@ -1,10 +1,10 @@
-# Architecture — 0.0.2
+# Architecture
 
 Three modules share one bounded, typed engine:
 
 - `core`: bounded native text frontend and strict YAML/JSON parser with source locations; immutable definitions/registry; source inspection; revision storage/recovery; strict owner settings; local audit.
 - `plugin-paper`: static `/ais` dispatcher, permissions, Adventure plain-text messages, main-thread activation/effects, one bounded I/O worker.
-- `gateway-mcp`: isolated stdio process using the same parser. No server bridge, filesystem reads or mutation tools.
+- `gateway-mcp`: isolated stdio process using the same parser. In paired mode it reads one administrator-selected local profile and requests an authenticated status snapshot from the loopback bridge. Script validation remains local.
 
 ## Activation and durable state
 

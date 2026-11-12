@@ -44,3 +44,4 @@ site/changelog.md
 site/public/cloud-mascot.png
 site/public/llms.txt
 site/public/authoring-v1.json
+__pycache__/

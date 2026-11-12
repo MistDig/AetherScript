@@ -1,4 +1,4 @@
 configVersion: 1
 # Successful changed versions retained per feature. Range: 1..50. Restart to apply.
 retainVersions: 5
-# No network bridge or AI deployment is implemented.
+# Read-only loopback status bridge starts only via server-console /ais pair.

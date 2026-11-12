@@ -35,23 +35,23 @@ The site also publishes [plain-text authoring instructions](https://mistdig.gith
 
 ## Validate from a terminal
 
-With Java 25 and the 0.0.4 MCP JAR, print the language contract:
+With Java 25 and the 0.0.5 MCP JAR, print the language contract:
 
 ```sh
-java -cp AetherScript-MCP-0.0.4.jar dev.aetherscript.cli.Validate --language
+java -cp AetherScript-MCP-0.0.5.jar dev.aetherscript.cli.Validate --language
 ```
 
 Validate a file through standard input on a POSIX shell:
 
 ```sh
-java -cp AetherScript-MCP-0.0.4.jar dev.aetherscript.cli.Validate aether < cloud-note.aether
+java -cp AetherScript-MCP-0.0.5.jar dev.aetherscript.cli.Validate aether < cloud-note.aether
 ```
 
 In PowerShell, pipe UTF-8 text into the command:
 
 ```powershell
 $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
-Get-Content -Raw -Encoding utf8 cloud-note.aether | java -cp AetherScript-MCP-0.0.4.jar dev.aetherscript.cli.Validate aether
+Get-Content -Raw -Encoding utf8 cloud-note.aether | java -cp AetherScript-MCP-0.0.5.jar dev.aetherscript.cli.Validate aether
 ```
 
 The CLI writes one JSON result. Exit code 0 means valid, 1 means validation failed, and 2 means the CLI arguments need correction. Use `yaml` or `json` to validate an existing structured definition. Validation reads the input and leaves deployment under the server administrator's control.

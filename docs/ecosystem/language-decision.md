@@ -1,6 +1,6 @@
 # Initial textual-language decision
 
-Decision date is 11 November 2026. This document records the first M1 slice agreed with the frontend implementation. Its six matrix rows are verified by the 0.0.4 pure-language and lifecycle tests, with packaged offline authoring coverage. The final binary Paper run is tracked separately.
+Decision date is 11 November 2026. This document records the first M1 slice agreed with the frontend implementation. Its six matrix rows are verified by the 0.0.4 pure-language and lifecycle tests, with packaged offline authoring coverage. The final binary passed 28 real Paper checks across five boots, including 100 distinct textual reloads.
 
 ## Frontend and execution boundary
 
@@ -72,4 +72,6 @@ The initial grammar deliberately supplies a bounded subset that fits today's mes
 
 ## Executed checkpoint
 
-The combined 0.0.4 suite passes 113 tests with zero failures, errors or skips. TextFrontendTest covers values, expressions, scope, inactive-branch checking, integer edge cases, strict source encoding, limits and diagnostics. TextIntegrationTest covers shared IR/source hashes, normal reload/permission/retirement, invalid-edit restart recovery, held rollback, duplicate formats and structured-to-text migration. Seven packaged offline authoring checks also pass. The final binary Paper run is in progress at this checkpoint. [0.0.4 evidence](../evidence/0.0.4/)
+The combined 0.0.4 suite passes 113 tests with zero failures, errors or skips. TextFrontendTest covers values, expressions, scope, inactive-branch checking, integer edge cases, strict source encoding, limits and diagnostics. TextIntegrationTest covers shared IR/source hashes, normal reload/permission/retirement, invalid-edit restart recovery, held rollback, duplicate formats and structured-to-text migration. Seven packaged offline authoring checks also pass. The final binary passed 28 real Paper checks across five boots, including 100 distinct textual reloads. [0.0.4 evidence](../evidence/0.0.4/)
+
+The completed 0.0.4 server record is [Paper 26.3 build 245 evidence](../evidence/0.0.4/paper-26.3-245.json).

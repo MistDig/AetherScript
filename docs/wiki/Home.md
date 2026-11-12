@@ -3,7 +3,7 @@
 
 <p align="center"><img src="https://raw.githubusercontent.com/MistDig/AetherScript/v0.0.2/docs/assets/aetherscript-banner.png" width="1200" alt="AetherScript: little scripts, big possibilities. A smiling cloud welcomes you."></p>
 
-<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.4"><b>Download 0.0.4</b></a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Getting-Started">Start building</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Commands">Commands</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Roadmap">What's next</a></p>
+<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.5"><b>Download 0.0.5</b></a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Getting-Started">Start building</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Commands">Commands</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Roadmap">What's next</a></p>
 
 ---
 
@@ -43,7 +43,7 @@ If validation fails, fix the **same editable file**. The running saved revision 
 | Explicit live reload and validated AetherScript, YAML and JSON | Automatic file watching and event handlers |
 | Saved revisions, recovery and rollback | World-state undo and remote transactions |
 | File/line/column diagnostics and diffs | Full editor language-server support |
-| Offline read-only MCP validation | Live server connectivity and AI deployment |
+| Offline validation and paired, read-only server status | AI deployment |
 
 **Tested target:** Paper 26.3 build 245 · Java 25. Other forks and named MCP clients have separate verification gates.
 

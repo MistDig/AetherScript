@@ -1,6 +1,6 @@
 # M0 gap report
 
-Audit date is 11 November 2026. The baseline source is the 0.0.3 website checkpoint and the 0.0.2 engine behavior preserved by that release. The current working branch supplies the first preparation-time textual-language slice, with 113 passing combined tests and seven packaged offline authoring checks. The final binary Paper run is in progress.
+Audit date is 11 November 2026. The baseline source is the 0.0.3 website checkpoint and the 0.0.2 engine behavior preserved by that release. The current working branch supplies the first preparation-time textual-language slice, with 113 passing combined tests and seven packaged offline authoring checks. The final binary passed 28 real Paper checks across five boots, including 100 distinct textual reloads.
 
 ## Existing foundation
 
@@ -49,3 +49,5 @@ The existing capability surface is the parser's `runtime.message.send` allowlist
 Source claims, existing evidence and missing capabilities are tracked in the matrix. The first implementation target is preparation-time immutable locals, typed expressions, conditions and source diagnostics through `.aether`, sharing the existing message IR. Complete M1 then requires invocation-time state/control flow, functions and SDK contracts. M2 follows with real commands, events, scheduling, typed player/location/item values and persistence before the homes/warps acceptance example.
 
 The six preparation-language rows have reached their unit/lifecycle and packaged authoring verification checkpoint. [0.0.4 evidence](../evidence/0.0.4/) supplies the exact test records. The earlier 28 real Paper checks cited above remain attributed to 0.0.2.
+
+The completed 0.0.4 server record is [Paper 26.3 build 245 evidence](../evidence/0.0.4/paper-26.3-245.json).

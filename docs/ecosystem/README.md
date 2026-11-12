@@ -15,3 +15,5 @@ Change a status only after checking the public interface, examples, relevant neg
 First-wave repository metadata identifies ten reference release tags and license declarations. The variable-editor record identifies an upstream listing. Their compatibility fields record the research still required before claiming an AetherScript adapter. Extended-addon names remain discovery leads until original repositories and exact releases are selected.
 
 The 0.0.4 checkpoint has 113 passing automated tests and seven packaged offline authoring checks. The final 0.0.4 plugin passed 28 Paper console checks across five boots and 100 changed reloads. [Versioned evidence](../evidence/0.0.4/) records the executed tests.
+
+The completed 0.0.4 server record is [Paper 26.3 build 245 evidence](../evidence/0.0.4/paper-26.3-245.json).

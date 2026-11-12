@@ -1,5 +1,9 @@
 # Actual test results
 
+## Release 0.0.5 — paired MCP
+
+Java 25 clean check build passed 138 tests. The shipped gateway passed the offline MCP and AI authoring subprocess checks. On a disposable Paper 26.3 build 245 server the gateway exchanged a console code, read generation 1, observed generation 2 after a script reload, and lost live access after console revocation. The full run exercised 31 checks, five boots and 100 changed reloads. This run used a local connection. Remote hosting and named chat client setup require their own checks. [Release evidence](evidence/0.0.5/)
+
 ## Release 0.0.4 — native language and AI editing
 
 The Java 25 clean build passed all 113 tests. The packaged authoring test performed seven checks, including a valid single-line edit, comment-only edit and precise type error through both CLI and MCP. The packaged MCP stdio protocol check passed independently.
