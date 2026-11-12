@@ -103,6 +103,15 @@ class PairingTest {
         try (var files = Files.list(path.getParent())) { assertEquals(List.of("profile.json"), files.map(p -> p.getFileName().toString()).toList()); }
         ProfileStore.forget(path); assertFalse(Files.exists(path)); ProfileStore.forget(path);
     }
+    @Test void relayProfileRoundTripPreservesRoutingAndScopesPrivately() throws Exception {
+        Path path = temp.resolve("relay/profile.json");
+        PairingProfile profile = new PairingProfile(URI.create("https://relay.example"), "b".repeat(64), Instant.now().plusSeconds(3600), "session", "server", List.of("status", "scripts.apply"));
+        ProfileStore.save(path, profile);
+        PairingProfile loaded = ProfileStore.load(path);
+        assertEquals(profile.endpoint(), loaded.endpoint()); assertEquals("session", loaded.sessionId);
+        assertEquals("server", loaded.serverId); assertEquals(profile.scopes, loaded.scopes); assertEquals(profile.token(), loaded.token());
+        assertFalse(loaded.toString().contains(TOKEN));
+    }
     @Test void unsafeOrMalformedProfilesFailClosed() throws Exception {
         Path path = temp.resolve("profile.json");
         PairingProfile value = new PairingProfile(URI.create("http://127.0.0.1:12345"), TOKEN, Instant.now().plusSeconds(3600));

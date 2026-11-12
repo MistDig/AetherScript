@@ -1,6 +1,6 @@
 # Security status
 
-AetherScript 0.0.5 offers opt-in read-only status pairing. The owner starts the bridge with `ais pair` in the server console. It binds to literal IPv4 loopback on an ephemeral port and grants the fixed `status` scope. The live response contains plugin version, readiness, busy state, registry generation, active feature count, recovery state and AI-deployment state. Offline authoring tools validate caller-supplied source and publish the language/template metadata.
+AetherScript 0.0.6 adds opt-in scoped remote `.aether` authoring and retains read-only loopback status pairing. The owner starts the bridge with `ais pair` in the server console. It binds to literal IPv4 loopback on an ephemeral port and grants the fixed `status` scope. The live response contains plugin version, readiness, busy state, registry generation, active feature count, recovery state and AI-deployment state. Offline authoring tools validate caller-supplied source and publish the language/template metadata.
 
 ## Pairing and credentials
 
@@ -14,7 +14,7 @@ The CLI reads the pairing code from a hidden Java-console prompt or standard inp
 
 The gateway accepts `http://127.0.0.1:PORT` with a literal host, numeric port and an empty/root path. User information, query strings and fragments are rejected. It disables redirects and proxy use, bounds response size and timeouts, and validates returned status fields. For another server host, use an authenticated encrypted loopback tunnel, such as SSH, with both forwarded bindings kept on loopback. The local HTTP connection relies on the operating system's host boundary and the bearer credential. Installed Java plugins, local host administrators, SSH administrators and the MCP process owner remain trusted.
 
-MCP tool annotations describe behavior. The plugin's fixed grant and endpoint checks authorize the actual status request. The status surface supplies no script source, server logs, player details or credential values. AI deployment, server-file mutation and console-execution capabilities require future independently tested server-authority implementations.
+MCP tool annotations describe behavior. The plugin's fixed grant and endpoint checks authorize the actual status request. The status surface supplies no script source, server logs, player details or credential values. This status credential cannot authorize mutation. Scoped remote writes use the separate console grant described below. General console execution remains unavailable.
 
 ## Script and storage authority
 
@@ -22,7 +22,23 @@ Local `/ais` administration requires `aetherscript.admin`, with activation check
 
 Saved source revisions are checksummed and revalidated under the current parser policy. Registry rollback selects working definitions while already-dispatched effects remain observable. Local revision recovery has process-crash tests. Filesystem directory-flush support varies, and owner backups remain part of recovery. Checksums detect corruption under the trusted-host model.
 
-Before any write-capable AI deployment, implement independently authenticated principals, default-deny scopes, runtime/player capability intersection, credential rotation/revocation, bound approval records, request quotas, stale/replay checks, durable transaction semantics and direct bridge-bypass tests. The current status credential cannot be upgraded by a gateway request.
+Broader gameplay authority, general deployment plans and per-edit approvals remain future work requiring separate authorization and bypass tests. The status credential cannot be upgraded by a gateway request.
+
+## Scoped remote authority and trust
+
+Only the actual server console can issue `ais remote <id[,id]>` and `ais remote-off`. The in-memory feature allowlist is checked on every request and again at activation. New grants replace earlier grants; disable/restart ends local authority. The closed vocabulary permits status and authorized script list/read/validate/apply/test. No general commands, shell, arbitrary file paths or player impersonation are exposed.
+
+The owner deploys a personal relay and puts its enrollment secret in the hosting account and private `plugins/AetherScript/relay.json`. No public deployment or bundled secret is supplied. Protect that configuration with owner-only OS permissions: the connector validates shape and regular-file status but does not enforce its ACL. Enrollment permits session creation; the plugin remains authoritative for feature access.
+
+The console prints a five-minute single-use pairing URI. Treat it as a secret; paste only into the local CLI prompt/stdin. Console/log readers can see it. The gateway persists an owner-restricted profile. Sessions last at most 24 hours, with distinct server/client bearer tokens stored as hashes at the relay. `remote-off` revokes local authority immediately and attempts relay revocation. Local `forget` removes only the file. Rotate enrollment secrets to prevent new enrollment and revoke active grants separately.
+
+Both clients use outbound HTTPS origins with redirects disabled. TLS protects transit; **the cloud relay can see script source, arguments and results**. There is no end-to-end encryption. Hosting administrators/provider infrastructure, server administrators, installed plugins and the MCP process owner are trusted. Do not enable body/header capture in relay observability.
+
+Remote source writes are confined to `.aether` files under the scripts directory using validated logical IDs, containment, format and regular-file checks. YAML/JSON features cannot be replaced remotely. Apply validates source and registry, checks an expected source hash (`ABSENT` for creation), writes atomically and activates through the durable engine with a grant recheck. Failed activation attempts source restoration. Lost replies/timeouts can have unknown outcomes: inspect editable and active hashes before retrying.
+
+Synthetic tests run the actual Registry with a non-player capability and capture exact messages. They cannot impersonate players or satisfy player-only sender rules. Normal runtime permission/sender checks remain in force. Tool annotations describe behavior; relay role/scope checks and independent plugin target checks enforce authority. See release evidence for actual bypass/revocation verification.
+
+The relay caps JSON envelopes at 64 KiB including quoting/metadata, with one pending operation and 1000 operations/session. Scripts must fit within that envelope. Five failed pairing claims lock a session. Abandoned work expires after two minutes; gateway waits are separately bounded. Server polling normally occurs every five seconds. Hosting quotas are account-wide and finite; availability and public request-quota exhaustion protection are not guaranteed. Local `/ais` operation is independent of relay availability. See [the operator guide](docs/wiki/Security-and-MCP.md) and [relay setup/limits](relay/README.md).
 
 ## Reporting
 

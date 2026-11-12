@@ -21,6 +21,8 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
     private FeatureManager manager;
     private AuditLog audit;
     private PairedStatusBridge bridge;
+    private volatile CloudRelayConnector cloud;
+    private volatile RemoteScripts remote;
 
     @Override public void onEnable() {
         running = true; busy.set(true);
@@ -49,7 +51,7 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
                 apply(null, "server", "startup", UUID.randomUUID().toString(), registry.snapshot(), startup);
                 onMain(() -> {
                     ready = true;
-                    getLogger().info("Ready. Restored " + registry.snapshot().features().size() + " feature(s); saved-version limit=" + settings.retainVersions() + "; AI deployment absent.");
+                    getLogger().info("Ready. Restored " + registry.snapshot().features().size() + " feature(s); saved-version limit=" + settings.retainVersions() + "; remote manage requires explicit console grant.");
                     return null;
                 });
             } catch (Exception e) {
@@ -64,6 +66,7 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
     }
     @Override public void onDisable() {
         running = false; ready = false;
+        revokeRemote();
         if (bridge != null) { bridge.close(); bridge = null; }
         getServer().getScheduler().cancelTasks(this); io.shutdownNow();
         registry.replace(registry.snapshot().generation(), Map.of());
@@ -92,8 +95,42 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
     }
     private String principal(CommandSender sender) { return sender instanceof Player p ? "player:" + p.getUniqueId() : "local:" + sender.getName(); }
     @Override public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (args.length < 1 || args.length > 2) { say(sender, "/ais <status|list|validate|reload|run|history|diff|rollback|pair|unpair> [feature]"); return true; }
+        if (args.length < 1 || args.length > 2) { say(sender, "/ais <status|list|validate|reload|run|history|diff|rollback|pair|unpair|remote|remote-off> [feature]"); return true; }
         String op = args[0].toLowerCase(Locale.ROOT), selected = args.length == 2 ? args[1] : null;
+        if (op.equals("remote") || op.equals("remote-off")) {
+            if (sender != getServer().getConsoleSender()) { say(sender, "REMOTE_CONSOLE_ONLY"); return true; }
+            if (op.equals("remote-off")) { revokeRemote(); say(sender, "Remote manage grant revoked."); return true; }
+            if (!ready || selected == null) { say(sender, "Use /ais remote <feature-id[,feature-id]> after startup. Requires owner relay.json."); return true; }
+            try {
+                Set<String> targets = Set.copyOf(Arrays.asList(selected.split(",", -1)));
+                targets.forEach(FeatureParser::requireId);
+                revokeRemote();
+                RemoteScripts service = new RemoteScripts(manager, registry, targets, new RemoteScripts.Main() {
+                    public <T> T call(Callable<T> action) throws Exception { return onMain(action); }
+                }, (before, change, authorized) -> apply(null, "remote-agent", "remote-apply", UUID.randomUUID().toString(), before, change, authorized));
+                remote = service;
+                cloud = new CloudRelayConnector(getDataFolder().toPath().resolve("relay.json"), (operation, arguments) -> {
+                    if (!running || !ready || remote != service || cloud == null || !cloud.live()) throw new SecurityException("REVOKED");
+                    if (!busy.compareAndSet(false, true)) throw new IllegalStateException("BUSY");
+                    CompletableFuture<Map<String, Object>> result = new CompletableFuture<>();
+                    try { io.execute(() -> {
+                        try {
+                            if (remote != service || cloud == null || !cloud.live()) throw new SecurityException("REVOKED");
+                            var value = service.execute(operation, arguments);
+                            audit.append(UUID.randomUUID().toString(), "remote-agent", operation, "SUCCEEDED", registry.snapshot().generation(), Map.of());
+                            result.complete(value);
+                        } catch (Exception e) {
+                            try { audit.append(UUID.randomUUID().toString(), "remote-agent", operation, "REJECTED", registry.snapshot().generation(), Map.of()); } catch (IOException ignored) { }
+                            result.completeExceptionally(e);
+                        } finally { busy.set(false); }
+                    }); } catch (RejectedExecutionException e) { busy.set(false); throw e; }
+                    try { return result.get(); }
+                    catch (ExecutionException e) { if (e.getCause() instanceof Exception cause) throw cause; throw e; }
+                }, text -> { if (running && remote == service) getServer().getScheduler().runTask(this, () -> { if (remote == service) say(getServer().getConsoleSender(), text); }); });
+                cloud.start(); say(sender, "Remote manage grant enabled for " + targets + "; connecting outbound. /ais remote-off revokes.");
+            } catch (Exception e) { revokeRemote(); say(sender, "REMOTE_UNAVAILABLE: check relay.json and feature IDs."); }
+            return true;
+        }
         if (op.equals("pair") || op.equals("unpair")) {
             if (sender != getServer().getConsoleSender() || args.length != 1) { say(sender, "PAIRING_CONSOLE_ONLY: use the server console /ais " + op); return true; }
             if (op.equals("unpair")) {
@@ -142,7 +179,7 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
         }
         if (op.equals("status") && selected == null) {
             say(sender, "AetherScript " + BuildInfo.VERSION + "; " + getServer().getVersion() + "; ready=" + ready + "; generation=" + registry.snapshot().generation()
-                + "; features=" + registry.snapshot().features().size() + "; busy=" + busy.get() + "; AI deployment=ABSENT; recovery=ENABLED"
+                + "; features=" + registry.snapshot().features().size() + "; busy=" + busy.get() + "; remoteManage=" + (cloud != null && cloud.live()) + "; recovery=ENABLED"
                 + (startupError.isEmpty() ? "" : "; " + startupError));
             return true;
         }
@@ -180,6 +217,10 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
         return true;
     }
     private void apply(CommandSender sender, String who, String operation, String request, Registry.Snapshot before, FeatureManager.Change change) throws Exception {
+        apply(sender, who, operation, request, before, change, () -> { });
+    }
+    private void apply(CommandSender sender, String who, String operation, String request, Registry.Snapshot before, FeatureManager.Change change, Runnable authorized) throws Exception {
+        authorized.run();
         if (!change.durable().changed() && before.features().equals(change.target())) {
             audit.append(request, who, operation, "UNCHANGED", before.generation(), before.features());
             List<String> messages = new ArrayList<>(change.messages());
@@ -188,10 +229,12 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
         }
         audit.append(request, who, operation, "INTENT", before.generation(), change.target());
         Registry.Snapshot activated = onMain(() -> {
+            authorized.run();
             if (sender != null && !sender.hasPermission("aetherscript.admin")) throw new SecurityException("PERMISSION_DENIED: permission changed before activation");
             return registry.replace(before.generation(), change.target());
         });
         try {
+            authorized.run();
             manager.store().commit(change.durable());
             audit.append(request, who, operation, "ACTIVE", activated.generation(), change.target());
         } catch (Exception failure) {
@@ -210,6 +253,10 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
         reply(sender, messages);
         try { manager.store().prune(); }
         catch (IOException e) { getLogger().warning("Old revision cleanup incomplete; active saved versions remain protected."); }
+    }
+    private void revokeRemote() {
+        RemoteScripts service = remote; remote = null; if (service != null) service.revoke();
+        CloudRelayConnector connector = cloud; cloud = null; if (connector != null) connector.close();
     }
     private static String safeError(Exception e) {
         if (e instanceof ValidationException || e instanceof SecurityException || e instanceof IOException)

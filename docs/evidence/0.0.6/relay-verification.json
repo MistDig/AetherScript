@@ -1,0 +1,8 @@
+{
+  "workerLocalTestsPassed": 3,
+  "cloudProvider": "Cloudflare Workers with SQLite Durable Objects",
+  "codexClient": "0.167.0-alpha.3.2 on Windows",
+  "codexToolsDiscovered": 9,
+  "windowsLauncherTest": "Actual gateway pairing to deployed Worker. Codex registration arguments verified with an isolated command stub.",
+  "clientChatTest": "No interactive chat test on the owner's Feather server."
+}

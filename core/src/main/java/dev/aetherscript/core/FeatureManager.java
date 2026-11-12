@@ -17,8 +17,24 @@ public final class FeatureManager {
     private final RevisionStore store;
     public FeatureManager(ScriptStore scripts, RevisionStore store) { this.scripts = scripts; this.store = store; }
     public RevisionStore store() { return store; }
+    public ScriptStore scripts() { return scripts; }
+    public Change prepareText(String id, String text, Registry.Snapshot current) throws IOException {
+        CompiledFeature compiled = validateText(id, text, current);
+        var source = new SourceFile(id + ".aether", "aether", text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        Map<String, CompiledFeature> target = new TreeMap<>(current.features()); target.put(id, compiled);
+        return new Change(store.prepare(Map.of(id, source), Set.of()), target, List.of());
+    }
+    public CompiledFeature validateText(String id, String text, Registry.Snapshot current) {
+        FeatureParser.requireId(id);
+        var source = new SourceFile(id + ".aether", "aether", text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        var compiled = source.compile();
+        if (!id.equals(compiled.definition().id())) throw new ValidationException("$.id", "ID must match target");
+        Map<String, CompiledFeature> target = new TreeMap<>(current.features()); target.put(id, compiled); validateTarget(target);
+        return compiled;
+    }
 
     public Change startup() throws IOException {
+        scripts.recoverRemoteIntents(store);
         Map<String, ScriptStore.Inspection> files = scripts.inspect(null);
         Map<String, CompiledFeature> target = new TreeMap<>();
         Map<String, SourceFile> updates = new TreeMap<>();

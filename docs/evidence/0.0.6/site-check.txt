@@ -1,0 +1,11 @@
+
+> check
+> node scripts/check.mjs
+
+{
+  "result": "pass",
+  "htmlPages": 13,
+  "localTargetsChecked": 444,
+  "searchQueries": 5,
+  "base": "/AetherScript/"
+}

@@ -40,10 +40,16 @@ final class ProfileStore {
             if (bytes.length > MAX_BYTES) throw new IOException("Invalid pairing profile");
             try (var parser = FeatureParser.JSON.createParser(bytes)) {
                 JsonNode node = FeatureParser.JSON.readTree(parser);
-                if (parser.nextToken() != null || node == null || !node.isObject() || node.size() != 5
-                    || !node.path("formatVersion").isInt() || node.path("formatVersion").intValue() != 1
+                if (parser.nextToken() != null || node == null || !node.isObject() || (node.size() != 5 && node.size() != 8)
+                    || !node.path("formatVersion").isInt() || (node.path("formatVersion").intValue() != 1 && node.path("formatVersion").intValue() != 2)
                     || !node.path("endpoint").isTextual() || !node.path("token").isTextual()
                     || !node.path("scope").asText().equals("status") || !node.path("expiresAt").isTextual()) throw new IOException("Invalid pairing profile");
+                if (node.path("formatVersion").intValue() == 2) {
+                    if (!node.path("sessionId").isTextual() || !node.path("serverId").isTextual() || !node.path("scopes").isArray()) throw new IOException("Invalid relay profile");
+                    java.util.List<String> scopes = new java.util.ArrayList<>();
+                    for (JsonNode scope : node.path("scopes")) { if (!scope.isTextual()) throw new IOException("Invalid scope"); scopes.add(scope.textValue()); }
+                    return new PairingProfile(URI.create(node.path("endpoint").textValue()), node.path("token").textValue(), Instant.parse(node.path("expiresAt").textValue()), node.path("sessionId").textValue(), node.path("serverId").textValue(), scopes);
+                }
                 return new PairingProfile(URI.create(node.path("endpoint").textValue()), node.path("token").textValue(), Instant.parse(node.path("expiresAt").textValue()));
             } catch (Exception error) { throw new IOException("Invalid pairing profile. Pair again with the owner CLI."); }
         }
@@ -51,7 +57,7 @@ final class ProfileStore {
     static void save(Path requested, PairingProfile profile) throws IOException {
         Path path = safePath(requested); createPrivateParents(path.getParent()); validateParent(path.getParent());
         if (Files.exists(path, LinkOption.NOFOLLOW_LINKS)) validatePrivateFile(path);
-        byte[] bytes = FeatureParser.JSON.writeValueAsBytes(Map.of("formatVersion", 1, "endpoint", profile.endpoint().toString(),
+        byte[] bytes = FeatureParser.JSON.writeValueAsBytes(profile.sessionId != null ? Map.of("formatVersion", 2, "endpoint", profile.endpoint().toString(), "token", profile.token(), "scope", "status", "expiresAt", profile.expiresAt().toString(), "sessionId", profile.sessionId, "serverId", profile.serverId, "scopes", profile.scopes) : Map.of("formatVersion", 1, "endpoint", profile.endpoint().toString(),
             "token", profile.token(), "scope", "status", "expiresAt", profile.expiresAt().toString()));
         Path pending = path.getParent().resolve(".aether-pairing-" + UUID.randomUUID());
         try {

@@ -2,6 +2,16 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.6] - 2026-11-12
+
+- Added a personal Cloudflare Worker that pairs Paper and a local MCP through outbound HTTPS. Server owners enroll using a private configuration and grant named native script features from the server console.
+- Added MCP tools to list, read, validate, create, update and test a granted script. Edits include the expected source hash. Script tests report captured messages from a synthetic sender and compare them with the requested output.
+- Added a Windows setup ZIP containing the MCP JAR and a launcher that pairs it and configures Codex. The separate Paper plugin JAR belongs on the Minecraft host.
+- Added a local script test tool to the offline MCP. The 0.0.5 loopback status workflow remains available.
+- The personal relay can see script source and output. Its limits include one in-flight request per session, a 64 KiB JSON envelope and a 24-hour management session. Console revocation and server restart end the server-side grant.
+
+- Verified 152 Java tests, three relay tests, packaged MCP subprocesses and Codex tool discovery. The live relay test exercised authorized script creation, editing, actual output, stale-write rejection and revocation on Paper 26.3 build 245.
+
 ## [0.0.5] - 2026-11-12
 
 - Added console pairing and revocation for a read-only Paper status connection. The server provides a loopback endpoint and a short-lived, single-use code. The connection-details file contains no credential.

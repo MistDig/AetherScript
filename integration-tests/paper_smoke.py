@@ -10,6 +10,7 @@ parser.add_argument('--accept-eula', action='store_true')
 parser.add_argument('--existing-json', action='store_true', help='Seed a JSON example as an upgrade with no revision storage')
 parser.add_argument('--aether', action='store_true', help='Exercise textual source, diagnostics and restart recovery')
 parser.add_argument('--pairing', action='store_true', help='Pair the packaged MCP with this disposable server and check live status and revocation')
+parser.add_argument('--relay-config', type=Path, help='Optional path to a private relay.json for a live remote script-management test')
 args = parser.parse_args()
 if args.existing_json and args.aether:
     parser.error('Choose --existing-json or --aether')
@@ -33,6 +34,10 @@ lines = []
 p = None
 q = queue.Queue()
 
+def redact(text):
+    text = re.sub(r'aether://pair\?[^\s]+', '[private pairing string]', text)
+    return re.sub(r'(Pairing code[^\n]+?: )[^\r\n]+', r'\1[redacted]', text)
+
 def expect(text, timeout=60):
     deadline = time.monotonic()+timeout
     while time.monotonic() < deadline:
@@ -40,11 +45,11 @@ def expect(text, timeout=60):
             line = q.get(timeout=0.5)
         except queue.Empty:
             if p.poll() is not None:
-                raise AssertionError(f'Server exited {p.returncode}: '+''.join(lines[-20:]))
+                raise AssertionError(f'Server exited {p.returncode}: '+redact(''.join(lines[-20:])))
             continue
         if text in line:
             return line.strip()
-    raise AssertionError('Timeout waiting for '+text+'\n'+''.join(lines[-20:]))
+    raise AssertionError('Timeout waiting for '+text+'\n'+redact(''.join(lines[-20:])))
 
 def command(text, match):
     # The response is posted at a main-thread boundary; give the I/O worker time to finish cleanup.
@@ -90,6 +95,9 @@ def stop():
             p.wait(timeout=15)
 
 data = server/'plugins/AetherScript'
+if args.relay_config:
+    data.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(args.relay_config, data / 'relay.json')
 source = data/('scripts/hello-ai.aether' if args.aether else 'scripts/hello-ai.yml')
 original = (repo/('examples/hello-ai.aether' if args.aether else 'examples/hello-ai.yml')).read_text(encoding='utf-8')
 if args.existing_json:
@@ -164,6 +172,11 @@ try:
     check('rollback-held-explanation', 'ais status hello-ai', 'Rollback is held across restart')
     check('explicit-reload-releases-hold', 'ais reload hello-ai', 'ACTIVE generation=2')
     check('editable-message-restored', 'ais run hello-ai', 'Live revision 102')
+    if args.relay_config:
+        from cloud_workflow import test_remote_scripts
+        test_remote_scripts(repo, version, args.java, server, command)
+        evidence.append(dict(test='cloud-remote-script-workflow', result='pass',
+            detail='Paired MCP created and edited scoped source, verified live output and rejected stale, invalid, out-of-scope and revoked requests'))
     stop()
     # Corrupt the active saved bytes AND leave an invalid editable source: an older valid revision must win.
     h = history()
@@ -184,7 +197,9 @@ except Exception as error:
     print(str(error), flush=True)
 finally:
     stop()
-    console = re.sub(r'(Pairing code[^\n]+?: )[^\r\n]+', r'\1[redacted]', ''.join(lines))
+    if args.relay_config:
+        (data/'relay.json').unlink(missing_ok=True)
+    console = redact(''.join(lines))
     (server/'smoke-console.log').write_text(console, encoding='utf-8')
     (server/'smoke-results.json').write_text(json.dumps(evidence, indent=2), encoding='utf-8')
 if any(e['result']=='fail' for e in evidence):

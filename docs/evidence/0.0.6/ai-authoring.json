@@ -1,0 +1,13 @@
+{
+  "result": "pass",
+  "version": "0.0.6",
+  "checks": [
+    "discover template",
+    "validate template",
+    "single-line edit changes behavior",
+    "comment preserves behavior",
+    "type error identifies line and column",
+    "CLI and MCP agree on valid source",
+    "CLI and MCP agree on invalid source"
+  ]
+}

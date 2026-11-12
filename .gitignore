@@ -45,3 +45,9 @@ site/public/cloud-mascot.png
 site/public/llms.txt
 site/public/authoring-v1.json
 __pycache__/
+
+/relay/node_modules/
+/relay/.wrangler/
+/relay/.dev.vars*
+/relay/.env*
+relay.json

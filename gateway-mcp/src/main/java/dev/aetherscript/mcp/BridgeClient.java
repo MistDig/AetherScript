@@ -24,8 +24,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /** Narrow owner-paired loopback client. Only pairing and read-only status endpoints exist here. */
-final class BridgeClient {
-    static final int MAX_RESPONSE = 16 * 1024;
+class BridgeClient {
+    static final int MAX_RESPONSE = 64 * 1024;
     static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(5);
     private final PairingProfile profile;
     private final HttpClient http;
@@ -52,6 +52,9 @@ final class BridgeClient {
             return new PairingProfile(safe, response.path("token").textValue(), expires);
         } catch (RuntimeException error) { throw new IOException("PAIRING_REJECTED: invalid bridge credentials"); }
     }
+    boolean live() { return false; }
+    List<String> grants() { return List.of("status"); }
+    JsonNode operation(String operation, JsonNode arguments) throws IOException { throw new IOException("LIVE_OPERATIONS_UNAVAILABLE"); }
     Map<String, Object> status() throws IOException {
         if (!profile.expiresAt().isAfter(Instant.now())) throw new SessionExpiredException();
         HttpRequest request = HttpRequest.newBuilder(profile.endpoint().resolve("/status")).timeout(REQUEST_TIMEOUT)
@@ -84,11 +87,11 @@ final class BridgeClient {
                 public void connectFailed(URI uri, SocketAddress address, IOException error) { }
             }).build();
     }
-    private static JsonNode exchange(HttpClient http, HttpRequest request) throws IOException {
+    static JsonNode exchange(HttpClient http, HttpRequest request) throws IOException {
         CompletableFuture<HttpResponse<byte[]>> pending = http.sendAsync(request, info -> new LimitedBody());
         try {
             HttpResponse<byte[]> response = pending.get(REQUEST_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
-            if (response.statusCode() != 200 || response.headers().firstValue("Content-Type")
+            if ((response.statusCode() != 200 && response.statusCode() != 202) || response.headers().firstValue("Content-Type")
                 .filter(value -> value.split(";", 2)[0].trim().equalsIgnoreCase("application/json")).isEmpty())
                 throw new IOException("BRIDGE_UNAVAILABLE");
             try (var parser = FeatureParser.JSON.createParser(response.body())) {
@@ -126,13 +129,21 @@ final class BridgeClient {
 }
 
 /** Credentials stay out of record-generated toString output and protocol responses. */
-final class PairingProfile {
+class PairingProfile {
     private final URI endpoint;
+    final String sessionId, serverId;
+    final List<String> scopes;
     private final String token;
     private final Instant expiresAt;
     PairingProfile(URI endpoint, String token, Instant expiresAt) {
-        this.endpoint = BridgeClient.validateEndpoint(endpoint);
-        if (token == null || !token.matches("[A-Za-z0-9_-]{43}") || expiresAt == null) throw new IllegalArgumentException("Invalid pairing credentials");
+        this(endpoint, token, expiresAt, null, null, List.of("status"));
+    }
+    PairingProfile(URI endpoint, String token, Instant expiresAt, String sessionId, String serverId, List<String> scopes) {
+        this.endpoint = sessionId == null ? BridgeClient.validateEndpoint(endpoint) : RelayClient.validateEndpoint(endpoint);
+        if (sessionId != null && (!sessionId.matches("[A-Za-z0-9_-]{1,128}") || serverId == null || serverId.isBlank() || serverId.length() > 128 || scopes.isEmpty() || !java.util.Set.of("status", "scripts.list", "scripts.read", "scripts.validate", "scripts.apply", "scripts.test").containsAll(scopes))) throw new IllegalArgumentException("Invalid relay credentials");
+        this.sessionId = sessionId; this.serverId = serverId; this.scopes = List.copyOf(scopes);
+        String tokenFormat = sessionId == null ? "[A-Za-z0-9_-]{43}" : "[0-9a-f]{64}";
+        if (token == null || !token.matches(tokenFormat) || expiresAt == null) throw new IllegalArgumentException("Invalid pairing credentials");
         this.token = token; this.expiresAt = expiresAt;
     }
     URI endpoint() { return endpoint; }

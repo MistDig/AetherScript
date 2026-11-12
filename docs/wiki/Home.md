@@ -3,7 +3,7 @@
 
 <p align="center"><img src="https://raw.githubusercontent.com/MistDig/AetherScript/v0.0.2/docs/assets/aetherscript-banner.png" width="1200" alt="AetherScript: little scripts, big possibilities. A smiling cloud welcomes you."></p>
 
-<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.5"><b>Download 0.0.5</b></a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Getting-Started">Start building</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Commands">Commands</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Roadmap">What's next</a></p>
+<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.6"><b>Download 0.0.6</b></a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Getting-Started">Start building</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Commands">Commands</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Roadmap">What's next</a></p>
 
 ---
 
@@ -14,7 +14,7 @@ AetherScript is an open-source Minecraft scripting engine for **Paper 26.3**, wi
 **0.0.2 adds a safety net:** successful revisions are saved, invalid edits leave your working script running, and diagnostics tell you which file to fix. One editable file. Five saved versions by default.
 
 > [!NOTE]
-> This is an experimental, **message-only release**. Write a command in [native AetherScript](https://github.com/MistDig/AetherScript/wiki/AI-Authoring), YAML or JSON. Gameplay events and block health are planned. AI deployment remains absent.
+> This is an experimental, **message-only release**. Write a command in [native AetherScript](https://github.com/MistDig/AetherScript/wiki/AI-Authoring), YAML or JSON. Gameplay events and block health are planned. Scoped remote authoring is opt-in; the server console selects the feature IDs an agent can manage.
 
 ## Pick your path
 
@@ -43,10 +43,10 @@ If validation fails, fix the **same editable file**. The running saved revision 
 | Explicit live reload and validated AetherScript, YAML and JSON | Automatic file watching and event handlers |
 | Saved revisions, recovery and rollback | World-state undo and remote transactions |
 | File/line/column diagnostics and diffs | Full editor language-server support |
-| Offline validation and paired, read-only server status | AI deployment |
+| Offline validation, local tests and scoped relay authoring | General console execution and unrestricted server access |
 
 **Tested target:** Paper 26.3 build 245 · Java 25. Other forks and named MCP clients have separate verification gates.
 
 ---
 
-<p align="center">A little cloud. A careful engine. Your next idea.<br><a href="https://github.com/MistDig/AetherScript">Source</a> · <a href="https://github.com/MistDig/AetherScript/releases">Releases</a> · <a href="https://github.com/MistDig/AetherScript/blob/v0.0.4/CHANGELOG.md">Changelog</a> · Apache-2.0</p>
+<p align="center">A little cloud. A careful engine. Your next idea.<br><a href="https://github.com/MistDig/AetherScript">Source</a> · <a href="https://github.com/MistDig/AetherScript/releases">Releases</a> · <a href="https://github.com/MistDig/AetherScript/blob/v0.0.6/CHANGELOG.md">Changelog</a> · Apache-2.0</p>

@@ -1,4 +1,4 @@
-[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.5)
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.6)
 
 ---
 
@@ -31,7 +31,7 @@ The block-health idea needs block-break events, location-scoped state, controlle
 
 First implement server-side capability policy, scoped principals, authenticated loopback access, revocation, quotas, bound approvals and crash-safe transactions. Local revisions are one piece, not completion of the remote security milestone.
 
-Paired MCP provides status-only access over loopback in 0.0.5. Plan/stage/deploy wait for authorization and bypass tests. Verify client reconnects, timeouts, unknown results and named clients.
+0.0.6 adds scoped `.aether` authoring and exact-message tests through an owner-hosted relay; loopback pairing remains status-only. Broader gameplay authority and per-edit approvals remain future work. Verify client reconnects, timeouts, unknown results and named clients.
 
 Remote servers need owner-provisioned identities, TLS/mTLS or a reviewed private tunnel, expiring scoped credentials, rotation/revocation and replay defenses. Test impersonation, compromised gateways, partitions, retries and lost acknowledgements. A tunnel does not replace application authorization.
 
@@ -41,4 +41,4 @@ Performance measurements and connected-player checks remain release gates. Purpu
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.5
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.6

@@ -1,4 +1,4 @@
-[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.5)
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.6)
 
 ---
 
@@ -35,10 +35,10 @@ Unchanged reloads report `UNCHANGED` and add no revision or generation. An expli
 | `Feature unavailable or permission denied` | Check readiness, ID, feature permission and sender rule. |
 | `SAVE_FAILED` / `STORAGE_QUARANTINED` | Inspect storage health and recovery instructions. |
 
-The server console can run `ais pair` to start a read-only status session and `ais unpair` to revoke it. Follow the [pairing guide](https://github.com/MistDig/AetherScript/wiki/Security-and-MCP).
+The actual server console can run `ais remote cloud-note` to grant scoped relay management of that feature, and `ais remote-off` to revoke it. `ais remote id1,id2` grants several IDs. Remote mode requires private `relay.json` configuration. The server console can also run `ais pair` to start a read-only status session and `ais unpair` to revoke it. Follow the [pairing guide](https://github.com/MistDig/AetherScript/wiki/Security-and-MCP).
 
 Replies are bounded. Use per-feature commands or console for shortened lists. No deploy command or remote mutation endpoint exists.
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.5
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.6

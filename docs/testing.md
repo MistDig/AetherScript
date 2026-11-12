@@ -1,5 +1,11 @@
 # Actual test results
 
+## Release 0.0.6 — Cloudflare script management
+
+Java 25 clean check build passed 152 tests including abrupt JVM exits during remote script publication. Three relay tests passed. The shipped gateway passed offline authoring and protocol tests. On Windows the Codex app-server discovered nine relay-mode tools. The Windows launcher paired the real gateway and passed the expected arguments to an isolated Codex registration command.
+
+Using the deployed Cloudflare Worker and a disposable Paper 26.3 build 245 server, the MCP created a native script, read back the active revision, edited it, compared captured messages with expected output and observed the new message through Paper. It rejected stale writes, invalid scripts, an ungranted feature and access after revocation. This setup used an internet relay between processes on one test machine. The owner's two-PC Feather installation still needs its own check. [Evidence](evidence/0.0.6/)
+
 ## Release 0.0.5 — paired MCP
 
 Java 25 clean check build passed 138 tests. The shipped gateway passed the offline MCP and AI authoring subprocess checks. On a disposable Paper 26.3 build 245 server the gateway exchanged a console code, read generation 1, observed generation 2 after a script reload, and lost live access after console revocation. The full run exercised 31 checks, five boots and 100 changed reloads. This run used a local connection. Remote hosting and named chat client setup require their own checks. [Release evidence](evidence/0.0.5/)

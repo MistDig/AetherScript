@@ -20,6 +20,11 @@ final class GatewayCli {
             if (args.length == 1 && args[0].equals("--help")) { usage(new PrintStream(output)); return 0; }
             String operation = args[0];
             Map<String, String> options = options(args);
+            if ((operation.equals("pair") || operation.equals("pair-cloud")) && options.keySet().equals(java.util.Set.of("--profile"))) {
+                PairingProfile profile = RelayClient.pair(readCode(input, errors));
+                ProfileStore.save(Path.of(options.get("--profile")), profile);
+                output.write("Paired relay session. Profile saved.\n".getBytes(StandardCharsets.UTF_8)); output.flush(); return 0;
+            }
             if (operation.equals("pair") && options.keySet().equals(java.util.Set.of("--endpoint", "--profile"))) {
                 URI endpoint = BridgeClient.validateEndpoint(URI.create(options.get("--endpoint")));
                 String code = readCode(input, errors);
@@ -29,7 +34,7 @@ final class GatewayCli {
             }
             if (operation.equals("serve") && options.keySet().equals(java.util.Set.of("--profile"))) {
                 PairingProfile profile = ProfileStore.load(Path.of(options.get("--profile")));
-                new Main(new BridgeClient(profile)).serve(input, output); return 0;
+                new Main(profile.sessionId == null ? new BridgeClient(profile) : new RelayClient(profile)).serve(input, output); return 0;
             }
             if (operation.equals("forget") && options.keySet().equals(java.util.Set.of("--profile"))) {
                 ProfileStore.forget(Path.of(options.get("--profile")));
@@ -58,7 +63,7 @@ final class GatewayCli {
         errors.print("Pairing code: "); errors.flush();
         ByteArrayOutputStream code = new ByteArrayOutputStream(); int next;
         while ((next = input.read()) != -1 && next != '\n') {
-            if (code.size() >= 128) throw new IOException("Pairing code size limit");
+            if (code.size() >= 4096) throw new IOException("Pairing code size limit");
             code.write(next);
         }
         return code.toString(StandardCharsets.UTF_8).strip();
@@ -66,6 +71,7 @@ final class GatewayCli {
     private static void usage(PrintStream output) {
         output.println("AetherScript read-only MCP gateway");
         output.println("  No arguments: offline source validation over stdio");
+        output.println("  pair --profile PATH (paste the server pairing string into stdin)");
         output.println("  pair --endpoint http://127.0.0.1:PORT --profile PATH");
         output.println("    Reads the code from a hidden terminal prompt or one stdin line.");
         output.println("  serve --profile PATH");

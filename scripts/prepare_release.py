@@ -4,6 +4,7 @@ import hashlib
 import re
 import shutil
 import subprocess
+import zipfile
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
@@ -29,6 +30,12 @@ for module, name in [("plugin-paper", f"AetherScript-{version}.jar"), ("gateway-
     destination = out / name
     shutil.copy2(source, destination)
     assets.append(destination)
+windows_setup = out / f"AetherScript-Codex-Windows-{version}.zip"
+with zipfile.ZipFile(windows_setup, "w", compression=zipfile.ZIP_DEFLATED) as bundle:
+    script = (root / "scripts/Connect-AetherScript.cmd").read_text(encoding="ascii")
+    bundle.writestr("Connect-AetherScript.cmd", script.replace("RELEASE_VERSION", version).replace("\n", "\r\n"))
+    bundle.write(assets[1], assets[1].name)
+assets.append(windows_setup)
 archive = out / f"AetherScript-{version}-source.zip"
 subprocess.run(["git", "archive", "--format=zip", "--prefix=AetherScript/", f"--output={archive}", "HEAD"], cwd=root, check=True)
 assets.append(archive)

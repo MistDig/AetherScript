@@ -1,129 +1,125 @@
-[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.5)
+[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Download 0.0.6](https://github.com/MistDig/AetherScript/releases/tag/v0.0.6)
 
----
+## Connect an agent to selected scripts
 
-## Connect the MCP gateway to server status
+0.0.6 adds opt-in remote `.aether` authoring over an owner-hosted HTTPS relay. The plugin remains authoritative: the actual server console grants a finite set of feature IDs. An agent can list, read, validate, create/edit, activate and test those IDs. This does not grant general Minecraft commands, a shell, arbitrary file access or a player identity.
 
-The gateway has two modes. Offline stdio provides the language template, capability description and source validation. A paired stdio process also reads the running plugin's bounded status snapshot.
+The gateway also retains offline authoring and the existing loopback status-only pairing. Java 25 is required for both plugin and gateway. Named-client verification is recorded separately in the [client matrix](https://github.com/MistDig/AetherScript/blob/main/docs/mcp-clients.md).
 
-Pairing grants the fixed `status` scope. Its live result includes plugin version, readiness, busy state, registry generation, active feature count, recovery state and AI-deployment state. Source authoring and validation continue through the shared local parser.
+### 1. Set up your personal relay
 
-### Pair on the server console
+The owner deploys the Worker using the [relay setup instructions](https://github.com/MistDig/AetherScript/blob/v0.0.6/relay/README.md). This repository does not supply a shared public relay or a bundled enrollment secret. Create a random enrollment secret, enter it into the relay's private `RELAY_REGISTRATION_TOKEN` setting, and put the same secret in `plugins/AetherScript/relay.json`:
 
-Run this in the Minecraft server console:
-
-```text
-ais pair
+```json
+{
+  "endpoint": "https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev",
+  "registrationToken": "REPLACE_WITH_YOUR_PRIVATE_RANDOM_ENROLLMENT_SECRET",
+  "serverId": "my-paper-server"
+}
 ```
 
-The plugin prints a loopback endpoint such as `http://127.0.0.1:49152` and a single-use pairing code. The code expires after five minutes. A successful exchange grants a one-hour status session. A new `ais pair` rotates the grant and invalidates the earlier token.
+Use an HTTPS origin without a path, query or credentials. `serverId` accepts 1–64 ASCII letters, digits, underscores or dashes. The enrollment secret must be 32–512 characters. Protect this file with owner-only filesystem access; the connector checks its shape and regular-file status but does not enforce its ACL for you. Keep it out of Git, shared folders and public backups. Relay setup requires owner access to its hosting account. Review that account before deploying.
 
-The listener binds to IPv4 loopback on an ephemeral port. It is created by the console command and closes on `ais unpair` or plugin disable. `plugins/AetherScript/connection-details.json` contains the endpoint, transport and scope. This informational file can remain stale after shutdown and is removed at the next startup or unpair. The current console output supplies the endpoint for a fresh pairing. Keep the pairing code private, including console/log access.
+Both Paper and the local gateway make outbound HTTPS requests. No Minecraft inbound port or router forwarding is needed for the relay.
 
-### Create the local profile
+### 2. Grant one feature from the server console
 
-Run the gateway's pairing command on the same machine, replacing the sample endpoint with the one printed by the plugin:
+After Paper reports ready, run this in the actual server console (not player chat or remote command impersonation):
 
 ```text
-java -jar AetherScript-MCP-0.0.5.jar pair --endpoint http://127.0.0.1:49152 --profile /private/path/aether-profile.json
+ais remote cloud-note
 ```
 
-Enter the code when prompted. The terminal prompt hides input when a Java console is available. With redirected input, the command reads the code from standard input. Keep the code and token out of process arguments and shell history.
+This grants only `cloud-note`, including creating it when absent. To authorize several IDs, separate them with commas. A fresh remote command replaces the earlier grant. Wait for the private `aether://pair?...` link. It is a five-minute, single-use pairing secret. Console/log readers can see it, so restrict those readers. Do not paste the link into Codex chat, a public issue, shell history or command arguments.
 
-The gateway stores the endpoint, scope, token and expiry in an owner-restricted profile. Use an absolute profile path in the MCP client configuration. Treat the profile as a credential and keep it outside your repository, shared folders and server web roots.
+### 3. Connect on Windows
 
-### Start the paired MCP process
+Download **AetherScript-Codex-Windows-0.0.6.zip** from the release and extract the complete ZIP into one folder. With Java 25 and Codex installed, double-click **Connect-AetherScript.cmd**. Paste the private pairing link into its prompt.
 
-A stdio client entry uses this executable/argument shape. Replace the JAR and profile paths for your installation:
+The helper copies the gateway to `%LOCALAPPDATA%/AetherScript/gateway.jar`, stores an owner-restricted profile under `%LOCALAPPDATA%/AetherScript/profiles/minecraft.json`, and registers the `aetherscript` stdio MCP entry with the installed Codex CLI. Open a new Codex chat after it succeeds. Re-running the helper updates that named entry. If setup fails, check Java 25, Codex availability, relay access and the fresh console grant; extract the entire ZIP rather than opening the helper inside the archive.
+
+Manual pairing on other systems or custom paths:
+
+```text
+java -jar AetherScript-MCP-0.0.6.jar pair-cloud --profile /private/path/profile.json
+```
+
+Paste the whole link into stdin at the prompt. A real Java-console prompt hides input. Redirected stdin also works. Credentials have no command-line flags. Profile creation can fail after the pairing code is consumed; issue a fresh server grant in that case.
+
+Configure any compatible stdio client to launch:
 
 ```json
 {
   "command": "java",
-  "args": [
-    "-jar", "/absolute/path/to/AetherScript-MCP-0.0.5.jar",
-    "serve", "--profile", "/private/path/aether-profile.json"
-  ]
+  "args": ["-jar", "/absolute/path/AetherScript-MCP-0.0.6.jar", "serve", "--profile", "/private/path/profile.json"]
 }
 ```
 
-### Copyable Codex setup
+The gateway needs no model API key. Client configuration syntax and verification differ by client. Profile possession permits the existing grant until expiry or revocation; protect the profile as a credential.
 
-These Windows examples use `C:/AetherScript/` as the JAR folder and `C:/AetherScript/private/` for the profile. Replace the paths for your installation, and use a Java 25 executable.
+### 4. Author, activate and inspect observed output
 
-```text
-codex mcp add aetherscript -- java -jar C:/AetherScript/AetherScript-MCP-0.0.5.jar serve --profile C:/AetherScript/private/aether-profile.json
-codex mcp list
-```
-
-The equivalent user or project `config.toml` entry is:
-
-```toml
-[mcp_servers.aetherscript]
-command = "java"
-args = ["-jar", "C:/AetherScript/AetherScript-MCP-0.0.5.jar", "serve", "--profile", "C:/AetherScript/private/aether-profile.json"]
-```
-
-Use either the CLI registration or the TOML entry. Keep the profile path absolute so the gateway can start from a different working directory. This setup shape was checked against the installed Codex CLI help and official OpenAI documentation. Named-client runtime verification is tracked in the compatibility matrix. [Official OpenAI MCP configuration](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)
-
-The outer configuration format depends on your MCP client. Windows JSON paths need escaped backslashes or forward slashes. Java 25 runs the gateway. The gateway itself needs no model API key.
-
-To use the offline authoring tools, start the same JAR with no arguments:
+Ask the agent to list authorized IDs, read `cloud-note`, write a small message script, validate it, apply against its current hash, then read it back and test the exact expected message. For example:
 
 ```text
-java -jar AetherScript-MCP-0.0.5.jar
+feature cloud-note version "1.0.0"
+command cloudnote permission "aetherscript.example.cloud" sender any {
+  send "Cloud connected!"
+}
 ```
 
-| Tool | Behavior |
+| Tool | Arguments and result |
 | --- | --- |
-| `aether_server_status` | Offline mode reports offline state. Paired mode requests the authenticated live status snapshot. |
-| `aether_capabilities` | Returns the language rules, editable template and local parser capabilities. |
-| `aether_validate` | Validates supplied AetherScript, YAML or JSON and returns hashes or source diagnostics. |
+| `aether_server_status` | `{}`; relay mode reports generation and granted target IDs. Loopback mode returns its bounded status snapshot. |
+| `aether_capabilities` | `{}`; language/template metadata, tool discovery and profile operation scopes. The server still checks target grants. |
+| `aether_validate` | `{source, format}`; offline parser validation for `aether`, `yaml` or `json`. No server authorization check. |
+| `aether_test` | `{source, format, expectedMessages}`; offline shared-Registry execution with exact expected versus actual messages. |
+| `aether_scripts_list` | `{}`; authorized feature IDs. Relay profile required for this and following tools. |
+| `aether_scripts_read` | `{id}`; editable source, `hash`, `activeHash`, `generation` and `revision`; absent source has `hash: "ABSENT"`. |
+| `aether_scripts_validate` | `{id, source}`; candidate `.aether` validation against server constraints. |
+| `aether_scripts_apply` | `{id, source, expectedHash}`; compare-and-swap source save plus activation, returning readback. Use the read hash, or `ABSENT` for creation. |
+| `aether_scripts_test` | `{id, expectedMessages}`; runs the active definition and returns `actualMessages`, `matched`, `invoked`, `sender` and `generation`. |
 
-The protocol uses MCP `2025-06-18` and newline-delimited JSON-RPC over stdio. The live grant authorizes status reads. Script deployment, server file editing and console execution remain future server-authorized capabilities.
+Check `actualMessages` equals `["Cloud connected!"]`, `matched` is true and `invoked` is true. These are captured effects from the actual Registry, not the agent's prediction. The sender is `synthetic-agent`: tests do not impersonate a player, bypass a player-only sender rule, or deliver a chat message to a real player. Normal `/ais run cloud-note` still checks the real caller's permission and sender rule.
 
-### Revoke or remove a profile
+Readback distinguishes editable `hash` and running `activeHash`. A stale expected hash rejects an edit. After a timeout or lost response, read source and active state before retrying: a missing reply does not prove activation failed. Apply cannot rewrite an existing YAML/JSON feature under the same ID; use a new granted `.aether` ID or migrate locally.
 
-Revoke the grant and close the bridge from the server console:
+### Revoke access
 
-```text
-ais unpair
-```
-
-Remove the local credential file:
-
-```text
-java -jar AetherScript-MCP-0.0.5.jar forget --profile /private/path/aether-profile.json
-```
-
-Server revocation stops access for clients already holding the token. Local removal prevents later processes from loading that profile. Expiry requires a fresh pairing exchange. Server restart/disable ends the in-memory grant.
-
-### Recover a failed setup
-
-| Result | Next step |
-| --- | --- |
-| Pairing fails or the code expired | Run `ais pair` again in the server console, then use the new code before its five-minute expiry. |
-| Profile creation/permission check fails | Choose a private local path and correct its owner access, then issue a fresh pairing code. A successful exchange consumes its code before the profile is saved. |
-| Live status reports an expired/revoked session | Pair again, save the new profile and restart the paired stdio process. |
-| Remote connection fails | Check that the SSH tunnel is running and that the profile uses the forwarded local endpoint. |
-
-### Use a remote server through a loopback tunnel
-
-For a remote server, keep the plugin listener on its loopback address and create an authenticated SSH local forward. Replace `SERVER_PORT` with the endpoint port printed by `ais pair` on that server:
+From the server console:
 
 ```text
-ssh -N -L 127.0.0.1:8765:127.0.0.1:SERVER_PORT owner@server
+ais remote-off
 ```
 
-Keep the tunnel running and pair the gateway against `http://127.0.0.1:8765`. The gateway connects to a local loopback endpoint while SSH authenticates and encrypts the remote leg. Use the same forwarded endpoint when serving the stored profile. Follow your host's SSH access and host-key policy. [OpenSSH local forwarding reference](https://man.openbsd.org/ssh#L)
+Revocation removes local authority immediately and attempts relay revocation. Server restart/disable ends the in-memory grant. Sessions expire within 24 hours; reconnect by issuing a fresh console grant. Remove a local profile with:
 
-The gateway accepts literal `http://127.0.0.1:PORT` endpoints and rejects redirects. The bridge validates a literal loopback Host header and rejects browser Origin/Sec-Fetch-Site requests. It bounds workers/queues and pairing request size, allows eight pairing attempts per issued code, and applies a 120-request-per-minute limit.
+```text
+java -jar AetherScript-MCP-0.0.6.jar forget --profile /private/path/profile.json
+```
 
-### Upgrade from 0.0.4
+Removing a file does not revoke a credential already held by a running client. Rotating the relay enrollment secret prevents future enrollment; revoke active grants separately.
 
-0.0.4 remains a published offline-authoring release. Install the updated plugin and gateway together to use pairing. Existing YAML/JSON and `.aether` definitions keep their feature IDs, saved revisions and normal `/ais` workflow. Back up the plugin data directory, stop Paper and replace the plugin JAR before restarting.
+### Privacy, limits and operational boundaries
 
-Named MCP clients require their own compatibility checks. The [client matrix](https://github.com/MistDig/AetherScript/blob/main/docs/mcp-clients.md) records that verification separately.
+TLS protects transit. The owner-hosted relay can read script source, arguments and observed results; this version has no end-to-end encryption. Hosting administrators and provider infrastructure are trusted. Avoid body/header capture in relay observability. Tokens stay outside MCP output; pairing links and profiles must stay private.
+
+The relay accepts a 64 KiB JSON envelope including escaping/metadata, one pending operation and 1000 operations per session. Keep scripts below that envelope budget. The local parser caps source at 64 KiB; this is not a promise that a full-size source fits remotely. Pairing expires in five minutes, with five failed claims locking a session. The mailbox times out abandoned work after two minutes. Gateway calls have a shorter bounded wait, so unknown outcomes require readback. Polling normally runs every five seconds; account-wide hosting quotas are finite. Quota exhaustion affects remote operation, while local `/ais` use remains independent.
+
+The engine remains message-only, with preparation-time expressions, one command per feature and at most 128 active features. No unrestricted agent execution or world-state undo is provided. Owner backups and audit disk monitoring remain necessary.
+
+### Existing loopback and offline modes
+
+`ais pair` still issues a five-minute code and starts a literal IPv4 loopback status-only bridge. Pair on that machine with:
+
+```text
+java -jar AetherScript-MCP-0.0.6.jar pair --endpoint http://127.0.0.1:PORT --profile /private/path/status.json
+```
+
+Enter the code at the prompt. `serve --profile ...` launches the paired gateway. This credential lasts one hour and cannot enable mutation tools. `ais unpair` closes that listener. For another host, use an authenticated SSH local forward with both bindings on loopback. `connection-details.json` is informational, contains no secret and can become stale after shutdown.
+
+No-argument gateway startup remains offline. MCP uses `2025-06-18`, newline-delimited UTF-8 JSON-RPC over stdio. Tool annotations are descriptive; plugin authorization and source checks enforce server authority.
 
 ---
 
-[Security policy](https://github.com/MistDig/AetherScript/blob/v0.0.5/SECURITY.md) · [Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.5
+[Security policy](https://github.com/MistDig/AetherScript/blob/v0.0.6/SECURITY.md) · AetherScript 0.0.6

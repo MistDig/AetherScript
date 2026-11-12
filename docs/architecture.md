@@ -4,7 +4,7 @@ Three modules share one bounded, typed engine:
 
 - `core`: bounded native text frontend and strict YAML/JSON parser with source locations; immutable definitions/registry; source inspection; revision storage/recovery; strict owner settings; local audit.
 - `plugin-paper`: static `/ais` dispatcher, permissions, Adventure plain-text messages, main-thread activation/effects, one bounded I/O worker.
-- `gateway-mcp`: isolated stdio process using the same parser. In paired mode it reads one administrator-selected local profile and requests an authenticated status snapshot from the loopback bridge. Script validation remains local.
+- `gateway-mcp`: isolated stdio process using the same parser. It reads an owner-selected private profile for loopback status or scoped relay operations. Offline validation and exact-message tests share the parser and Registry.
 
 ## Activation and durable state
 
@@ -24,10 +24,20 @@ Startup normally loads valid editable files. Invalid/missing sources fall back t
 
 ## Current boundaries
 
-One command per feature; only `message.send` to sender; no aliases, events, variables, world mutation, network listener or AI deployment. Config only selects supported retention, not security bypasses. Future events/tasks must carry generation identity and implement cleanup, threading and quota rules before shipping.
+One command per feature; only `message.send` to sender; no aliases, events, mutable runtime variables, world mutation or general console execution. Preparation-time local values/conditionals are supported. Opt-in loopback status and outbound remote authoring are separate authenticated surfaces. Config only selects supported retention, not security bypasses. Future events/tasks must carry generation identity and implement cleanup, threading and quota rules before shipping.
 
 See `docs/wiki/Revisions-and-Recovery.md` for operator behavior and `docs/roadmap.md` for security gates.
 
 ## Native script preparation
 
 The text frontend checks local bindings and both branches of a conditional during preparation. It evaluates the selected branch and emits the same immutable sender-message actions used by structured features. The Paper invocation path checks the command permission and sender restriction. Offline validation uses the same compiler through the CLI and MCP. The packaged JSON authoring contract supplies the template for the website and both tools.
+
+## Scoped relay authoring
+
+The optional `relay/` Worker is a bounded application mailbox between two outbound HTTPS clients. The owner enrolls Paper with a private registration secret; console `ais remote <ids>` installs an in-memory allowlist and prints a private five-minute pairing URI. The gateway claims it and persists an owner-restricted profile. Distinct server/client roles, operation scopes and token hashes protect the mailbox; the plugin independently checks exact arguments, IDs and its local grant.
+
+Only `.aether` files can be created or edited. Apply validates the whole candidate registry, records a forced recovery intent, and activates through the normal durable pipeline with a main-thread grant recheck before publishing the editable file by source-hash compare-and-swap. Startup resolves interrupted publication using the durable manifest sequence and active hash: uncommitted candidates are discarded; committed candidates are published only while the editable source still matches the original expected hash. A later owner edit is preserved. Unchanged durable plans use a guarded source update without a recovery intent. A delivery failure after commit never restores an older source. Readback includes editable/active hashes, generation and revision; inspect unknown outcomes before retrying.
+
+Source checks and atomic replacement serialize plugin-managed updates. An external editor does not participate in that lock: avoid editing the same feature while a remote apply is pending, since portable Java cannot atomically compare file contents and replace them against an unrelated writer. File and intent contents are forced; directory flushing is best-effort, so abrupt-JVM recovery tests do not imply a hardware power-loss guarantee.
+
+Live tests schedule actual Registry invocation on the platform thread with a synthetic non-player capability and capture messages. Offline tests use a fresh local Registry. Neither path impersonates a player. TLS is used without end-to-end encryption, so the relay sees source and results. There are no general commands, arbitrary filesystem/network operations or player actions. Remote-off, replacement, restart and expiry end authority. See `relay/README.md` and `docs/wiki/Security-and-MCP.md` for setup and limits.

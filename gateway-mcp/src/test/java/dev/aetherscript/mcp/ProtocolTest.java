@@ -16,7 +16,7 @@ class ProtocolTest {
     }
     @Test void lifecycleAndDiscovery() {
         assertEquals(-32002,request("tools/list",Map.of()).path("error").path("code").asInt()); initialize();
-        var tools=request("tools/list",Map.of()).path("result").path("tools"); assertEquals(3,tools.size());
+        var tools=request("tools/list",Map.of()).path("result").path("tools"); assertEquals(4,tools.size());
         for(var tool:tools) assertTrue(tool.path("annotations").path("readOnlyHint").asBoolean());
     }
     @Test void noMutationToolsOrFileTools() {
@@ -62,6 +62,17 @@ class ProtocolTest {
         assertTrue(invalid.path("isError").asBoolean());
         assertEquals(4, invalid.path("structuredContent").path("line").asInt());
         assertTrue(invalid.path("structuredContent").path("column").asInt() > 0);
+    }
+    @Test void syntheticTestComparesExactMessagesAndRejectsPlayerOnly() throws Exception {
+        initialize(); String source = Files.readString(Path.of("../examples/hello-ai.json"));
+        var feature = new dev.aetherscript.core.FeatureParser().parse(source.getBytes(java.nio.charset.StandardCharsets.UTF_8), "json");
+        var expected = feature.definition().command().actions().stream().map(dev.aetherscript.core.Feature.MessageAction::text).toList();
+        var result = request("tools/call", Map.of("name", "aether_test", "arguments", Map.of("source", source, "format", "json", "expectedMessages", expected))).path("result").path("structuredContent");
+        assertTrue(result.path("matched").asBoolean()); assertEquals("synthetic-agent", result.path("sender").asText());
+        var mismatch = request("tools/call", Map.of("name", "aether_test", "arguments", Map.of("source", source, "format", "json", "expectedMessages", List.of("wrong")))).path("result").path("structuredContent");
+        assertFalse(mismatch.path("matched").asBoolean()); assertEquals(expected.getFirst(), mismatch.path("actualMessages").get(0).asText());
+        var player = request("tools/call", Map.of("name", "aether_test", "arguments", Map.of("source", source.replace("\"sender\": \"any\"", "\"sender\": \"player\""), "format", "json", "expectedMessages", expected))).path("result").path("structuredContent");
+        assertFalse(player.path("invoked").asBoolean()); assertFalse(player.path("matched").asBoolean());
     }
     @Test void stdioIsJsonOnlyAndNotificationsHaveNoResponse() throws Exception {
         var input="{\"jsonrpc\":\"2.0\",\"method\":\"notifications/cancelled\"}\n{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"ping\"}\n";
