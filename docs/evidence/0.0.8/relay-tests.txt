@@ -1,0 +1,18 @@
+> aetherscript-relay@0.0.8 test
+> node --test
+
+✔ DCR public/confidential methods, Gemini redirects, full grants, supersession and terminal rejection (17791.5258ms)
+✔ expired pending handshake is terminal and cannot be acknowledged or used (13.3215ms)
+✔ private pairing, bounded requests, outbound reply, isolation, revocation (511.1491ms)
+✔ unknown grants, expiry bound, pairing attempt bound, payload bound (69.9014ms)
+✔ abandoned requests expire without a results poll (12.3542ms)
+✔ browser enrollment, exact OAuth grant, PKCE, actual client status, revocation (553.7809ms)
+✔ expired credentials and quota data have bounded retention (6.2335ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 18496.6793

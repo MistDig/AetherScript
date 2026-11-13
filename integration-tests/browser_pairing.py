@@ -57,6 +57,8 @@ def verify(command, start, stop):
         page.goto(origin+"/oauth/authorize?"+urlencode(oauth))
         expect(page.locator("#server")).to_have_text(re.compile(r"\S"))
         page.locator("#name").fill("Desktop integration")
+        if page.locator("#selected").count():
+            page.locator("#selected").check()
         page.locator("#ids").fill("cloud-note")
         page.locator("#approve").click()
         page.wait_for_url(redirect+"**", timeout=30000)

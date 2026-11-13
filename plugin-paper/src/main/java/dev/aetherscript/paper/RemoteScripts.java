@@ -11,21 +11,32 @@ final class RemoteScripts {
     private final FeatureManager manager;
     private final Registry registry;
     private final Set<String> allowed;
+    private final boolean allScripts;
     private final Main main;
     private final Activate activate;
     private volatile boolean revoked;
     RemoteScripts(FeatureManager manager, Registry registry, Set<String> allowed, Main main, Activate activate) {
+        this(manager, registry, allowed, false, main, activate);
+    }
+    RemoteScripts(FeatureManager manager, Registry registry, Set<String> allowed, boolean allScripts, Main main, Activate activate) {
         allowed.forEach(FeatureParser::requireId);
-        this.manager = manager; this.registry = registry; this.allowed = Set.copyOf(allowed); this.main = main; this.activate = activate;
+        this.manager = manager; this.registry = registry; this.allowed = Set.copyOf(allowed); this.allScripts = allScripts; this.main = main; this.activate = activate;
     }
     void revoke() { revoked = true; }
     private void authorized() { if (revoked) throw new SecurityException("REVOKED"); }
     synchronized Map<String, Object> execute(String operation, Map<String, Object> args) throws Exception {
         authorized();
-        if (operation.equals("status")) { exact(args, Set.of()); return Map.of("generation", registry.snapshot().generation(), "scope", "manage", "targets", allowed); }
-        if (operation.equals("scripts.list")) { exact(args, Set.of()); return Map.of("ids", allowed.stream().sorted().toList()); }
+        if (operation.equals("status")) { exact(args, Set.of()); return Map.of("generation", registry.snapshot().generation(), "scope", "manage", "targets", allowed, "allScripts", allScripts); }
+        if (operation.equals("scripts.list")) {
+            exact(args, Set.of()); Set<String> ids = new TreeSet<>(allowed);
+            if (allScripts) for (var file : manager.scripts().inspect(null).values()) {
+                if (!Arrays.asList(file.fileName().split(" \\+ ")).contains(file.id() + ".aether")) continue;
+                try { FeatureParser.requireId(file.id()); ids.add(file.id()); } catch (ValidationException ignored) { }
+            }
+            return Map.of("ids", List.copyOf(ids), "allScripts", allScripts);
+        }
         String id = string(args, "id"); FeatureParser.requireId(id);
-        if (!allowed.contains(id)) throw new SecurityException("TARGET_DENIED");
+        if (!allScripts && !allowed.contains(id)) throw new SecurityException("TARGET_DENIED");
         switch (operation) {
             case "scripts.read" -> { exact(args, Set.of("id")); return read(id); }
             case "scripts.validate" -> {
@@ -36,7 +47,7 @@ final class RemoteScripts {
                 exact(args, Set.of("id", "source", "expectedHash"));
                 var before = registry.snapshot(); String source = string(args, "source"), expectedHash = string(args, "expectedHash");
                 var candidate = manager.validateText(id, source, before);
-                var previous = manager.scripts().textSource(id);
+                var previous = textSource(id);
                 if (!Objects.equals(expectedHash, previous == null ? "ABSENT" : previous.hash())) throw new java.io.IOException("STALE_SOURCE");
                 authorized(); FeatureManager.Change change = manager.prepareText(id, source, before);
                 boolean needsIntent = change.durable().changed();
@@ -73,10 +84,17 @@ final class RemoteScripts {
         }
     }
     private Map<String, Object> read(String id) throws Exception {
-        authorized(); var source = manager.scripts().textSource(id); var snapshot = registry.snapshot(); var active = snapshot.features().get(id);
+        authorized(); var source = textSource(id); var snapshot = registry.snapshot(); var active = snapshot.features().get(id);
         var history = manager.store().state().features().get(id);
         return Map.of("id", id, "exists", source != null, "source", source == null ? "" : source.text(), "hash", source == null ? "ABSENT" : source.hash(),
             "activeHash", active == null ? "" : active.sourceHash(), "generation", snapshot.generation(), "revision", history == null ? 0 : history.active());
+    }
+    private SourceFile textSource(String id) throws java.io.IOException {
+        try { return manager.scripts().textSource(id); }
+        catch (java.io.IOException failure) {
+            if ("TEXT_SOURCE_REQUIRED".equals(failure.getMessage())) throw new java.io.IOException("TEXT_SOURCE_REQUIRED: owner must convert this ID to a single safe .aether file first; legacy YAML/JSON and duplicate sources are never overwritten.");
+            throw failure;
+        }
     }
     private static List<String> invocationArguments(Map<String, Object> args) {
         if (!args.containsKey("arguments")) return List.of();

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.aetherscript.paper.PairedStatusBridgeTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-13T19:02:40.514Z" hostname="VARUN" time="0.488">
+  <properties/>
+  <testcase name="oneTimePairRevocationReadOnlyAndNoBrowser()" classname="dev.aetherscript.paper.PairedStatusBridgeTest" time="0.173"/>
+  <testcase name="slowBodyCannotBlockConsoleRePairAndSnapshotsStayFresh()" classname="dev.aetherscript.paper.PairedStatusBridgeTest" time="0.022"/>
+  <testcase name="expirationAndAttemptLimits()" classname="dev.aetherscript.paper.PairedStatusBridgeTest" time="0.045"/>
+  <testcase name="boundedBodyAndRequests()" classname="dev.aetherscript.paper.PairedStatusBridgeTest" time="0.239"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

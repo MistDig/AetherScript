@@ -4,12 +4,12 @@
 
 ## Available tools
 
-Start with `aether_server_status` to confirm which server is connected. Each live connection can access only its approved feature IDs.
+Start with `aether_server_status` to confirm which server is connected. A selected-script connection can access only its approved feature IDs. A full-access connection can create and edit any valid native .aether feature ID, including existing scripts.
 
 | Tool | Input | Result and next step |
 | --- | --- | --- |
 | `aether_server_status` | No arguments | Current live registry generation and server grant. A connection failure is an error. |
-| `aether_scripts_list` | No arguments | IDs allowed by this connection. An ID can be allowed before a file exists. |
+| `aether_scripts_list` | No arguments | Selected IDs, or existing native IDs under full access. Full access can create new valid IDs. |
 | `aether_scripts_read` | `id` | Editable source, source hash, active hash, revision and generation. Read before editing. |
 | `aether_scripts_validate` | `id`, `source` | Validates a complete native script using the server compiler. |
 | `aether_scripts_apply` | `id`, `source`, `expectedHash` | Validates, activates, saves and reads back the result. Use the read hash, or `ABSENT` to create. |
@@ -38,3 +38,5 @@ The hosted service bounds JSON requests, source size, pending operations and dai
 [Connect your AI](https://github.com/MistDig/AetherScript/wiki/Security-and-MCP)
 
 For command arguments, pass strings such as `arguments: ["MistDig", "2", "true"]` to the test tool. The compiler applies the declared types and the tool returns actual messages.
+
+In 0.0.8 a superseded, rejected, expired or revoked approval yields HTTP 401 with an invalid_token authentication challenge. The AI client should sign in again with a fresh console link. A fresh valid approval waits briefly for Paper acknowledgement; a longer outage yields a retryable 503 temporarily_unavailable response.

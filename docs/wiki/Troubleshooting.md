@@ -28,7 +28,7 @@ If Paper is offline, start it and allow the connection to retry. Check the serve
 
 ## My AI cannot see a script
 
-Use `ais connections` in the Minecraft console and check its exact IDs. Creating a new feature requires approving that ID. A connection cannot enlarge its own grant. Use a fresh `ais connect` approval for a new grant.
+Use `ais connections` in the Minecraft console and check its exact IDs. Creating a new feature requires full access or approving that ID. A connection cannot enlarge its own grant. Full access is available only through a fresh owner approval. Use a fresh `ais connect` approval for a new grant.
 
 The native file's ID must match its filename. Keep one source format per feature ID. A remotely managed native feature cannot overwrite an existing YAML feature of the same ID.
 
@@ -43,3 +43,7 @@ On the Minecraft computer, type `ais disconnect` for all connections, or include
 ---
 
 [Recovery guide](https://github.com/MistDig/AetherScript/wiki/Revisions-and-Recovery)
+
+## Repeated rejected-grant messages on 0.0.7
+
+Update the Paper plugin to 0.0.8. The connector logs each rejected grant state once, clears superseded pending links and informs the service of terminal rejection. Use a fresh `ais connect` and sign in again when the AI app reports invalid_token.

@@ -1,0 +1,7 @@
+Metadata and superseded console link: pass
+Browser fallback client registration: pass
+Installed Codex discovered six hosted MCP tools: pass
+Web confidential OAuth, full access, existing edits, new IDs and retained restrictions: pass
+Both grant modes survive restart: pass
+Revoked tokens return invalid_token authentication challenge: pass
+PASS: fresh Paper install, browser consent, live status, restart and revocation

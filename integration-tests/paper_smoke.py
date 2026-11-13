@@ -11,6 +11,7 @@ parser.add_argument('--existing-json', action='store_true', help='Seed a JSON ex
 parser.add_argument('--aether', action='store_true', help='Exercise textual source, diagnostics and restart recovery')
 parser.add_argument('--pairing', action='store_true', help='Pair the packaged MCP with this disposable server and check live status and revocation')
 parser.add_argument('--relay-config', type=Path, help='Optional path to a private relay.json for a live remote script-management test')
+parser.add_argument('--browser-008', action='store_true', help='Exercise 0.0.8 web OAuth and full versus selected grants')
 parser.add_argument('--browser-only', action='store_true', help='Test a fresh install with the shared relay in a real browser (requires Playwright)')
 args = parser.parse_args()
 if args.existing_json and args.aether:
@@ -115,10 +116,13 @@ def edit(message):
     source.write_text(changed, encoding='utf-8')
 def history():
     return json.loads((data/'storage/manifest.json').read_text())['state']['features']['hello-ai']
-if args.browser_only:
+if args.browser_only or args.browser_008:
     if args.relay_config:
         parser.error('Browser onboarding must work without relay.json')
-    from browser_pairing import verify
+    if args.browser_008:
+        from browser_pairing_008 import verify
+    else:
+        from browser_pairing import verify
     try:
         start()
         verify(command, start, stop)

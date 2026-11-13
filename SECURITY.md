@@ -52,3 +52,11 @@ The relay caps JSON envelopes at 64 KiB including quoting/metadata, with one pen
 ## Reporting
 
 Report security issues privately to the repository owner through an agreed private channel. A dedicated reporting contact is still pending. Keep real codes, profiles, tokens and private logs out of public issues. Local audit files need owner-controlled OS access and disk monitoring. Audit rotation and remote audit integrity remain tracked operational work. [Repository](https://github.com/MistDig/AetherScript)
+
+## Full access and OAuth recovery in 0.0.8
+
+Full native-script access is an explicit immutable boolean in the browser approval, relay and persisted Paper grant. Missing fields in older connections remain false. Console-restricted approvals cannot acquire full access. Full access permits editing existing .aether files and creating new valid feature IDs; legacy source-format collisions remain protected. Changing access requires fresh owner approval.
+
+New connect commands supersede uncompleted enrollment, approval and OAuth sessions. Active acknowledged token-bearing connections remain valid. Server rejections terminate only pending offers. Expired or terminal tokens receive an OAuth invalid_token challenge so clients can sign in again. The relay waits briefly for valid pending Paper acknowledgement; a longer outage returns a retryable service error.
+
+The OAuth service supports none, client_secret_basic and client_secret_post authentication. Registration secrets are per-client, shown once, and stored as verifiers. The manual setup form is available from a private pairing browser session. Public metadata and token endpoints support configured web client origins; credentialed pairing cookies remain restricted to the service origin.

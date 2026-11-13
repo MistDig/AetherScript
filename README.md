@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/assets/aetherscript-banner.png" alt="AetherScript — little scripts, big possibilities" width="1200"></p>
 
-<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.7"><b>Download 0.0.7</b></a> · <a href="https://mistdig.github.io/AetherScript/">Explore the docs</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
+<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.8"><b>Download 0.0.8</b></a> · <a href="https://mistdig.github.io/AetherScript/">Explore the docs</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
 
 [![Build](https://github.com/MistDig/AetherScript/actions/workflows/ci.yml/badge.svg)](https://github.com/MistDig/AetherScript/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/MistDig/AetherScript)](https://github.com/MistDig/AetherScript/releases)
@@ -8,9 +8,9 @@
 
 An open-source Minecraft scripting engine with **live hot reloading**, saved working revisions and a path toward secure, vendor-neutral AI tooling. Target: **Paper 26.3 build 245 · Java 25**.
 
-## Browser pairing in 0.0.7
+## Browser pairing in 0.0.8
 
-Install the plugin, run `ais connect` in the Minecraft server console, and open the private link on your AI computer. Choose your app and approve exact script IDs in its browser authorization screen. Each server creates its own identity automatically. The shared service handles the connection.
+Install the plugin, run `ais connect` in the Minecraft server console, and open the private link on your AI computer. Choose your app and approve all native scripts or selected script IDs in its browser authorization screen. Each server creates its own identity automatically. The shared service handles the connection.
 
 For Codex on Windows, the page links a ZIP. Extract it and double-click `Connect-AetherScript.cmd` to register the hosted MCP and open sign-in. Other OAuth MCP apps use the address displayed on the page. [Step-by-step guide](https://mistdig.github.io/AetherScript/guide/security.html)
 
@@ -55,7 +55,7 @@ This experimental release supports sender-only message actions and preparation-t
 
 ## Get started
 
-1. Stop Paper, back up existing AetherScript data, and install **AetherScript-0.0.7.jar** from the release. Keep only one plugin JAR installed.
+1. Stop Paper, back up existing AetherScript data, and install **AetherScript-0.0.8.jar** from the release. Keep only one plugin JAR installed.
 2. Start with Java 25 and wait for `Ready. Restored ...`. A new install creates and activates `plugins/AetherScript/scripts/hello-ai.yml`.
 3. Run `/ais run hello-ai`. Players need `aetherscript.example.hello` (operators by default).
 4. Edit its quoted `text`, save, then `/ais validate hello-ai` and `/ais reload hello-ai`.
@@ -91,14 +91,14 @@ python integration-tests/mcp_stdio.py
 
 Linux/macOS: `./gradlew clean check build`. Gradle 9.1.0 wrapper, dependency locks and checksums are committed. First build needs network access.
 
-- `plugin-paper/build/libs/plugin-paper-0.0.7.jar`: standalone plugin; do not install the thin JAR.
-- `gateway-mcp/build/libs/gateway-mcp-0.0.7.jar`: separate executable MCP process.
+- `plugin-paper/build/libs/plugin-paper-0.0.8.jar`: standalone plugin; do not install the thin JAR.
+- `gateway-mcp/build/libs/gateway-mcp-0.0.8.jar`: separate executable MCP process.
 
 Verification history: 0.0.2 passed **70 automated tests**, the packaged MCP check, and **28 Paper console checks across five boots and 100 distinct reloads**. The 0.0.3 build repeats those automated tests and packaged MCP verification. Current 0.0.4 results are recorded in the [test notes](docs/testing.md). Tests cover invalid edits, restart, rollback, retention, corrupt storage and abruptly halted JVM saves. See [0.0.2 server evidence](docs/evidence/0.0.2) and [testing notes](docs/testing.md). Connected-player 0.0.4 checks, Purpur, named MCP clients and performance benchmarks remain open.
 
 ## MCP connection
 
-The default connection uses the shared hosted MCP at `https://aetherscript-relay.mistdig143.workers.dev/mcp`. Start from `ais connect` to establish the owner browser session before your AI app begins OAuth. Approval limits the connection to named features and the six script operations.
+The default connection uses the shared hosted MCP at `https://aetherscript-relay.mistdig143.workers.dev/mcp`. Start from `ais connect` to establish the owner browser session before your AI app begins OAuth. Approval limits the connection to all native scripts or the selected feature IDs and the fixed script operations.
 
 The local gateway JAR retains offline validation, synthetic message tests, the 0.0.5 loopback status mode and the 0.0.6 personal-relay mode. It is optional for hosted pairing. [Client verification](docs/mcp-clients.md) records exactly which checks ran.
 

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.aetherscript.mcp.PairingTest" tests="22" skipped="0" failures="0" errors="0" timestamp="2026-11-13T19:02:34.672Z" hostname="VARUN" time="1.674">
+  <properties/>
+  <testcase name="cliOfflineDefaultAndInvalidSetupHaveNoCredentialSideEffects()" classname="dev.aetherscript.mcp.PairingTest" time="0.54"/>
+  <testcase name="explicitPairingAuthenticatesStatusAndExportsOnlyTheAllowedFields()" classname="dev.aetherscript.mcp.PairingTest" time="0.576"/>
+  <testcase name="profileRoundTripUsesPrivatePermissionsAndAtomicReplacement()" classname="dev.aetherscript.mcp.PairingTest" time="0.096"/>
+  <testcase name="[1] http://localhost:12345" classname="dev.aetherscript.mcp.PairingTest" time="0.019"/>
+  <testcase name="[2] https://127.0.0.1:12345" classname="dev.aetherscript.mcp.PairingTest" time="0.004"/>
+  <testcase name="[3] http://127.0.0.2:12345" classname="dev.aetherscript.mcp.PairingTest" time="0.005"/>
+  <testcase name="[4] http://[::1]:12345" classname="dev.aetherscript.mcp.PairingTest" time="0.006"/>
+  <testcase name="[5] http://example.com:12345" classname="dev.aetherscript.mcp.PairingTest" time="0.005"/>
+  <testcase name="[6] http://127.0.0.1" classname="dev.aetherscript.mcp.PairingTest" time="0.005"/>
+  <testcase name="[7] http://127.0.0.1:0" classname="dev.aetherscript.mcp.PairingTest" time="0.004"/>
+  <testcase name="[8] http://127.0.0.1:65536" classname="dev.aetherscript.mcp.PairingTest" time="0.005"/>
+  <testcase name="[9] http://user:secret@127.0.0.1:12345" classname="dev.aetherscript.mcp.PairingTest" time="0.006"/>
+  <testcase name="[10] http://127.0.0.1:12345/status" classname="dev.aetherscript.mcp.PairingTest" time="0.005"/>
+  <testcase name="[11] http://127.0.0.1:12345?token=x" classname="dev.aetherscript.mcp.PairingTest" time="0.006"/>
+  <testcase name="[12] http://127.0.0.1:12345#x" classname="dev.aetherscript.mcp.PairingTest" time="0.005"/>
+  <testcase name="oversizedOrMalformedResponsesAreRejected()" classname="dev.aetherscript.mcp.PairingTest" time="0.056"/>
+  <testcase name="unsafeOrMalformedProfilesFailClosed()" classname="dev.aetherscript.mcp.PairingTest" time="0.069"/>
+  <testcase name="expiredCredentialsDoNotMakeARequest()" classname="dev.aetherscript.mcp.PairingTest" time="0.034"/>
+  <testcase name="relayProfileRoundTripPreservesRoutingAndScopesPrivately()" classname="dev.aetherscript.mcp.PairingTest" time="0.031"/>
+  <testcase name="cliKeepsCredentialsOutOfArgumentsAndProtocolOutput()" classname="dev.aetherscript.mcp.PairingTest" time="0.054"/>
+  <testcase name="statusReportsRevocationAsAnErrorWithoutExposingRemoteBodiesOrCredentials()" classname="dev.aetherscript.mcp.PairingTest" time="0.024"/>
+  <testcase name="redirectsAreNeverFollowedForPairingOrAuthenticatedStatus()" classname="dev.aetherscript.mcp.PairingTest" time="0.026"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

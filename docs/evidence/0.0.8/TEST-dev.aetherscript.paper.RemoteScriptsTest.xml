@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.aetherscript.paper.RemoteScriptsTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-13T19:02:41.003Z" hostname="VARUN" time="0.49">
+  <properties/>
+  <testcase name="postCommitDeliveryFailureDoesNotRestoreOldEditableSource()" classname="dev.aetherscript.paper.RemoteScriptsTest" time="0.1"/>
+  <testcase name="preexistingActiveHashDoesNotTurnDeniedActivationIntoPublication()" classname="dev.aetherscript.paper.RemoteScriptsTest" time="0.062"/>
+  <testcase name="fullNativeScopeListsInvalidAndInactiveSourcesCreatesNewIdsAndProtectsLegacy()" classname="dev.aetherscript.paper.RemoteScriptsTest" time="0.161"/>
+  <testcase name="targetPathSourceTypeAndOperationBypassesAreRejected()" classname="dev.aetherscript.paper.RemoteScriptsTest" time="0.013"/>
+  <testcase name="rejectedActivationLeavesNoEditableSourceAndNoRecoveryIntent()" classname="dev.aetherscript.paper.RemoteScriptsTest" time="0.029"/>
+  <testcase name="createEditReadbackActualMessagesStaleAndRevocation()" classname="dev.aetherscript.paper.RemoteScriptsTest" time="0.078"/>
+  <testcase name="liveSyntheticTestsBindRuntimeArgumentsBeforeEvaluatingBranches()" classname="dev.aetherscript.paper.RemoteScriptsTest" time="0.044"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

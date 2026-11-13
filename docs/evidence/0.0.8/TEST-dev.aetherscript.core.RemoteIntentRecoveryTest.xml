@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.aetherscript.core.RemoteIntentRecoveryTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-11-13T19:02:39.822Z" hostname="VARUN" time="3.892">
+  <properties/>
+  <testcase name="unchangedPriorActiveHashCannotRecoverAnUncommittedIntent()" classname="dev.aetherscript.core.RemoteIntentRecoveryTest" time="0.857"/>
+  <testcase name="[1] beforeCommit" classname="dev.aetherscript.core.RemoteIntentRecoveryTest" time="0.749"/>
+  <testcase name="[2] afterCommit" classname="dev.aetherscript.core.RemoteIntentRecoveryTest" time="0.7"/>
+  <testcase name="[3] afterPublish" classname="dev.aetherscript.core.RemoteIntentRecoveryTest" time="0.822"/>
+  <testcase name="recoveryPreservesOwnerEditAfterCommittedRemoteActivation()" classname="dev.aetherscript.core.RemoteIntentRecoveryTest" time="0.76"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

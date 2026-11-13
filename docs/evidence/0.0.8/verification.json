@@ -1,0 +1,21 @@
+{
+  "javaTestsPassed": 190,
+  "relayTestsPassed": 7,
+  "platform": "Paper 26.3 build 245, Java 25, Windows",
+  "browser": "Microsoft Edge, automated with Playwright",
+  "observed": [
+    "superseded console link denied",
+    "manual per-client credentials shown",
+    "Codex discovered six hosted tools",
+    "confidential web OAuth to intercepted Gemini-shaped HTTPS callback",
+    "full access edits existing native script and creates new ID",
+    "selected access stays restricted",
+    "both modes survive restart",
+    "revocation yields invalid_token challenge"
+  ],
+  "limitations": [
+    "Actual Gemini app was not exercised",
+    "Native Codex OAuth login UI was not certified"
+  ],
+  "approvedQuota": "40 enrollment/registration requests per IP per UTC day, with additional global and per-server caps"
+}

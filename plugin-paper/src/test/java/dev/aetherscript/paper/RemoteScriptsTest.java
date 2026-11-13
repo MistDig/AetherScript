@@ -97,4 +97,28 @@ class RemoteScriptsTest {
         assertEquals(owner, Files.readString(scripts.resolve("hello-ai.aether")));
         assertEquals(initial.get("activeHash"), registry.snapshot().features().get("hello-ai").sourceHash());
     }
+    @Test void fullNativeScopeListsInvalidAndInactiveSourcesCreatesNewIdsAndProtectsLegacy() throws Exception {
+        Path scripts = Files.createDirectory(root.resolve("scripts"));
+        Files.writeString(scripts.resolve("hello-ai.aether"), source());
+        Files.writeString(scripts.resolve("broken.aether"), "invalid native source");
+        Files.writeString(scripts.resolve("legacy.yml"), "owner legacy content");
+        Files.writeString(scripts.resolve("mixed.aether"), "invalid native source");
+        Files.writeString(scripts.resolve("mixed.yml"), "owner duplicate content");
+        var manager = new FeatureManager(new ScriptStore(scripts), new RevisionStore(root.resolve("storage"), 5)); var registry = new Registry();
+        var full = new RemoteScripts(manager, registry, Set.of(), true, new RemoteScripts.Main() {
+            public <T> T call(Callable<T> action) throws Exception { return action.call(); }
+        }, (before, change, authorized) -> { authorized.run(); registry.replace(before.generation(), change.target()); manager.store().commit(change.durable()); });
+        assertEquals(List.of("broken", "hello-ai", "mixed"), full.execute("scripts.list", Map.of()).get("ids"));
+        assertEquals("ABSENT", full.execute("scripts.read", Map.of("id", "new-note")).get("hash"));
+        String next = source().replace("feature hello-ai", "feature new-note").replace("command helloai", "command newnote");
+        var created = full.execute("scripts.apply", Map.of("id", "new-note", "source", next, "expectedHash", "ABSENT"));
+        assertEquals(created.get("hash"), created.get("activeHash"));
+        assertEquals(List.of("broken", "hello-ai", "mixed", "new-note"), full.execute("scripts.list", Map.of()).get("ids"));
+        var legacy = assertThrows(java.io.IOException.class, () -> full.execute("scripts.read", Map.of("id", "legacy")));
+        assertTrue(legacy.getMessage().startsWith("TEXT_SOURCE_REQUIRED:"));
+        assertThrows(java.io.IOException.class, () -> full.execute("scripts.apply", Map.of("id", "legacy", "source", next.replace("feature new-note", "feature legacy").replace("command newnote", "command legacynote"), "expectedHash", "ABSENT")));
+        assertEquals("owner legacy content", Files.readString(scripts.resolve("legacy.yml")));
+        assertThrows(SecurityException.class, () -> service(manager, registry).execute("scripts.read", Map.of("id", "new-note")));
+        full.revoke(); assertThrows(SecurityException.class, () -> full.execute("scripts.list", Map.of()));
+    }
 }

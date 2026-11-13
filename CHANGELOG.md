@@ -2,6 +2,17 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.8] - 2026-11-14
+
+- Added an explicit full-access approval for creating and editing native scripts, alongside selected-script access. Existing restricted connections require fresh approval to gain broader access.
+- Fixed repeated Paper rejection messages by tracking grant state, expiring pending enrollment and clearing superseded links.
+- Improved hosted OAuth discovery, dynamic registration for web callbacks, and browser setup for clients requiring manual credentials.
+- Superseded, rejected, expired and revoked approvals return terminal authentication errors. Acknowledged active connections survive starting another connection.
+
+- Raised the daily per-IP enrollment/registration budget to 40 to accommodate multi-client setup and retries, with explicit owner approval. Global and per-server quotas also apply.
+
+- Verified 190 Java tests and seven relay tests, plus packaged MCP checks and runnable wiki examples. Live Edge/Paper tests cover web-secret OAuth, broad and selected permissions, existing edits, new IDs, restart and revocation. Actual Gemini product testing remains pending.
+
 ## [0.0.7] - 2026-11-13
 
 - Added console `ais connect`, browser approval and hosted OAuth MCP. Fresh servers generate their identity automatically and connect through the shared AetherScript service.

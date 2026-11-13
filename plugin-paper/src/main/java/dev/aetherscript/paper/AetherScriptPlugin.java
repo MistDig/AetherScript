@@ -128,7 +128,7 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
                 if (selected != null) { say(sender, "Use /ais connections"); return true; }
                 say(sender, "Named connections (revoked entries stay revoked across restart):");
                 connections.state().grants().values().stream().sorted(Comparator.comparing(ConnectionStore.Grant::name)).forEach(grant ->
-                    say(sender, grant.name() + " | " + grant.connectionId() + " | " + (grant.revoked() ? "REVOKED" : "APPROVED") + " | " + grant.allowedScriptIds().stream().sorted().toList()));
+                    say(sender, grant.name() + " | " + grant.connectionId() + " | " + (grant.revoked() ? "REVOKED" : "APPROVED") + " | " + (grant.allScripts() ? "ALL NATIVE .aether SCRIPTS (including new IDs)" : grant.allowedScriptIds().stream().sorted().toList())));
                 if (connections.state().grants().isEmpty()) say(sender, "No approved connections. Use /ais connect.");
             } else {
                 String id = null;
@@ -316,7 +316,7 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
         if (grant.revoked() || shared == null || shared.blocked(grant.connectionId())) {
             var previous = connectionServices.remove(grant.connectionId()); if (previous != null) previous.revoke(); return;
         }
-        connectionServices.computeIfAbsent(grant.connectionId(), id -> new RemoteScripts(manager, registry, grant.allowedScriptIds(), new RemoteScripts.Main() {
+        connectionServices.computeIfAbsent(grant.connectionId(), id -> new RemoteScripts(manager, registry, grant.allowedScriptIds(), grant.allScripts(), new RemoteScripts.Main() {
             public <T> T call(Callable<T> action) throws Exception { return onMain(action); }
         }, (before, change, authorized) -> apply(null, "connection:" + id, "remote-apply", UUID.randomUUID().toString(), before, change, authorized)));
     }

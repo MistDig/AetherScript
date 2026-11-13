@@ -10,9 +10,10 @@ const e=await post('/v2/enrollments',{serverId,serverToken,serverName:'Private L
 const code=new URL(e.data.browserUrl).hash.slice(6);const start=await post('/v2/browser/start',{code});assert.equal(start.status,200);const cookie=start.cookie;assert.equal((await post('/v2/browser/info',{},null,cookie)).data.serverName,'Private Lobby');assert.equal((await post('/v2/browser/local',{},null,cookie)).status,404);
 assert.equal((await post('/v2/browser/start',{code})).status,401);
 assert.equal((await post('/v2/browser/choice',{kind:'codex'},null,cookie)).status,200);
-const c=await post('/oauth/register',{redirect_uris:['http://localhost:4123/callback']});assert.equal(c.status,201);
+const c=await post('/oauth/register',{redirect_uris:['http://localhost:4123/callback'],token_endpoint_auth_method:'none'});assert.equal(c.status,201);
 const verifier=randomBytes(48).toString('base64url');const fields={client_id:c.data.client_id,redirect_uri:'http://localhost:4123/callback',response_type:'code',code_challenge_method:'S256',code_challenge:createHash('sha256').update(verifier).digest('base64url'),state:'safe'};
 assert.equal((await post('/v2/browser/authorize',{...fields,name:'Codex',allowedScriptIds:['forbidden']},null,cookie)).status,400);
+for(const id of ['Uppercase','has.dot','has_underscore'])assert.equal((await post('/v2/browser/authorize',{...fields,name:'Invalid IDs',allowedScriptIds:[id]},null,cookie)).status,400);
 const approve=await post('/v2/browser/authorize',{...fields,name:'Codex',allowedScriptIds:['lobby']},null,cookie);assert.equal(approve.status,200,JSON.stringify(approve.data));const view=approve.cookie;
 const authCode=new URL(approve.data.redirect).searchParams.get('code');assert.ok(!approve.data.redirect.includes('token'));
 assert.equal((await post('/v2/browser/authorize',{...fields,name:'Replay',allowedScriptIds:['lobby']},null,cookie)).status,401);

@@ -1,5 +1,13 @@
 # Actual test results
 
+## Release 0.0.8 — OAuth and grant lifecycle fixes
+
+The Java 25 clean build passed 190 tests. Seven relay tests cover public and confidential client authentication, HTTPS Gemini-shaped callbacks, PKCE, exact/full grants, legacy compatibility, stale/pending expiration, first-request acknowledgement waits, and terminal authentication challenges. Repeated invalid offers are checked for one warning per state, durable pending cleanup and rejection acknowledgement.
+
+A deployed-Worker test used a fresh Paper 26.3 build 245 server and Edge. It rejected a superseded console link, registered confidential web credentials, changed an existing native script with full access, created an unlisted ID, preserved the selected connection's restrictions, survived restart in both modes and rejected revoked tokens with invalid_token. An additional browser run checked the manual Client ID/Secret form. Installed Codex discovered six hosted tools. The web callback was intercepted by the test browser; the actual Gemini product and an interactive native Codex OAuth session were not certified.
+
+A repeated run initially reached the public daily enrollment quota. With explicit owner approval the per-IP registration/enrollment allowance was raised to 40, retaining global and per-server bounds. This issue was recorded separately from the successful application flow. [Evidence](evidence/0.0.8/)
+
 ## Release 0.0.7 — shared browser approval and runtime inputs
 
 Java 25 clean check build passed 183 tests. Five relay tests cover v1 regressions and v2 browser grants, OAuth S256 PKCE, replay prevention, exact IDs, live-status confirmation, revocation and retention. The local gateway passed protocol and AI-authoring subprocess checks. Complete runnable wiki examples, including deliberately invalid syntax, were checked by the packaged compiler.
