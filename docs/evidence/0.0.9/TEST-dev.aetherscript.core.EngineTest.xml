@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.aetherscript.core.EngineTest" tests="35" skipped="0" failures="0" errors="0" timestamp="2026-11-13T19:22:27.916Z" hostname="VARUN" time="1.318">
+  <properties/>
+  <testcase name="invalidReloadPreservesGenerationAndBehavior()" classname="dev.aetherscript.core.EngineTest" time="0.381"/>
+  <testcase name="equivalentFormatsHaveSameIrButDistinctSourceHashes()" classname="dev.aetherscript.core.EngineTest" time="0.068"/>
+  <testcase name="rejectsOversizeDepthAndInvalidUtf8()" classname="dev.aetherscript.core.EngineTest" time="0.014"/>
+  <testcase name="snapshotsImmutableAndStaleReplacementDenied()" classname="dev.aetherscript.core.EngineTest" time="0.012"/>
+  <testcase name="collisionRejectsWholeReplacement()" classname="dev.aetherscript.core.EngineTest" time="0.014"/>
+  <testcase name="hundredReloadsHaveOneEffectiveFeatureAndLatestBehavior()" classname="dev.aetherscript.core.EngineTest" time="0.197"/>
+  <testcase name="[1] {&quot;id&quot;:1,&quot;id&quot;:2}" classname="dev.aetherscript.core.EngineTest" time="0.025"/>
+  <testcase name="[2] {} {}" classname="dev.aetherscript.core.EngineTest" time="0.008"/>
+  <testcase name="[3] {unquoted:1}" classname="dev.aetherscript.core.EngineTest" time="0.006"/>
+  <testcase name="[4] {&quot;id&quot;:NaN}" classname="dev.aetherscript.core.EngineTest" time="0.009"/>
+  <testcase name="[5] {&quot;id&quot;:1,}" classname="dev.aetherscript.core.EngineTest" time="0.01"/>
+  <testcase name="[6] {&quot;id&quot;:/*comment*/1}" classname="dev.aetherscript.core.EngineTest" time="0.007"/>
+  <testcase name="rejectsOversizeOnDiskAndMissingFeature()" classname="dev.aetherscript.core.EngineTest" time="0.019"/>
+  <testcase name="rejectsUnknownAndMissingFields()" classname="dev.aetherscript.core.EngineTest" time="0.012"/>
+  <testcase name="[1] schemaVersion: 1&#10;schemaVersion: 1" classname="dev.aetherscript.core.EngineTest" time="0.01"/>
+  <testcase name="[2] !!java.net.URL [https://example.com]" classname="dev.aetherscript.core.EngineTest" time="0.009"/>
+  <testcase name="[3] &amp;a [*a]" classname="dev.aetherscript.core.EngineTest" time="0.007"/>
+  <testcase name="[4] a: &amp;x [1,2]&#10;b: *x" classname="dev.aetherscript.core.EngineTest" time="0.006"/>
+  <testcase name="[5] ---&#10;a: b&#10;---&#10;c: d" classname="dev.aetherscript.core.EngineTest" time="0.009"/>
+  <testcase name="[6] a: !!str tagged" classname="dev.aetherscript.core.EngineTest" time="0.008"/>
+  <testcase name="[7] a: {&lt;&lt;: {b: c}}" classname="dev.aetherscript.core.EngineTest" time="0.009"/>
+  <testcase name="[1] schemaVersion: 1, schemaVersion: 2" classname="dev.aetherscript.core.EngineTest" time="0.012"/>
+  <testcase name="[2] target: sender, target: everyone" classname="dev.aetherscript.core.EngineTest" time="0.01"/>
+  <testcase name="[3] type: message.send, type: console.run" classname="dev.aetherscript.core.EngineTest" time="0.01"/>
+  <testcase name="[4] sender: any, sender: all" classname="dev.aetherscript.core.EngineTest" time="0.012"/>
+  <testcase name="[5] id: hello-ai, id: ../escape" classname="dev.aetherscript.core.EngineTest" time="0.014"/>
+  <testcase name="[6] permission: aetherscript.example.hello, permission: '*'" classname="dev.aetherscript.core.EngineTest" time="0.028"/>
+  <testcase name="[7] runtime.message.send, runtime.console.execute" classname="dev.aetherscript.core.EngineTest" time="0.013"/>
+  <testcase name="[8] version: 1.0.0, version: 123" classname="dev.aetherscript.core.EngineTest" time="0.006"/>
+  <testcase name="[9] name: helloai, name: hello/ai" classname="dev.aetherscript.core.EngineTest" time="0.005"/>
+  <testcase name="revocationAndRetirementBlockRemainingEffects()" classname="dev.aetherscript.core.EngineTest" time="0.018"/>
+  <testcase name="permissionsAndSenderRestrictionsApplyAtInvocation()" classname="dev.aetherscript.core.EngineTest" time="0.012"/>
+  <testcase name="auditStructuredAndFailsOnUnwritableTarget()" classname="dev.aetherscript.core.EngineTest" time="0.06"/>
+  <testcase name="rejectsDuplicateIdsAndMismatchedFilename()" classname="dev.aetherscript.core.EngineTest" time="0.029"/>
+  <testcase name="boundedTextAndActionBudget()" classname="dev.aetherscript.core.EngineTest" time="0.035"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

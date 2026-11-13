@@ -30,7 +30,8 @@ for(const file of htmlFiles){
 }
 assert.ok(files(dist).filter(p => /404\.md\..*\.js$/.test(p)).some(p => readFileSync(p,'utf8').includes('Return to the guide')), 'Custom not-found page must provide a way home');
 const home=readFileSync(resolve(dist,'index.html'),'utf8');
-assert.match(home,/Your little universe/);
+assert.match(home,/Your server\./);
+assert.match(home,/universe\./);
 assert.match(home,/Copy the complete cloud-note AetherScript example/);
 assert.match(home,/Server grants protect each operation/);
 assert.match(home,/General console execution is unavailable/);

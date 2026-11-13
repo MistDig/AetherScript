@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.aetherscript.core.RecoveryTest" tests="28" skipped="0" failures="0" errors="0" timestamp="2026-11-13T19:22:29.271Z" hostname="VARUN" time="5.891">
+  <properties/>
+  <testcase name="corruptManifestFailsClosedWithoutGuessingFromOrphanFiles()" classname="dev.aetherscript.core.RecoveryTest" time="0.126"/>
+  <testcase name="sourceAndConfigurationPathsCannotEscape()" classname="dev.aetherscript.core.RecoveryTest" time="0.031"/>
+  <testcase name="validEditableFileRepairsItsExactCorruptSavedBytes()" classname="dev.aetherscript.core.RecoveryTest" time="0.108"/>
+  <testcase name="missingEditableFileRetainsSavedOnStartupButFullReloadCanRetireIt()" classname="dev.aetherscript.core.RecoveryTest" time="0.251"/>
+  <testcase name="yamlAndJsonDiagnosticsCarryFieldLocationAndFix()" classname="dev.aetherscript.core.RecoveryTest" time="0.015"/>
+  <testcase name="committedSourceSurvivesRestartAndRetainsExactBytes()" classname="dev.aetherscript.core.RecoveryTest" time="0.064"/>
+  <testcase name="invalidNewScriptDoesNotStopUnrelatedGoodScript()" classname="dev.aetherscript.core.RecoveryTest" time="0.069"/>
+  <testcase name="rollbackReusesSavedRevisionAndNeverOverwritesEditableFile()" classname="dev.aetherscript.core.RecoveryTest" time="0.227"/>
+  <testcase name="directoryMasqueradingAsSourceIsRejected()" classname="dev.aetherscript.core.RecoveryTest" time="0.048"/>
+  <testcase name="unchangedAndInvalidEditsNeverConsumeHistory()" classname="dev.aetherscript.core.RecoveryTest" time="0.047"/>
+  <testcase name="validateHasNoPersistentSideEffectsAndInvalidReloadPreservesSnapshot()" classname="dev.aetherscript.core.RecoveryTest" time="0.066"/>
+  <testcase name="stalePreparedStateCannotOverwriteNewerCommit()" classname="dev.aetherscript.core.RecoveryTest" time="0.079"/>
+  <testcase name="reducedRetentionProtectsRecoveredOlderRevision()" classname="dev.aetherscript.core.RecoveryTest" time="0.174"/>
+  <testcase name="[1] AFTER_MANIFEST_FLUSH" classname="dev.aetherscript.core.RecoveryTest" time="1.83"/>
+  <testcase name="[2] BEFORE_MANIFEST_REPLACE" classname="dev.aetherscript.core.RecoveryTest" time="1.197"/>
+  <testcase name="[3] AFTER_COMMIT" classname="dev.aetherscript.core.RecoveryTest" time="0.848"/>
+  <testcase name="strictOwnerSettingsValidateBoundsAndDuplicates()" classname="dev.aetherscript.core.RecoveryTest" time="0.012"/>
+  <testcase name="fiveVersionRetentionRemovesOnlyOldUnreferencedContent()" classname="dev.aetherscript.core.RecoveryTest" time="0.114"/>
+  <testcase name="[1] AFTER_MANIFEST_FLUSH" classname="dev.aetherscript.core.RecoveryTest" time="0.048"/>
+  <testcase name="[2] BEFORE_MANIFEST_REPLACE" classname="dev.aetherscript.core.RecoveryTest" time="0.044"/>
+  <testcase name="validNewEditableSourceLoadsAtStartup()" classname="dev.aetherscript.core.RecoveryTest" time="0.038"/>
+  <testcase name="invalidEditableSourceUsesSavedRevisionAtStartup()" classname="dev.aetherscript.core.RecoveryTest" time="0.033"/>
+  <testcase name="statusHistoryAndDiffIdentifyOneEditTarget()" classname="dev.aetherscript.core.RecoveryTest" time="0.047"/>
+  <testcase name="corruptOnlyBackupIsDisabledWhileOtherSourcesLoad()" classname="dev.aetherscript.core.RecoveryTest" time="0.053"/>
+  <testcase name="stagedButUncommittedContentAndPendingManifestAreIgnoredAfterCrash()" classname="dev.aetherscript.core.RecoveryTest" time="0.039"/>
+  <testcase name="compensatingRestoreReturnsDurablePointerToPriorState()" classname="dev.aetherscript.core.RecoveryTest" time="0.047"/>
+  <testcase name="reducingRetentionProtectsAnOlderActiveRollback()" classname="dev.aetherscript.core.RecoveryTest" time="0.14"/>
+  <testcase name="corruptActiveContentFallsBackToEarlierVerifiedRevision()" classname="dev.aetherscript.core.RecoveryTest" time="0.072"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

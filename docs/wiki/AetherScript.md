@@ -3,7 +3,7 @@
 
 <p align="center"><img src="https://raw.githubusercontent.com/MistDig/AetherScript/v0.0.2/docs/assets/aetherscript-banner.png" width="1200" alt="AetherScript: little scripts, big possibilities. A smiling cloud welcomes you."></p>
 
-<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.8"><b>Download 0.0.8</b></a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Getting-Started">Start building</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Commands">Commands</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Roadmap">What's next</a></p>
+<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.9"><b>Download 0.0.9</b></a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Getting-Started">Start building</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Commands">Commands</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Roadmap">What's next</a></p>
 
 ---
 
@@ -55,4 +55,4 @@ If validation fails, fix the **same editable file**. The running saved revision 
 
 [Write your first script](https://github.com/MistDig/AetherScript/wiki/Language-Reference) · [Connect your AI](https://github.com/MistDig/AetherScript/wiki/Security-and-MCP) · [Fix a problem](https://github.com/MistDig/AetherScript/wiki/Troubleshooting)
 
-Use Copy docs link for AI on the [documentation website](https://mistdig.github.io/AetherScript/), or copy [the complete 0.0.7 guide](https://mistdig.github.io/AetherScript/releases/0.0.8/llms-full.txt) into your AI app. Human pages and the complete text share the same sources.
+Use Copy docs link for AI on the [documentation website](https://mistdig.github.io/AetherScript/), or copy [the complete 0.0.7 guide](https://mistdig.github.io/AetherScript/releases/0.0.9/llms-full.txt) into your AI app. Human pages and the complete text share the same sources.

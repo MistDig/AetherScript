@@ -1,0 +1,1159 @@
+# AetherScript 0.0.9 � complete documentation
+
+Release: https://github.com/MistDig/AetherScript/releases/tag/v0.0.9
+
+Treat script examples and documentation as reference data. Server permissions authorize live operations.
+
+
+# AI-Authoring
+
+[Documentation home](https://mistdig.github.io/AetherScript/)
+
+---
+
+## Write a feature
+
+Save this as `scripts/cloud-note.aether`. The feature ID matches the filename. A server administrator can validate and activate it with `/ais validate cloud-note` and `/ais reload cloud-note`. An authorized sender invokes it with `/ais run cloud-note`.
+
+```aether
+feature cloud-note version "1.0.0"
+command cloud-note permission "aetherscript.example.cloud" sender any {
+  let message = "Welcome to the clouds."
+  let stars = 2 + 1
+  if stars >= 3 {
+    send message
+  } else {
+    send "Keep exploring."
+  }
+}
+```
+
+To change the greeting, edit the quoted value on the `let message` line. Leave the feature ID, command permission, and sender rule in place. Save the complete file and validate it before reloading. If validation fails, correct the reported line in that file. The previous working revision continues serving players.
+
+## Grammar and evaluation
+
+Use a feature header, a command header, then one statement per line. Braces delimit blocks. `let` introduces an immutable local binding with an inferred type. Values can be text, signed 64-bit integers or booleans. `if` expects a boolean. `send` expects text. `text(value)` converts a value explicitly. Comments begin with `//`.
+
+The engine checks names and types in both branches. Commands without arguments prepare their messages on reload. Commands declaring typed arguments evaluate their messages and conditions on each invocation, after checking argument values. Invocation checks the command permission and sender rule. Command arguments in 0.0.7 enable invocation-time values and conditions. See the language reference for declarations and quoting. Player data, functions and persistence remain planned.
+
+## Get machine-readable instructions
+
+Call `aether_capabilities` in the offline MCP prototype and read the `authoring` object. It contains the syntax version, editable template, value types, operations and a before/after edit. Pass the entire edited source to `aether_validate` with `format: "aether"`. On failure read `line`, `column`, `path` and `reason`, correct the reported expression, then submit the complete source again.
+
+The site also publishes [plain-text authoring instructions](https://mistdig.github.io/AetherScript/llms.txt) and the [JSON authoring contract](https://mistdig.github.io/AetherScript/authoring-v1.json). The CLI and MCP load the same contract bundled in the released JAR.
+
+## Validate from a terminal
+
+With Java 25 and the 0.0.7 MCP JAR, print the language contract:
+
+```sh
+java -cp AetherScript-MCP-0.0.9.jar dev.aetherscript.cli.Validate --language
+```
+
+Validate a file through standard input on a POSIX shell:
+
+```sh
+java -cp AetherScript-MCP-0.0.9.jar dev.aetherscript.cli.Validate aether < cloud-note.aether
+```
+
+In PowerShell, pipe UTF-8 text into the command:
+
+```powershell
+$OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+Get-Content -Raw -Encoding utf8 cloud-note.aether | java -cp AetherScript-MCP-0.0.9.jar dev.aetherscript.cli.Validate aether
+```
+
+The CLI writes one JSON result. Exit code 0 means valid, 1 means validation failed, and 2 means the CLI arguments need correction. Use `yaml` or `json` to validate an existing structured definition. Validation reads the input and leaves deployment under the server administrator's control.
+
+---
+
+[Back to the field guide](https://mistdig.github.io/AetherScript/)
+
+Use Copy docs link for AI on the documentation website to share the [complete release guide](https://mistdig.github.io/AetherScript/releases/0.0.9/llms-full.txt). Download it as an attachment when the AI cannot open links.
+
+## Runtime argument tests
+
+Declare `arg name: text` at the start of a command and use that name in messages and conditions. Supply `arguments: ["MistDig"]` when testing through MCP. Missing required arguments and invalid boolean/integer values should produce an error before any messages are sent. Each invocation gets fresh local values.
+
+
+# AetherScript
+
+> **Our new documentation home is live:** [Explore AetherScript →](https://mistdig.github.io/AetherScript/)
+> Searchable guides, dark mode, and a little more room for the clouds.
+
+<p align="center"><img src="https://raw.githubusercontent.com/MistDig/AetherScript/v0.0.2/docs/assets/aetherscript-banner.png" width="1200" alt="AetherScript: little scripts, big possibilities. A smiling cloud welcomes you."></p>
+
+<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.9"><b>Download 0.0.9</b></a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Getting-Started">Start building</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Commands">Commands</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Roadmap">What's next</a></p>
+
+---
+
+## A small beginning. Room to grow.
+
+AetherScript is an open-source Minecraft scripting engine for **Paper 26.3**, with live script reloads and permission-checked behavior. Change a script, reload that feature, and try it immediately.
+
+**0.0.2 adds a safety net:** successful revisions are saved, invalid edits leave your working script running, and diagnostics tell you which file to fix. One editable file. Five saved versions by default.
+
+> [!NOTE]
+> This is an experimental, **message-only release**. Write a command in [native AetherScript](https://github.com/MistDig/AetherScript/wiki/AI-Authoring), YAML or JSON. Gameplay events and block health are planned. Scoped remote authoring is opt-in; the server console selects the feature IDs an agent can manage.
+
+## Pick your path
+
+| 🌱 Make something | ☁ Keep it working | 🔭 Look ahead |
+| :--- | :--- | :--- |
+| [Install & run](https://github.com/MistDig/AetherScript/wiki/Getting-Started) | [Saved versions & rollback](https://github.com/MistDig/AetherScript/wiki/Revisions-and-Recovery) | [Gameplay roadmap](https://github.com/MistDig/AetherScript/wiki/Roadmap) |
+| [Language & examples](https://github.com/MistDig/AetherScript/wiki/Language-Reference) | [Errors & differences](https://github.com/MistDig/AetherScript/wiki/Diagnostics-and-Diffs) | [Security & MCP](https://github.com/MistDig/AetherScript/wiki/Security-and-MCP) |
+| [Command desk](https://github.com/MistDig/AetherScript/wiki/Commands) | [Test your upgrade](https://github.com/MistDig/AetherScript/wiki/Testing-0.0.2) | [Performance](https://github.com/MistDig/AetherScript/wiki/Performance) |
+
+## Your everyday loop
+
+```text
+Edit scripts/hello-ai.yml
+        ↓
+/ais validate hello-ai
+        ↓
+/ais reload hello-ai
+        ↓
+/ais run hello-ai
+```
+
+If validation fails, fix the **same editable file**. The running saved revision stays active. `/ais status hello-ai` shows both states; `/ais diff hello-ai` compares them.
+
+| Available now | Still future work |
+| :--- | :--- |
+| Explicit live reload and validated AetherScript, YAML and JSON | Automatic file watching and event handlers |
+| Saved revisions, recovery and rollback | World-state undo and remote transactions |
+| File/line/column diagnostics and diffs | Full editor language-server support |
+| Offline validation, local tests and scoped relay authoring | General console execution and unrestricted server access |
+
+**Tested target:** Paper 26.3 build 245 · Java 25. Other forks and named MCP clients have separate verification gates.
+
+---
+
+<p align="center">A little cloud. A careful engine. Your next idea.<br><a href="https://github.com/MistDig/AetherScript">Source</a> · <a href="https://github.com/MistDig/AetherScript/releases">Releases</a> · <a href="https://github.com/MistDig/AetherScript/blob/v0.0.7/CHANGELOG.md">Changelog</a> · Apache-2.0</p>
+
+## Learn or connect
+
+[Write your first script](https://github.com/MistDig/AetherScript/wiki/Language-Reference) · [Connect your AI](https://github.com/MistDig/AetherScript/wiki/Security-and-MCP) · [Fix a problem](https://github.com/MistDig/AetherScript/wiki/Troubleshooting)
+
+Use Copy docs link for AI on the [documentation website](https://mistdig.github.io/AetherScript/), or copy [the complete 0.0.7 guide](https://mistdig.github.io/AetherScript/releases/0.0.9/llms-full.txt) into your AI app. Human pages and the complete text share the same sources.
+
+
+# Commands
+
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.9)
+
+---
+
+## The command desk
+
+Use `/ais` in game, or `ais` in console. Script administration requires **`aetherscript.admin`**. Connection management requires the actual server console. Run checks the feature's own permission and sender rule.
+
+| Command | Behavior |
+| :--- | :--- |
+| `ais connect [feature-ids]` | Server console. Open a browser approval link; optional comma-separated IDs constrain the browser choice. |
+| `ais connections` | Server console. List connection IDs, names, permissions and revocations. |
+| `ais disconnect [connection-id]` | Server console. Revoke one connection or all connections. Wait for saved confirmation. |
+| `/ais status` | Version, readiness, generation, active count, busy state and AI status. |
+| `/ais status <feature>` | Running revision, editable path, file state, errors and next action. |
+| `/ais list` | Feature running/file states. |
+| `/ais validate [feature]` | Check source and command collisions; no activation or saved version. |
+| `/ais reload [feature]` | Activate and save valid changed source. |
+| `/ais run <feature> [arguments…]` | Invoke with typed positional arguments and permission checks. |
+| `/ais history <feature>` | Saved numbers, hashes, timestamps and active marker. |
+| `/ais diff <feature>` | Running saved source versus current edit, even if invalid. |
+| `/ais rollback <feature>` | Select the closest earlier readable, valid saved revision. |
+
+### One feature or the whole folder?
+
+Targeted reload changes one feature. Full `/ais reload` validates all files and replaces the whole registry; one invalid included file rejects the batch. Removing a source and successfully doing a **full reload** retires the feature. Merely deleting a file before restarting can recover its saved copy.
+
+Unchanged reloads report `UNCHANGED` and add no revision or generation. An explicit full reload releases rollback holds for included features.
+
+| Response | Next step |
+| :--- | :--- |
+| `VALIDATED` | Reload when ready to activate. |
+| `ACTIVE ... saved successfully` | Change activated and committed. |
+| `UNCHANGED` | File already matches the working source. |
+| `BUSY` | Wait for the current inspection/change, then retry. |
+| `NOT_READY` | Check status and console for startup progress/errors. |
+| `PERMISSION_DENIED` | Owner must grant the required admin node. |
+| `Feature unavailable or permission denied` | Check readiness, ID, feature permission and sender rule. |
+| `SAVE_FAILED` / `STORAGE_QUARANTINED` | Inspect storage health and recovery instructions. |
+
+The actual server console can run `ais remote cloud-note` to grant scoped relay management of that feature, and `ais remote-off` to revoke it. `ais remote id1,id2` grants several IDs. Remote mode requires private `relay.json` configuration. The server console can also run `ais pair` to start a read-only status session and `ais unpair` to revoke it. Follow the [pairing guide](https://github.com/MistDig/AetherScript/wiki/Security-and-MCP).
+
+Replies are bounded. Use per-feature commands or console for shortened lists. No deploy command or remote mutation endpoint exists.
+
+---
+
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.9
+
+
+# Diagnostics-and-Diffs
+
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.9)
+
+---
+
+## Know what is wrong — and what still runs
+
+An invalid target produces a diagnostic shaped like this; actual line/column depend on your file:
+
+```text
+Edit scripts/hello-ai.yml: line 12, column 17; $.commands[0].actions[0].target
+Found "everyone". Allowed: sender. Fix: set target to sender; only the invoking sender is permitted
+Fix that editable file, then run /ais reload hello-ai.
+Rejected; active generation unchanged. Last working scripts remain active.
+```
+
+Syntax errors point to the parser location when available. Size/path errors can report `location unavailable`.
+
+### Two states, one edit target
+
+Run `/ais status hello-ai`. It identifies the running saved revision separately from the editable file:
+
+| Label | Meaning |
+| :--- | :--- |
+| `UP TO DATE` | Editable bytes match running source. |
+| `RUNNING SAVED VERSION - file has errors` | Invalid edit; keep fixing the same file. |
+| `RUNNING SAVED VERSION - file has unapplied changes` | Valid edit differs from running source. |
+| `RUNNING SAVED VERSION - editable file missing` | Restore an editable source while the saved copy runs. |
+| `NOT ACTIVE - valid file; reload to activate` | Valid source is not currently active. |
+| `DISABLED - file has errors` | No working feature is running for that invalid file. |
+
+### Compare before reloading
+
+`/ais diff hello-ai` gives a compact comparison:
+
+```diff
+--- running saved revision #2
++++ scripts/hello-ai.yml (editable, not active)
+@@ old line 12, editable line 12 @@
+- 12:         target: sender
++ 12:         target: everyone
+```
+
+Minus lines are running source; plus lines are your edit. Safely readable invalid files can still be compared. Long changes/lines are shortened for chat; byte-only encoding or line-ending changes get an explanation. This is a comparison, not a patch tool.
+
+Fix the shown file, validate it, reload it, then run the feature. Never edit internal saved copies. If rollback is held, status explains that explicit reload is needed.
+
+---
+
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.9
+
+
+# Getting-Started
+
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.9)
+
+---
+
+## Connect an AI app
+
+After starting the updated server, type `ais connect` in its console. Open the link on your AI computer and follow the [browser pairing guide](https://github.com/MistDig/AetherScript/wiki/Security-and-MCP). The plugin creates its identity automatically.
+
+## Your first little script
+
+**You need:** Paper 26.3 build 245, Java 25, and console access or `aetherscript.admin`.
+
+### 1 · Install
+
+Download **AetherScript-0.0.9.jar** from the [release](https://github.com/MistDig/AetherScript/releases/tag/v0.0.9). Stop Paper, place it in `plugins/`, and start the server. Keep only one AetherScript plugin JAR installed. The separate MCP JAR does not belong in `plugins/`.
+
+Wait for `Ready. Restored ...`. A fresh install creates and activates `plugins/AetherScript/scripts/hello-ai.yml` automatically.
+
+```text
+/ais status
+/ais run hello-ai
+```
+
+You should receive `Hello from AetherScript!`. Console commands omit the leading slash.
+
+### 2 · Make it yours
+
+Open `plugins/AetherScript/scripts/hello-ai.yml` and change the final quoted `text` value. Save, then run:
+
+```text
+/ais validate hello-ai
+/ais reload hello-ai
+/ais run hello-ai
+```
+
+Validation checks without activating or saving. Reload activates a valid change and saves its revision. There is no automatic file watcher.
+
+For a complete native-language example with variables and a conditional, follow [Writing scripts with AI](https://github.com/MistDig/AetherScript/wiki/AI-Authoring).
+
+### 3 · See what is running
+
+```text
+/ais status hello-ai
+/ais history hello-ai
+/ais diff hello-ai
+```
+
+`UP TO DATE` means your editable bytes match the running revision. `RUNNING SAVED VERSION` means the file is missing, invalid or different. Keep editing the file shown by status; the engine manages internal saved copies.
+
+### Permissions
+
+Administration requires `aetherscript.admin`. The example requires `aetherscript.example.hello` to run and defaults to operators. Grant the exact script permission through your permissions system for other players. Invocation is `/ais run hello-ai`; the metadata `name: helloai` does not register `/helloai`.
+
+### Upgrade from 0.0.1
+
+Stop Paper and back up `plugins/AetherScript/`. Replace the old JAR and restart. **Valid editable scripts now activate automatically at startup.** The first activation creates the initial saved revision; 0.0.1 has no saved history to recover.
+
+A missing configuration is generated. If you previously created a custom config, compare it with [the supported configuration](https://github.com/MistDig/AetherScript/wiki/Revisions-and-Recovery#configuration); unknown keys are rejected. Follow the [upgrade checklist](https://github.com/MistDig/AetherScript/wiki/Testing-0.0.2).
+
+---
+
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.9
+
+
+## Connect Codex on Windows
+
+For scoped remote authoring, the owner first configures a personal HTTPS relay and private `plugins/AetherScript/relay.json`, then runs `ais remote cloud-note` from the server console. Extract `AetherScript-Codex-Windows-0.0.9.zip` and double-click `Connect-AetherScript.cmd` on the Codex computer. Paste the private pairing URI into the helper prompt, then open a new Codex chat. Keep the URI out of chat/logs and use `ais remote-off` to revoke access. Follow the [complete connection guide](https://github.com/MistDig/AetherScript/wiki/Security-and-MCP) for grants, privacy and setup requirements.
+
+
+# Home
+
+> **Our new documentation home is live:** [Explore AetherScript →](https://mistdig.github.io/AetherScript/)
+> Searchable guides, dark mode, and a little more room for the clouds.
+
+<p align="center"><img src="https://raw.githubusercontent.com/MistDig/AetherScript/v0.0.2/docs/assets/aetherscript-banner.png" width="1200" alt="AetherScript: little scripts, big possibilities. A smiling cloud welcomes you."></p>
+
+<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.9"><b>Download 0.0.9</b></a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Getting-Started">Start building</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Commands">Commands</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Roadmap">What's next</a></p>
+
+---
+
+## A small beginning. Room to grow.
+
+AetherScript is an open-source Minecraft scripting engine for **Paper 26.3**, with live script reloads and permission-checked behavior. Change a script, reload that feature, and try it immediately.
+
+**0.0.2 adds a safety net:** successful revisions are saved, invalid edits leave your working script running, and diagnostics tell you which file to fix. One editable file. Five saved versions by default.
+
+> [!NOTE]
+> This is an experimental, **message-only release**. Write a command in [native AetherScript](https://github.com/MistDig/AetherScript/wiki/AI-Authoring), YAML or JSON. Gameplay events and block health are planned. Scoped remote authoring is opt-in; the server console selects the feature IDs an agent can manage.
+
+## Pick your path
+
+| 🌱 Make something | ☁ Keep it working | 🔭 Look ahead |
+| :--- | :--- | :--- |
+| [Install & run](https://github.com/MistDig/AetherScript/wiki/Getting-Started) | [Saved versions & rollback](https://github.com/MistDig/AetherScript/wiki/Revisions-and-Recovery) | [Gameplay roadmap](https://github.com/MistDig/AetherScript/wiki/Roadmap) |
+| [Language & examples](https://github.com/MistDig/AetherScript/wiki/Language-Reference) | [Errors & differences](https://github.com/MistDig/AetherScript/wiki/Diagnostics-and-Diffs) | [Security & MCP](https://github.com/MistDig/AetherScript/wiki/Security-and-MCP) |
+| [Command desk](https://github.com/MistDig/AetherScript/wiki/Commands) | [Test your upgrade](https://github.com/MistDig/AetherScript/wiki/Testing-0.0.2) | [Performance](https://github.com/MistDig/AetherScript/wiki/Performance) |
+
+## Your everyday loop
+
+```text
+Edit scripts/hello-ai.yml
+        ↓
+/ais validate hello-ai
+        ↓
+/ais reload hello-ai
+        ↓
+/ais run hello-ai
+```
+
+If validation fails, fix the **same editable file**. The running saved revision stays active. `/ais status hello-ai` shows both states; `/ais diff hello-ai` compares them.
+
+| Available now | Still future work |
+| :--- | :--- |
+| Explicit live reload and validated AetherScript, YAML and JSON | Automatic file watching and event handlers |
+| Saved revisions, recovery and rollback | World-state undo and remote transactions |
+| File/line/column diagnostics and diffs | Full editor language-server support |
+| Offline validation, local tests and scoped relay authoring | General console execution and unrestricted server access |
+
+**Tested target:** Paper 26.3 build 245 · Java 25. Other forks and named MCP clients have separate verification gates.
+
+---
+
+<p align="center">A little cloud. A careful engine. Your next idea.<br><a href="https://github.com/MistDig/AetherScript">Source</a> · <a href="https://github.com/MistDig/AetherScript/releases">Releases</a> · <a href="https://github.com/MistDig/AetherScript/blob/v0.0.7/CHANGELOG.md">Changelog</a> · Apache-2.0</p>
+
+## Learn or connect
+
+[Write your first script](https://github.com/MistDig/AetherScript/wiki/Language-Reference) · [Connect your AI](https://github.com/MistDig/AetherScript/wiki/Security-and-MCP) · [Fix a problem](https://github.com/MistDig/AetherScript/wiki/Troubleshooting)
+
+Use Copy docs link for AI on the [documentation website](https://mistdig.github.io/AetherScript/), or copy [the complete 0.0.7 guide](https://mistdig.github.io/AetherScript/releases/0.0.9/llms-full.txt) into your AI app. Human pages and the complete text share the same sources.
+
+
+# Language-Reference
+
+[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.9)
+
+---
+
+## Text scripts and structured definitions
+
+AetherScript accepts **`.aether`, YAML and JSON** sources. They share the immutable message model, permission checks, validation, saved revisions and recovery behavior.
+
+Save one file per feature as `scripts/<id>.aether`, `.yml`, `.yaml` or `.json`. Its filename and feature ID must match. Remove the other example format before installing a different one for the same ID.
+
+## Your first text script
+
+Save this as `scripts/hello-ai.aether`:
+
+```text
+feature hello-ai version "1.0.0"
+command helloai permission "aetherscript.example.hello" sender any {
+  let greeting = "Hello"
+  let count = 2 + 3
+  if count == 5 {
+    send greeting + " from AetherScript!"
+  } else {
+    send "Unexpected count"
+  }
+}
+```
+
+```text
+/ais validate hello-ai
+/ais reload hello-ai
+/ais run hello-ai
+```
+
+The result is `Hello from AetherScript!`. Values and conditions evaluate during preparation at validation/reload, and their selected messages are stored in the compiled feature. Every invocation then applies the feature's permission, sender and active-generation checks.
+
+The `command` header supplies metadata for the `/ais run <id>` dispatcher. Real command registration, mutable runtime scopes and persistent player values are tracked in the [ecosystem backlog](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/backlog.md).
+
+## Command arguments in 0.0.7
+
+Save this as `scripts/greet.aether`, validate it and reload it as an administrator.
+
+```aether
+feature greet version "1.0.0"
+command greet permission "aetherscript.example.greet" sender any {
+  arg name: text
+  arg count: integer = 1
+  arg excited: boolean = true
+  if excited {
+    send "Hello " + name + "!"
+  } else {
+    send "Hello " + name
+  }
+  if count > 1 {
+    send "Repeat count: " + text(count)
+  }
+}
+```
+
+Run `/ais run greet MistDig` to receive `Hello MistDig!`. Run `/ais run greet Alex` to receive `Hello Alex!` from the same active script. For a name containing spaces, use `/ais run greet "Alex Smith"`.
+
+Run `/ais run greet Alex 2 false` to receive `Hello Alex` and `Repeat count: 2`. An integer is a signed 64-bit decimal value. A boolean is `true` or `false`.
+
+Declare arguments before other statements. Required arguments precede defaults. Types are `text`, `integer` and `boolean`. There are at most 16 positional arguments. Missing, extra and mistyped arguments produce an error and usage example before messages are delivered. An unclosed quote reports how to close it.
+
+Argument-dependent calculations and conditions execute per invocation. Both branches are checked on validation. Scripts without arguments preserve their existing preparation behavior and hashes.
+
+The following deliberately invalid script has a text default for an integer argument.
+
+```aether-invalid
+feature bad-default version "1.0.0"
+command bad-default permission "aetherscript.example.bad" sender any {
+  arg count: integer = "many"
+  send text(count)
+}
+```
+
+### Values and scope
+
+| Form | Meaning |
+| --- | --- |
+| `let count = 2 + 3` | An immutable local integer. |
+| `let greeting = "Hello"` | An immutable local text value. |
+| `let ready = count == 5` | An immutable local boolean. |
+| `send greeting + "!"` | Append a plain message to the selected compiled output. |
+| `if ready { ... } else { ... }` | Select a branch during preparation, or per invocation in commands declaring arguments. |
+| `text(count)` | Explicitly convert an integer, boolean or text value to text. |
+
+Locals are lexically scoped. An inner block may shadow an outer name. Duplicate declarations in the same block fail. An initializer can refer to earlier bindings. Names are ASCII letters/digits/underscores, beginning with a letter or underscore; reserved statement/value keywords cannot be local names.
+
+### Operators
+
+| Operators | Types and behavior |
+| --- | --- |
+| `+` | Add two integers or concatenate two text values. Use `text(...)` for mixed text/integer/boolean output. |
+| `-`, `*`, `/`, `%` | Integer arithmetic. Division truncates toward zero and remainder keeps the dividend's sign. |
+| `==`, `!=` | Equality between matching types. |
+| `<`, `<=`, `>`, `>=` | Integer comparisons. |
+| `!`, `&&`, `||` | Boolean negation, conjunction and disjunction. |
+| `(...)` | Explicit grouping. |
+
+Precedence from lowest to highest is `||`, `&&`, equality, integer comparison, addition/subtraction, multiplication/division/remainder, then unary operators. Integer operations reject signed 64-bit overflow. Evaluated division/remainder by zero fails. `&&` and `||` short-circuit evaluation, while both operands still receive static type checking.
+
+Both branch bodies are parsed and type-checked before activation. An undefined name or mismatched type in an inactive branch rejects the source. Only the selected branch evaluates and contributes messages.
+
+### Source and bounds
+
+Statements end at a newline or at their closing-block boundary. `//` begins a comment. Text uses double quotes and supports escaped quotes, backslashes, newline, carriage return and tab. Emitted message text must satisfy the existing plain-text/control-character rules.
+
+Source is strict UTF-8 with an optional leading BOM. Diagnostics identify the source line and column. The initial limits are 64 KiB source, 8,192 tokens, 2,048 expression nodes, 256 statements, nesting depth 32 and 8,192 preparation steps. The selected program must emit 1–32 nonempty plain messages, each at most 2,048 UTF-16 units.
+
+## YAML and JSON
+
+Structured definitions continue to use schema version 1:
+
+```yaml
+schemaVersion: 1
+id: hello-ai
+version: "1.0.0"
+requires:
+  - runtime.message.send
+commands:
+  - name: helloai
+    permission: aetherscript.example.hello
+    sender: any
+    actions:
+      - type: message.send
+        target: sender
+        text: "Hello from AetherScript!"
+```
+
+| Field | Accepted meaning |
+| --- | --- |
+| `schemaVersion` | Integer `1`. |
+| `id` | 1–64 characters, beginning with a lowercase letter followed by lowercase letters, digits or hyphens. Matches the filename. |
+| `version` | Required nonempty label up to 64 characters, independent of saved revision numbers. |
+| `requires` | Exactly `[runtime.message.send]`. The text frontend infers this requirement. |
+| `commands` | Exactly one command definition. |
+| `name` | Same character rules as feature ID; unique among active features. Reserved metadata for the dispatcher. |
+| `permission` | Explicit dotted permission node up to 128 characters, with wildcard characters rejected. |
+| `sender` | `any` or `player`. The latter restricts invocation to players. |
+| `actions` | 1–32 message actions. |
+| `type` | `message.send`. |
+| `target` | `sender`, meaning the invoker. |
+| `text` | Nonempty plain text up to 2,048 UTF-16 units, with control characters and legacy section-sign formatting rejected. |
+
+Unknown fields/actions, duplicate keys, multiple documents, YAML tags, anchors and aliases are rejected. Quote string values. JSON requires quoted keys and valid commas. YAML/JSON values are literal definitions; the textual expression grammar belongs to `.aether` sources.
+
+The engine caps active features at 128, tracked histories at 128 and scripts-directory entries at 256. Files must be regular files inside the owner-managed scripts directory.
+
+### Make another feature
+
+Copy an example to `scripts/welcome.aether` or `scripts/welcome.yml`. Set both feature ID and command name to `welcome`, choose the explicit permission `aetherscript.example.welcome`, and write your message. Validate, reload and invoke `/ais run welcome`.
+
+[Working examples](https://github.com/MistDig/AetherScript/tree/v0.0.4/examples) · [Structured JSON Schema](https://github.com/MistDig/AetherScript/blob/v0.0.4/schema/feature-v1.schema.json) · [Grammar and architecture decision](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/language-decision.md) · [Capability matrix](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/capabilities.csv)
+
+---
+
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.9
+
+
+# MCP-Reference
+
+[Home](https://github.com/MistDig/AetherScript/wiki/Home)
+
+---
+
+## Available tools
+
+Start with `aether_server_status` to confirm which server is connected. A selected-script connection can access only its approved feature IDs. A full-access connection can create and edit any valid native .aether feature ID, including existing scripts.
+
+| Tool | Input | Result and next step |
+| --- | --- | --- |
+| `aether_server_status` | No arguments | Current live registry generation and server grant. A connection failure is an error. |
+| `aether_scripts_list` | No arguments | Selected IDs, or existing native IDs under full access. Full access can create new valid IDs. |
+| `aether_scripts_read` | `id` | Editable source, source hash, active hash, revision and generation. Read before editing. |
+| `aether_scripts_validate` | `id`, `source` | Validates a complete native script using the server compiler. |
+| `aether_scripts_apply` | `id`, `source`, `expectedHash` | Validates, activates, saves and reads back the result. Use the read hash, or `ABSENT` to create. |
+| `aether_scripts_test` | `id`, `expectedMessages`, optional `arguments` | Invokes the active feature using a synthetic sender, captures messages and checks exact equality. |
+
+The separate local gateway also exposes `aether_capabilities`, `aether_validate`, and `aether_test`. These can validate and test supplied source offline. Offline success does not imply server authorization.
+
+## A reliable editing workflow
+
+Read the feature and retain its hash. Validate the complete replacement. Apply with that exact hash. Read the feature again and check that the source and active hashes match the intended change. Run a test with the expected messages and report the actual messages and comparison result.
+
+On a stale-hash error, read again before deciding whether to merge the owner's edit. On timeout or network failure, read back first because the operation may have completed. A successful request can be followed by a failure delivering its reply.
+
+## Test limitations
+
+Synthetic tests capture message actions. They do not impersonate a connected player or verify client rendering. A player-only sender rule requires a player test. Test mismatch means the actual messages differ from the expected list, even when invocation completed.
+
+## Boundaries and diagnostics
+
+An unknown ID outside the grant is denied. A malformed or invalid source cannot replace a saved working revision. Use `ais status <id>`, `ais diff <id>`, `ais history <id>` and rollback on the server when investigating a failed update.
+
+The hosted service bounds JSON requests, source size, pending operations and daily work. Keep native sources below the tool schema's source limit. The local compiler supports larger sources, but a transport envelope includes JSON escaping and metadata.
+
+---
+
+[Connect your AI](https://github.com/MistDig/AetherScript/wiki/Security-and-MCP)
+
+For command arguments, pass strings such as `arguments: ["MistDig", "2", "true"]` to the test tool. The compiler applies the declared types and the tool returns actual messages.
+
+In 0.0.8 a superseded, rejected, expired or revoked approval yields HTTP 401 with an invalid_token authentication challenge. The AI client should sign in again with a fresh console link. A fresh valid approval waits briefly for Paper acknowledgement; a longer outage yields a retryable 503 temporarily_unavailable response.
+
+
+# Performance
+
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.9)
+
+---
+
+## Fast means measured, bounded work
+
+AetherScript shares Paper's JVM garbage collector. It cannot remove GC selectively and does not force collection or change server GC flags.
+
+- Parsing/compilation happens at startup, validation and reload, not each invocation.
+- Source reads, revision writes and audit flushes use a bounded worker.
+- Immutable registry swaps and message delivery run on Paper's main thread.
+- Actions, source size, histories, directory entries and queues are bounded.
+- There is no per-tick script polling loop or automatic watcher.
+
+Messages still allocate components, and reload creates objects. GC-free, zero-allocation or zero-lag claims would be inaccurate.
+
+### Will recovery make startup heavy?
+
+Editable files already need reading and validation. Recovery adds bounded metadata inspection and saved-source reads when needed, rather than loading every historical version. It runs in the background; readiness waits for preparation. Default history is five versions and active features are capped at 128. Large-server startup latency has not been benchmarked.
+
+### How Rust differs
+
+Rust normally releases owned memory deterministically without a tracing collector. That can offer memory-lifetime control, but does not automatically make every program faster. A Rust component would not remove Paper's Java GC and would add a native integration boundary.
+
+The immediate work is keeping invocation small and profiling realistic workloads: allocations, retained heap, GC pauses, invocation latency and p95/p99 tick time. The 100-reload test is a behavior test, not a leak or TPS benchmark.
+
+[Performance policy](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/performance.md)
+
+---
+
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.9
+
+
+# Revisions-and-Recovery
+
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.9)
+
+---
+
+## One file to edit. A safety net behind it.
+
+Edit `plugins/AetherScript/scripts/<feature>.yml` (or `.aether`, `.yaml`, `.json`). The engine manages internal working copies under `storage/`; do not edit those copies.
+
+### What is saved?
+
+Successfully activated **changed source** creates a numbered revision. Invalid edits, validation-only commands and unchanged reloads consume no history. Comment/whitespace byte changes count as changes. The script's `version` label does not control revision numbers.
+
+Default: **five saved revisions per feature, including the active one**. The oldest non-active revision is removed when the limit is exceeded. Numbers keep increasing. Repeated content can share one stored blob across historical revisions.
+
+### On startup
+
+| Situation | Result |
+| :--- | :--- |
+| Valid editable source; no rollback hold | Activate it, saving a revision if changed. |
+| Invalid/missing file with usable saved source | Run saved source and explain the edit target. |
+| Invalid new feature, no history | Disable that feature; unrelated valid sources can load. |
+| Corrupt active bytes and unusable editable file | Try earlier committed, checksum-valid, supported revisions. |
+| No usable saved copy | Disable the affected feature and report it. |
+| Corrupt manifest | Block engine startup; never guess from loose blobs. |
+| Rollback held | Restore the selected revision until explicit reload. |
+
+Recovered scripts are parsed and validated against the current policy. Startup I/O runs on the worker, but readiness waits for preparation. Recovery does not activate every historical revision; corrupt copies may require checking earlier ones. No instant-start or large-server performance claim is made.
+
+### Roll back without losing edits
+
+```text
+/ais history hello-ai
+/ais rollback hello-ai
+/ais status hello-ai
+/ais diff hello-ai
+```
+
+Rollback selects the closest earlier readable, valid revision. Repeating walks backward through retained history. It creates no revision and **does not overwrite the editable file**.
+
+The selected rollback persists across restarts. Fix the editable file and run `/ais reload hello-ai` to opt back in. A successful full reload also releases holds for included features. Rollback cannot undo messages already sent or world/economy effects.
+
+### Configuration
+
+`plugins/AetherScript/config.yml`:
+
+```yaml
+configVersion: 1
+retainVersions: 5
+```
+
+Allowed retention: **1–50**, applied on restart. A limit of 1 leaves no earlier revision. Lowering it protects the active version, even an older rollback. Unknown/duplicate keys and anchors are rejected.
+
+### Interrupted saves and storage failures
+
+Source bytes are staged before a checksummed manifest is atomically replaced. Only manifest-referenced revisions are committed. Pending files and orphan blobs are not selected at startup. Abrupt-process-exit tests cover boundaries before replacement and after commit.
+
+This is not a power-loss durability guarantee: filesystem directory flushing varies, particularly on Windows. Atomic moves are required; the store does not silently substitute a non-atomic replacement.
+
+If saving or the completion audit fails after activation, the engine attempts to restore the old durable state and registry. Registry restoration uses a new generation. If restoration is uncertain, operations are quarantined. Already dispatched effects cannot be undone.
+
+> [!IMPORTANT]
+> Back up the whole `plugins/AetherScript/` directory with Paper stopped. For `STORAGE_CORRUPT` or `STORAGE_QUARANTINED`, stop Paper, preserve the damaged directory for diagnosis and restore a known-good owner backup. Do not randomly delete manifests or edit hashes. Revision storage complements backups; it does not replace them.
+
+---
+
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.9
+
+
+# Roadmap
+
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.9)
+
+---
+
+## Grow the language one tested surface at a time
+
+Published versions start at 0.0.1. The original v0.1–v0.5 roadmap labels describe engineering milestones, not automatic patch numbers. Planned features are not valid syntax today.
+
+### Now · 0.0.2
+
+Saved revisions, startup recovery, useful diagnostics, running-versus-editable status, diff, history and rollback. Offline read-only MCP continues alongside it. The ten-heart block system was intentionally deferred from this release.
+
+### Next · reusable gameplay primitives
+
+The block-health idea needs block-break events, location-scoped state, controlled damage/cancellation and displays with cleanup. Build these as reusable primitives, not one hard-coded demo. Design for individual locations, material filters, regions and all-block scopes. Check protection-plugin interoperability, unloaded chunks, replacement/explosion handling, concurrent players, reload/restart behavior and resource limits.
+
+| Area | Design and verification work |
+| :--- | :--- |
+| Human DSL/editor tools | Same typed IR, source maps, versioned grammar, useful errors and bounded execution. |
+| Events/timers | Allowlisted events, correct threading, generation-aware cancellation and cleanup. |
+| Cooldowns | Player/feature scope, clock semantics, restart policy and bounded state. |
+| Scoreboards | Ownership, other-plugin coexistence, cleanup and update budgets. |
+| Boss bars | Player visibility, lifecycle ownership, bounded updates and cleanup. |
+| GUIs | Inventory identity, click/drag checks and stale-session invalidation. |
+| Custom items | Server-owned identity/PDC, allowlisted components/recipes and duplication/transfer tests. |
+| Persistent player data | Typed schemas, atomic updates, migrations, backups and privacy/retention. |
+| Economy | Currency precision, idempotent transfers, atomic balances, permissions and double-spend tests. |
+| Quests | Bounded state machines, persistent progress, deduplicated events/rewards and safe migrations. |
+
+### Secure deployment and connectivity
+
+First implement server-side capability policy, scoped principals, authenticated loopback access, revocation, quotas, bound approvals and crash-safe transactions. Local revisions are one piece, not completion of the remote security milestone.
+
+0.0.6 adds scoped `.aether` authoring and exact-message tests through an owner-hosted relay; loopback pairing remains status-only. Broader gameplay authority and per-edit approvals remain future work. Verify client reconnects, timeouts, unknown results and named clients.
+
+Remote servers need owner-provisioned identities, TLS/mTLS or a reviewed private tunnel, expiring scoped credentials, rotation/revocation and replay defenses. Test impersonation, compromised gateways, partitions, retries and lost acknowledgements. A tunnel does not replace application authorization.
+
+Performance measurements and connected-player checks remain release gates. Purpur needs independent tests; Folia is outside the current claim.
+
+[Capability matrix](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/capabilities.csv) · [Engineering roadmap](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/roadmap.md)
+
+---
+
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.9
+
+
+# Security-and-MCP
+
+[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.9)
+
+---
+
+## Connect your AI
+
+Install AetherScript 0.0.8 in the Minecraft server's plugins folder and start the server. Java 25 is required. Keep one plugin JAR installed.
+
+### On the Minecraft computer
+
+In the actual server console, type `ais connect`. Open the private link it prints on the computer where you use your AI app. The link expires in ten minutes and works once. Keep console logs and the link private.
+
+The plugin creates its own identity automatically. The shared AetherScript service handles browser approval. You can use PCs on different networks.
+
+### On the AI computer
+
+Choose your AI app on the page. Follow its setup instructions and use the same browser for its authorization screen.
+
+For Codex on Windows, download the linked ZIP, extract it, and double-click `Connect-AetherScript.cmd`. It registers the hosted server and opens Codex sign-in. Java and a separate MCP JAR are unnecessary for this hosted connection.
+
+For ChatGPT or Claude, add the displayed hosted MCP address in your app's custom connector settings and begin authorization. Availability depends on your account and workspace settings. For Cursor use the installation link. Claude Code and Cline can use the hosted OAuth address if the installed client supports it. Their actual client verification is recorded in the [matrix](https://github.com/MistDig/AetherScript/blob/v0.0.8/docs/mcp-clients.md).
+
+### Approve and check
+
+On the authorization page, confirm the server name and callback destination. Choose a connection name. The default Create and edit all AetherScript scripts option grants creation and editing of every native .aether feature, including existing files. Choose Only selected scripts to restrict the connection to IDs such as `cloud-note`. Approve the listed operations. Existing restricted connections stay restricted until you explicitly create a new approval. Console-restricted IDs cannot be expanded by the browser.
+
+Ask your AI to check AetherScript server status. The pairing page shows Connected after Paper answers that client's request. Approval alone shows a waiting state.
+
+Ask the AI to create `cloud-note`, activate it and test its actual output. It can access all native script IDs or the selected IDs according to the approval. Script tests capture messages from a synthetic sender. Player-only scripts require a player test.
+
+### Manage access
+
+In the server console, `ais connections` lists each connection ID, name and full or selected access. Full access includes existing .aether files. YAML/JSON sources require owner conversion before remote editing and are protected from accidental replacement. Connections survive normal restarts.
+
+Use `ais disconnect <connection-id>` for one app or `ais disconnect` for all apps. Access blocks immediately. Wait for the console's saved-revocation confirmation before restarting.
+
+Connections expire after 30 days. Run `ais connect` again to authorize a fresh connection. Local scripts continue working during a relay outage.
+
+## Privacy and limits
+
+The service uses HTTPS and sees script source and results. Keep `plugins/AetherScript/connections.json` private. It contains the server credential and local grants. Copying it clones the server identity. Each new installation should generate its own file.
+
+The public service bounds enrollment, app registration, connections, daily operations and payload sizes. It runs on a free Cloudflare account, so quota exhaustion can temporarily interrupt remote access. A failed or timed-out apply may have completed. Read the source and active hash before retrying.
+
+Script edits use an expected source hash. A stale or invalid edit is rejected. Revisions and restart recovery remain available. Grants authorize the fixed script operations listed on the page.
+
+## Existing installations
+
+The 0.0.6 personal relay and 0.0.5 loopback status workflows remain available. Their private files are unnecessary for `ais connect`. Use the new browser flow explicitly when migrating.
+
+---
+
+[Security policy](https://github.com/MistDig/AetherScript/blob/v0.0.8/SECURITY.md)
+
+## Gemini and manual OAuth credentials
+
+Choose Gemini on the pairing page. Automatic client registration supports HTTPS web callbacks and OAuth clients using a secret. If the app asks for a Client ID and Client Secret, use the page's manual registration section. Enter the callback URL shown by the app, select its authentication method and register that individual client. Save the returned credentials only in that app. Secrets are displayed once and should stay out of chat and screenshots.
+
+The server publishes OAuth discovery and a /register endpoint. Public clients use S256 PKCE without a secret; confidential clients can use client_secret_basic or client_secret_post with S256 PKCE. Existing public-client registrations remain compatible. Actual Gemini app testing is recorded separately from protocol tests.
+
+## An old connection keeps waiting
+
+Running `ais connect` again supersedes the previous uncompleted link and approval. Completed active connections keep their permissions. Superseded, rejected, expired and revoked tokens return a terminal invalid_token authentication response. Reconnect or sign in again using a fresh console link. If the client caches an old token, disconnect and reconnect AetherScript in that app.
+
+During a valid handshake, the browser creates an approval, Paper saves the grant on its next poll, Paper acknowledges it, and the AI app reads live status. A short wait before the next poll is expected. A rejected grant is logged once per changed state and reported to the relay.
+
+
+# Testing-0.0.2
+
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.2)
+
+---
+
+## Your 0.0.2 test flight
+
+Use a test server first. Stop Paper, back up `plugins/AetherScript/`, replace the old JAR and keep only one plugin JAR installed. Do not corrupt live-server storage for testing.
+
+### Start and save
+
+- [ ] `/ais status` reports `0.0.2`, `ready=true`, `AI deployment=ABSENT`.
+- [ ] `/ais run hello-ai` works without an initial reload.
+- [ ] Change the editable text to `Version B`; reload and run it.
+- [ ] History shows the new revision. Reload unchanged: history does not grow.
+
+### Break an edit, then restart
+
+- [ ] Change `target: sender` to `target: everyone`; reload is rejected.
+- [ ] The error names the file, location, field and correction.
+- [ ] Run still returns `Version B`; status says the file has errors.
+- [ ] Diff shows the running target and invalid edit.
+- [ ] Restart with that invalid file: `Version B` still runs.
+- [ ] Fix the target, change the text to `Version C`, then reload.
+
+### Roll back and check access
+
+- [ ] Rollback restores an earlier message without overwriting editable `Version C`.
+- [ ] Restart: rollback stays selected. Explicit reload restores `Version C`.
+- [ ] Non-admin cannot reload, inspect history/diff or roll back.
+- [ ] A player without the feature's permission cannot run it.
+- [ ] More than five distinct successful edits retain five versions by default, including active.
+
+If a check fails, record version, Paper build, command, diagnostic and expected behavior. Share only relevant script/log excerpts with private data removed.
+
+### Automated evidence
+
+**70 automated tests passed:** 63 core cases and 7 MCP protocol cases, including retention, corruption, interrupted saves and abrupt child-JVM exits. The packaged MCP subprocess passed. A real disposable Paper 26.3-245 server passed **28 checks across five boots and 100 distinct live reloads**, including invalid-edit restart recovery, held rollback and corrupt storage.
+
+[Versioned evidence](https://github.com/MistDig/AetherScript/tree/v0.0.2/docs/evidence/0.0.2) · [Test notes](https://github.com/MistDig/AetherScript/blob/v0.0.2/docs/testing.md)
+
+Console automation is not connected-player automation. Earlier 0.0.1 player tests were user-reported; please repeat these checks on 0.0.2. Purpur, named MCP clients and performance benchmarks remain unverified.
+
+---
+
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.2
+
+
+# Troubleshooting
+
+[Home](https://github.com/MistDig/AetherScript/wiki/Home)
+
+---
+
+## The plugin did not start
+
+On the Minecraft computer, use the server console and type `ais status`. Confirm the installed version, `ready=true`, and the startup log. Use Java 25 and Paper 26.3. Keep one AetherScript plugin JAR in plugins. Keep the existing AetherScript folder when upgrading.
+
+If storage is corrupt, preserve the files and consult the recovery guide before editing internal storage. Local script errors identify the editable source path and preserve the saved working version.
+
+## Permission denied in Minecraft
+
+Administrative commands require `aetherscript.admin`. It defaults to operators. A permissions plugin can override the default. Use the server console to check status and grant the intended node through your permissions system.
+
+The feature's own permission is checked separately when running it. Browser approval belongs in the actual server console through `ais connect`.
+
+## My pairing link expired
+
+On the Minecraft computer, type `ais connect` again. Open the fresh link on the AI computer. Use the same browser for the AI app's authorization. Each console link authorizes one connection and expires after ten minutes.
+
+Do not share the link or paste it into an AI conversation. A previously consumed link cannot be reused.
+
+## The page says waiting
+
+Approve the exact feature IDs and finish the AI app's sign-in. Ask the app to check AetherScript server status. Connected appears after that app's request reaches Paper and Paper answers.
+
+If Paper is offline, start it and allow the connection to retry. Check the server console for a relay-unavailable message. Daily free-service quotas can temporarily interrupt access. Local scripts still run.
+
+## My AI cannot see a script
+
+Use `ais connections` in the Minecraft console and check its exact IDs. Creating a new feature requires full access or approving that ID. A connection cannot enlarge its own grant. Full access is available only through a fresh owner approval. Use a fresh `ais connect` approval for a new grant.
+
+The native file's ID must match its filename. Keep one source format per feature ID. A remotely managed native feature cannot overwrite an existing YAML feature of the same ID.
+
+## A test failed
+
+Read the actual message list. Compare spelling, case, punctuation and order. A synthetic sender cannot run player-only features. Run player behavior in Minecraft with the correct permission.
+
+## I want to remove access
+
+On the Minecraft computer, type `ais disconnect` for all connections, or include one ID from `ais connections`. Access blocks immediately. Wait for the console to confirm saved revocation before restarting. Your scripts keep running locally.
+
+---
+
+[Recovery guide](https://github.com/MistDig/AetherScript/wiki/Revisions-and-Recovery)
+
+## Repeated rejected-grant messages on 0.0.7
+
+Update the Paper plugin to 0.0.8. The connector logs each rejected grant state once, clears superseded pending links and informs the service of terminal rejection. Use a fresh `ais connect` and sign in again when the AI app reports invalid_token.
+
+
+# Machine-readable authoring contract
+
+{
+  "languageVersion": 1,
+  "format": "aether",
+  "fileExtension": ".aether",
+  "exampleFile": "cloud-note.aether",
+  "template": "feature cloud-note version \"1.0.0\"\ncommand cloud-note permission \"aetherscript.example.cloud\" sender any {\n  let message = \"Welcome to the clouds.\"\n  let stars = 2 + 1\n  if stars >= 3 {\n    send message\n  } else {\n    send \"Keep exploring.\"\n  }\n}\n",
+  "evaluation": "Scripts without arg declarations retain preparation-time expression evaluation. Declared arguments create a bounded typed program evaluated for each invocation with fresh immutable bindings. All branch names and types are validated before activation.",
+  "entryPoint": "/ais run <feature-id> [arguments...]",
+  "capabilities": [
+    "runtime.message.send"
+  ],
+  "authoringRules": [
+    "Match the feature ID to the filename.",
+    "Keep the command name unique among active features.",
+    "Write each statement on its own line and delimit blocks with braces.",
+    "Keep permission nodes explicit and preserve them when editing message text.",
+    "Use quoted text, integer literals or booleans. Local types are inferred and bindings are immutable.",
+    "Check both branches for type errors. Use text(value) for explicit conversion.",
+    "Validate the complete edited source before requesting a local reload."
+  ],
+  "valueTypes": [
+    "text",
+    "integer",
+    "boolean"
+  ],
+  "statements": [
+    "arg name: text | integer | boolean [= constantExpression]",
+    "let name = expression",
+    "send textExpression",
+    "if booleanExpression { ... } else { ... }"
+  ],
+  "operations": [
+    {
+      "id": "runtime.message.send",
+      "arguments": {
+        "text": "text"
+      },
+      "returns": "unit",
+      "target": "invoking sender",
+      "executionContext": "Paper main thread",
+      "permissions": "declared command permission on invocation and before each action",
+      "owner": "active feature revision",
+      "errors": "Static scripts validate emitted text during preparation. Runtime argument programs validate argument values and prepare all messages before emitting them.",
+      "example": "send \"Welcome!\"",
+      "platform": "Paper 26.3 build 245"
+    }
+  ],
+  "validation": {
+    "tool": "aether_validate",
+    "arguments": {
+      "format": "aether",
+      "source": "entire edited text"
+    },
+    "errorFields": [
+      "code",
+      "path",
+      "reason",
+      "line",
+      "column"
+    ],
+    "locations": "one-based when available"
+  },
+  "editExample": {
+    "before": "Welcome to the clouds.",
+    "after": "Welcome to our server.",
+    "expectedChange": "Only the greeting changes. Feature ID, permission and sender remain the same."
+  },
+  "runtimeArguments": {
+    "exampleFile": "greet.aether",
+    "declarations": [
+      "arg name: text",
+      "arg count: integer = 1",
+      "arg excited: boolean = true"
+    ],
+    "ordering": "Declare arguments first in the command block. Required arguments precede defaults. Values bind positionally.",
+    "limits": {
+      "count": 16,
+      "textUtf16Units": 2048,
+      "executionSteps": 8192,
+      "messagesPerInvocation": 32
+    },
+    "types": {
+      "text": "Plain text supplied as one value",
+      "integer": "Signed 64-bit decimal, with an optional + or - sign",
+      "boolean": "Exactly true or false"
+    },
+    "mcpTestArguments": {
+      "arguments": [
+        "Alex",
+        "3",
+        "true"
+      ]
+    },
+    "failure": "Missing, extra or invalid arguments reject invocation before any message is emitted. Arithmetic and output errors include source locations."
+  }
+}
+
+
+
+# Changes by release
+
+# Changelog
+
+Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
+
+## [0.0.9] - 2026-11-14
+
+- Applied the supplied website motion brief to the documentation website with an original cloud-themed visual design and functional script workbench.
+- Added meaningful motion and responsive interaction states with keyboard and reduced-motion support. The site preserves documentation routes, search, copy/download controls and versioned AI-readable guides.
+
+## [0.0.8] - 2026-11-14
+
+- Added an explicit full-access approval for creating and editing native scripts, alongside selected-script access. Existing restricted connections require fresh approval to gain broader access.
+- Fixed repeated Paper rejection messages by tracking grant state, expiring pending enrollment and clearing superseded links.
+- Improved hosted OAuth discovery, dynamic registration for web callbacks, and browser setup for clients requiring manual credentials.
+- Superseded, rejected, expired and revoked approvals return terminal authentication errors. Acknowledged active connections survive starting another connection.
+
+- Raised the daily per-IP enrollment/registration budget to 40 to accommodate multi-client setup and retries, with explicit owner approval. Global and per-server quotas also apply.
+
+- Verified 190 Java tests and seven relay tests, plus packaged MCP checks and runnable wiki examples. Live Edge/Paper tests cover web-secret OAuth, broad and selected permissions, existing edits, new IDs, restart and revocation. Actual Gemini product testing remains pending.
+
+## [0.0.7] - 2026-11-13
+
+- Added console `ais connect`, browser approval and hosted OAuth MCP. Fresh servers generate their identity automatically and connect through the shared AetherScript service.
+- Added exact per-app feature grants, persistent restart reconnection, `ais connections` and immediate/durable `ais disconnect` revocation.
+- Added a browser page with AI app setup choices and the registered callback destination. Connected is confirmed after an authorized app reads live Paper status.
+- The Windows Codex setup now registers hosted MCP and starts native OAuth login. The local MCP JAR remains available for existing workflows.
+- Added bounds and retention for public enrollment, app registration, grants and pending work. Management connections expire after 30 days.
+
+- Added native typed command arguments and invocation-time conditions. Test tools accept argument values; existing scripts retain their original behavior.
+- Added troubleshooting and MCP reference guides, complete versioned AI documentation, and Copy docs link and Download docs controls. Runnable examples are checked by the shipped compiler.
+
+- Verification passed 183 Java tests, five relay tests, packaged authoring/protocol checks, and all runnable wiki examples. Real Edge consent and installed Codex hosted discovery were checked with a disposable Paper server. The recovery regression passed 31 Paper checks across five boots and 100 changed reloads. See the versioned test records for exact boundaries.
+
+## [0.0.6] - 2026-11-12
+
+- Added a personal Cloudflare Worker that pairs Paper and a local MCP through outbound HTTPS. Server owners enroll using a private configuration and grant named native script features from the server console.
+- Added MCP tools to list, read, validate, create, update and test a granted script. Edits include the expected source hash. Script tests report captured messages from a synthetic sender and compare them with the requested output.
+- Added a Windows setup ZIP containing the MCP JAR and a launcher that pairs it and configures Codex. The separate Paper plugin JAR belongs on the Minecraft host.
+- Added a local script test tool to the offline MCP. The 0.0.5 loopback status workflow remains available.
+- The personal relay can see script source and output. Its limits include one in-flight request per session, a 64 KiB JSON envelope and a 24-hour management session. Console revocation and server restart end the server-side grant.
+
+- Verified 152 Java tests, three relay tests, packaged MCP subprocesses and Codex tool discovery. The live relay test exercised authorized script creation, editing, actual output, stale-write rejection and revocation on Paper 26.3 build 245.
+
+## [0.0.5] - 2026-11-12
+
+- Added console pairing and revocation for a read-only Paper status connection. The server provides a loopback endpoint and a short-lived, single-use code. The connection-details file contains no credential.
+- Added local pairing profiles to the MCP JAR. A paired client can read readiness, feature count and generation. It can still validate scripts offline. Script activation stays with the server administrator.
+- Published separate setup steps for clients running on the Paper host and clients connecting over an SSH tunnel.
+
+- Verification passed 138 automated tests, offline subprocess checks and 31 real Paper checks across five server boots and 100 changed reloads, including live MCP status and revocation.
+
+## [0.0.4] - 2026-11-11
+
+- Added native `.aether` command scripts with immutable local bindings, checked integer arithmetic, booleans, text conversion and conditionals. The compiler prepares sender messages during validation and reload. Paper checks the sender and permission on invocation.
+- Integrated native scripts with the existing revision store, rollback, diagnostics and restart recovery. YAML and JSON remain supported.
+- Published a machine-readable language contract, a complete editable template and an offline CLI. The read-only MCP exposes the same contract and compiler. The packaged authoring test checks a one-line change, an invalid expression and CLI/MCP agreement.
+- Added the language design decision, ecosystem gap report, 154-row capability matrix and dependency backlog. The matrix records existing evidence and future adapter work.
+- Added a copyable native example to the documentation homepage and a guide to authoring and validating edits. See the versioned verification records under `docs/evidence/0.0.4/`.
+
+- Verified 113 automated tests, seven packaged AI authoring checks and 28 Paper console checks across five boots and 100 distinct native-script reloads on Paper 26.3 build 245.
+
+## [0.0.3] - 2026-11-10
+
+### Added
+
+- Dedicated GitHub Pages documentation at https://mistdig.github.io/AetherScript/ using VitePress.
+- AetherScript homepage inspired by TicketPilot's blue gradients and rounded panels, with the existing smiling cloud mascot and original copy/artwork.
+- MistTags-style documentation structure: local full-text search, sidebar guides, dark/light appearance, mobile navigation, page outlines and copyable examples.
+- Nine guides generated from the existing wiki sources, plus changelog and a custom not-found page.
+- Pinned npm lockfile, patched Vite 6.4.6 build override (npm audit: zero findings), automated generated-link/anchor/search checks, and a Pages build/deploy workflow.
+- Wiki entry points and README links to the new documentation site.
+
+### Verification and scope
+
+- Documentation production build passed: 12 generated pages, 384 local links/assets/anchors checked, and four real full-text search queries passed.
+- Java 25 clean check build passed all 70 tests; the packaged MCP process passed for 0.0.3.
+- Engine behavior is unchanged from 0.0.2. Real Paper evidence remains the 0.0.2 run; no new gameplay or server compatibility claim.
+- No computer-use/browser automation was used. Responsive and theme styling is implemented, but an interactive browser visual test is not claimed.
+
+## [0.0.2] - 2026-11-10
+
+### Added
+
+- Durable successful source revisions with checksummed metadata, startup recovery and configurable retention (default five, range 1–50).
+- `/ais history`, `/ais diff`, `/ais rollback` and per-feature status distinguishing running source from the editable file.
+- File/line/column/field diagnostics, with invalid-target correction; structured MCP locations use the same parser.
+- Rollback held across restarts without overwriting editable source; explicit reload releases the hold.
+- Recovery, retention, corruption, interrupted-save and abruptly halted child-JVM tests.
+- Cloud-themed README and 13 wiki pages covering installation, language, commands, recovery, diagnostics, testing, security, performance and expanded gameplay roadmap.
+
+### Changed
+
+- Valid editable sources activate automatically at startup. Invalid/missing files can recover saved working source; corrupt metadata blocks startup.
+- Invalid edits and unchanged reloads consume no history. Unchanged reloads do not advance registry generation.
+- Storage/audit failure attempts compensation; uncertain restoration quarantines operations.
+
+- Startup preserves an existing JSON/.yaml hello example instead of creating a duplicate bundled YAML file.
+
+### Verification
+
+- Java 25 / Gradle clean check build: 70 tests passed, zero failures/errors/skips.
+- Packaged MCP subprocess passed.
+- Paper 26.3 build 245: 28 console checks across five boots and 100 distinct live reloads passed, including restart recovery, rollback, retention and corrupted storage.
+- See `docs/evidence/0.0.2/` for local evidence.
+
+### Upgrade and limitations
+
+- Stop Paper, back up the data directory, replace the old JAR, then restart. 0.0.1 has no revision history; first successful 0.0.2 activation creates it.
+- Only message actions exist. Block health/events and richer gameplay remain planned. AI deployment and server connectivity remain absent.
+- Atomic process-crash recovery is not a power-loss guarantee; filesystem directory-flush support varies. Keep owner backups.
+- 0.0.2 connected-player checks, Purpur, named MCP client interoperability and resource benchmarks remain open.
+
+## [0.0.1] - 2026-11-09
+
+First experimental release. The previous local `0.1.0-dev` name was an unpublished development label; published versioning starts at **0.0.1**.
+
+### Added
+
+- Paper 26.3 build 245 plugin on Java 25, with `/ais status`, `list`, `validate`, `reload`, and `run`.
+- Strict bounded YAML/JSON parsing, immutable typed message actions, source/IR hashes, and explicit sender permissions.
+- Live registry swaps, generation tracking, rejected-update preservation, and basic local audit records.
+- Separate read-only MCP stdio prototype for offline status, capabilities, and source validation. No deployment tools or network bridge.
+- Hello feature examples, JSON Schema, documentation, security boundaries, and expanded gameplay/remote-connectivity roadmap.
+- Gradle wrapper/checksums, dependency locks/verification, automated tests, disposable-server/MCP process harnesses, CI, and versioned release workflow.
+- Repository README, changelog, release policy, and a single build-version source in `gradle.properties`.
+- Performance policy: no forced collection, bounded work, and lower allocation pressure while retaining Paper's JVM garbage collector.
+- Complete dependency verification for fresh-cache builds, including an independently verified Jackson parent POM checksum.
+
+### Verification
+
+- Local `clean check build`: 42 automated tests passed.
+- Paper 26.3-245: startup, successful A-to-B reload, rejected-reload preservation, and 100 repeated reloads passed using console commands.
+- Packaged MCP process: initialization, tool discovery, validation, offline status, and rejected deployment passed.
+- See `docs/testing.md` for historical development evidence and separate 0.0.1 verification.
+
+### Known limitations
+
+- Startup begins with an empty in-memory registry and requires local `/ais reload`; durable recovery is future work.
+- Connected-player tests, Purpur compatibility, and named MCP client interoperability are not verified.
+- Events, GUIs, dynamic aliases, persistent state, and AI deployment are not implemented.
+- AI deployment remains unavailable until authoritative server permissions and security gates are implemented and tested.
+
+[0.0.1]: https://github.com/MistDig/AetherScript/releases/tag/v0.0.1
+
+[0.0.2]: https://github.com/MistDig/AetherScript/releases/tag/v0.0.2
+
+[0.0.3]: https://github.com/MistDig/AetherScript/releases/tag/v0.0.3

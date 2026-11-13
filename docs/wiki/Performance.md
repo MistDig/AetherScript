@@ -1,4 +1,4 @@
-[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.8)
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.9)
 
 ---
 
@@ -28,4 +28,4 @@ The immediate work is keeping invocation small and profiling realistic workloads
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.8
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.9

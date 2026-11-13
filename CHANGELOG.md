@@ -2,6 +2,11 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.9] - 2026-11-14
+
+- Applied the supplied website motion brief to the documentation website with an original cloud-themed visual design and functional script workbench.
+- Added meaningful motion and responsive interaction states with keyboard and reduced-motion support. The site preserves documentation routes, search, copy/download controls and versioned AI-readable guides.
+
 ## [0.0.8] - 2026-11-14
 
 - Added an explicit full-access approval for creating and editing native scripts, alongside selected-script access. Existing restricted connections require fresh approval to gain broader access.
