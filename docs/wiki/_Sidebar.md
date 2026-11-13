@@ -7,6 +7,9 @@
 **START SMALL**
 
 - [Home](https://github.com/MistDig/AetherScript/wiki/Home)
+- [Connect your AI](https://github.com/MistDig/AetherScript/wiki/Security-and-MCP)
+- [MCP reference](https://github.com/MistDig/AetherScript/wiki/MCP-Reference)
+- [Troubleshooting](https://github.com/MistDig/AetherScript/wiki/Troubleshooting)
 - [Getting Started](https://github.com/MistDig/AetherScript/wiki/Getting-Started)
 - [Writing scripts with AI](https://github.com/MistDig/AetherScript/wiki/AI-Authoring)
 - [Language Reference](https://github.com/MistDig/AetherScript/wiki/Language-Reference)
@@ -26,4 +29,6 @@
 
 ---
 
-[↓ Download 0.0.6](https://github.com/MistDig/AetherScript/releases/tag/v0.0.6)
+[↓ Download 0.0.7](https://github.com/MistDig/AetherScript/releases/tag/v0.0.7)
+
+[Copy this complete guide link for your AI](https://mistdig.github.io/AetherScript/releases/0.0.7/llms-full.txt)

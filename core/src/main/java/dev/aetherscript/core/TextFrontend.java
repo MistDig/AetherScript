@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Bounded, pure preparation-time language frontend. Values never contain host objects. */
+/** Bounded typed frontend. Argument-free scripts retain their preparation-time representation. */
 public final class TextFrontend {
     public static final int MAX_NODES = 2048;
     public static final int MAX_STATEMENTS = 256;
@@ -41,7 +41,8 @@ public final class TextFrontend {
         boolean bool() { return (Boolean) value; }
         String text() { return (String) value; }
     }
-    private record Binding(String name, Type type, Token declaration) {}
+    private record Binding(String name, Type type, Token declaration, int slot) {}
+    private record Argument(Binding binding, Value defaultValue) {}
 
     private static final class Lexer {
         private final String input;
@@ -89,7 +90,7 @@ public final class TextFrontend {
                     String operator = Character.toString(c);
                     if (index + 1 < input.length() && List.of("==", "!=", "<=", ">=", "&&", "||").contains(input.substring(index, index + 2))) {
                         operator = input.substring(index, index + 2); advance();
-                    } else if ("{}()+-*/%<>=!".indexOf(c) < 0) {
+                    } else if ("{}():+-*/%<>=!".indexOf(c) < 0) {
                         throw error(startLine, startColumn, "Unexpected character. Use the documented operators and double-quoted text.");
                     }
                     advance(); add(Kind.SYMBOL, operator, startLine, startColumn);
@@ -203,14 +204,83 @@ public final class TextFrontend {
         final List<Feature.MessageAction> messages = new ArrayList<>();
         private int steps;
         void step() {
-            if (++steps > MAX_STEPS) throw new ValidationException("$", "Preparation budget exceeded (8192 steps)", 1, 1);
+            if (++steps > MAX_STEPS) throw new ValidationException("$", "Execution budget exceeded (8192 steps)", 1, 1);
         }
+    }
+
+    private record RuntimeProgram(List<Argument> arguments, List<Statement> body) implements CompiledFeature.Program {
+        RuntimeProgram { arguments = List.copyOf(arguments); body = List.copyOf(body); }
+        public List<Feature.MessageAction> evaluate(List<String> rawArguments) {
+            List<String> supplied = InvocationArguments.checked(rawArguments);
+            if (supplied.size() > arguments.size())
+                throw new ValidationException("$.arguments", "Too many arguments. This command accepts at most " + arguments.size());
+            Execution execution = new Execution();
+            for (int index = 0; index < arguments.size(); index++) {
+                Argument argument = arguments.get(index);
+                Value value = argument.defaultValue();
+                if (index < supplied.size()) value = parseArgument(argument, supplied.get(index), index);
+                if (value == null) throw argumentError(argument, index, "Missing required argument '" + argument.binding().name() + "'");
+                execution.values.put(argument.binding(), value);
+            }
+            for (Statement statement : body) statement.prepare(execution);
+            return List.copyOf(execution.messages);
+        }
+        private Value parseArgument(Argument argument, String raw, int index) {
+            Type type = argument.binding().type();
+            if (type == Type.TEXT) return new Value(type, raw);
+            if (type == Type.BOOLEAN && (raw.equals("true") || raw.equals("false"))) return new Value(type, Boolean.parseBoolean(raw));
+            if (type == Type.INTEGER && raw.matches("[+-]?[0-9]+")) {
+                try { return new Value(type, Long.parseLong(raw)); }
+                catch (NumberFormatException ignored) { }
+            }
+            throw argumentError(argument, index, "Argument '" + argument.binding().name() + "' requires " + type.name().toLowerCase(java.util.Locale.ROOT));
+        }
+        private ValidationException argumentError(Argument argument, int index, String reason) {
+            Token token = argument.binding().declaration();
+            return new ValidationException("$.arguments[" + index + "]", reason, token.line(), token.column());
+        }
+    }
+    private static int maximumMessages(List<Statement> body) {
+        int total = 0;
+        for (Statement statement : body) {
+            if (statement instanceof Send) total++;
+            else if (statement instanceof Condition condition) total += Math.max(maximumMessages(condition.yes()), maximumMessages(condition.no()));
+        }
+        return total;
+    }
+    private static boolean usesName(Expression value) {
+        return switch (value) {
+            case Name ignored -> true;
+            case Unary unary -> usesName(unary.operand());
+            case Binary binary -> usesName(binary.left()) || usesName(binary.right());
+            case AsText conversion -> usesName(conversion.operand());
+            default -> false;
+        };
+    }
+    private static List<Object> statementsDescription(List<Statement> statements) {
+        return statements.stream().map(statement -> switch (statement) {
+            case Let let -> (Object) List.of("let", let.binding().slot(), expressionDescription(let.initializer()));
+            case Send send -> (Object) List.of("send", expressionDescription(send.expression()));
+            case Condition condition -> (Object) List.of("if", expressionDescription(condition.condition()), statementsDescription(condition.yes()), statementsDescription(condition.no()));
+            default -> throw new AssertionError("Unknown statement");
+        }).toList();
+    }
+    private static Object expressionDescription(Expression expression) {
+        return switch (expression) {
+            case Literal literal -> List.of("literal", literal.type().name(), literal.value().value());
+            case Name name -> List.of("binding", name.binding().slot());
+            case Unary unary -> List.of("unary", unary.operator().text(), expressionDescription(unary.operand()));
+            case Binary binary -> List.of("binary", binary.operator().text(), expressionDescription(binary.left()), expressionDescription(binary.right()));
+            case AsText conversion -> List.of("text", expressionDescription(conversion.operand()));
+            default -> throw new AssertionError("Unknown expression");
+        };
     }
 
     private static final class Parser {
         private final List<Token> tokens;
         private final Deque<Map<String, Binding>> scopes = new ArrayDeque<>();
-        private int index, nodes, statements, blockDepth, expressionDepth;
+        private final List<Argument> arguments = new ArrayList<>();
+        private int index, nodes, statements, blockDepth, expressionDepth, bindings;
         Parser(List<Token> tokens) { this.tokens = tokens; }
         CompiledFeature compile(byte[] original) {
             newlines(); expect("feature"); String id = logicalId();
@@ -224,14 +294,32 @@ public final class TextFrontend {
             if (!List.of("any", "player").contains(sender.text())) throw sender.error("Sender must be any or player");
             List<Statement> body = block(); newlines();
             if (peek().kind() != Kind.END) throw peek().error("Expected end of file. This slice supports one command per feature.");
-            Execution execution = new Execution();
-            for (Statement statement : body) statement.prepare(execution);
-            if (execution.messages.isEmpty()) throw commandToken.error("The selected branch must send at least one message");
-            Feature feature = new Feature(1, id, versionToken.text(), List.of("runtime.message.send"),
-                new Feature.Command(name, permission.text(), sender.text(), execution.messages));
-            try { return new CompiledFeature(feature, FeatureParser.hash(original), FeatureParser.hash(FeatureParser.JSON.writeValueAsBytes(feature))); }
+            if (arguments.isEmpty()) {
+                Execution execution = new Execution();
+                for (Statement statement : body) statement.prepare(execution);
+                if (execution.messages.isEmpty()) throw commandToken.error("The selected branch must send at least one message");
+                Feature feature = definition(id, versionToken.text(), name, permission.text(), sender.text(), execution.messages);
+                return compiled(feature, original, null, feature);
+            }
+            int messages = maximumMessages(body);
+            if (messages == 0 || messages > FeatureParser.MAX_ACTIONS)
+                throw commandToken.error("Runtime commands must contain a send and emit at most 32 messages on any branch");
+            Feature feature = definition(id, versionToken.text(), name, permission.text(), sender.text(), List.of());
+            RuntimeProgram program = new RuntimeProgram(arguments, body);
+            Object semantic = List.of("aether-runtime-arguments-v1", feature,
+                arguments.stream().map(argument -> List.of(argument.binding().name(), argument.binding().type().name(),
+                    argument.defaultValue() == null ? List.of() : List.of(argument.defaultValue().value()))).toList(),
+                statementsDescription(body));
+            return compiled(feature, original, program, semantic);
+        }
+        private Feature definition(String id, String version, String name, String permission, String sender, List<Feature.MessageAction> actions) {
+            return new Feature(1, id, version, List.of("runtime.message.send"), new Feature.Command(name, permission, sender, actions));
+        }
+        private CompiledFeature compiled(Feature feature, byte[] original, CompiledFeature.Program program, Object semantic) {
+            try { return new CompiledFeature(feature, FeatureParser.hash(original), FeatureParser.hash(FeatureParser.JSON.writeValueAsBytes(semantic)), program); }
             catch (java.io.IOException error) { throw new AssertionError(error); }
         }
+
         private List<Statement> block() {
             expect("{");
             if (++blockDepth > MAX_DEPTH) throw previous().error("Block nesting exceeds 32");
@@ -239,18 +327,49 @@ public final class TextFrontend {
             while (!matches("}")) {
                 if (peek().kind() == Kind.END) throw peek().error("Unclosed block. Add a closing brace.");
                 if (++statements > MAX_STATEMENTS) throw peek().error("Statement limit exceeded (256)");
-                result.add(statement()); newlines();
+                if (matches("arg")) {
+                    if (blockDepth != 1 || !result.isEmpty()) throw peek().error("Declare arguments at the start of the command block");
+                    argument();
+                } else result.add(statement());
+                newlines();
             }
             take(); scopes.pop(); blockDepth--; return List.copyOf(result);
+        }
+        private void argument() {
+            Token start = take();
+            if (arguments.size() == InvocationArguments.MAX_COUNT) throw start.error("A command supports at most 16 arguments");
+            Token name = require(Kind.NAME, "Expected an argument name");
+            if (List.of("true", "false", "text", "let", "send", "if", "else", "arg").contains(name.text()) || scopes.peek().containsKey(name.text()))
+                throw name.error("Argument names must be unique local identifiers");
+            expect(":"); Token declared = require(Kind.NAME, "Expected argument type text, integer or boolean");
+            Type type = switch (declared.text()) {
+                case "text" -> Type.TEXT;
+                case "integer" -> Type.INTEGER;
+                case "boolean" -> Type.BOOLEAN;
+                default -> throw declared.error("Argument type must be text, integer or boolean");
+            };
+            Value defaultValue = null;
+            if (matches("=")) {
+                take(); Expression value = expression();
+                requireType(value, type, declared, "Argument default must match its declared type");
+                if (usesName(value)) throw name.error("Argument defaults must be constant expressions");
+                defaultValue = value.evaluate(new Execution());
+                InvocationArguments.checked(List.of(defaultValue.value().toString()));
+            } else if (arguments.stream().anyMatch(argument -> argument.defaultValue() != null)) {
+                throw name.error("Required arguments must precede arguments with defaults");
+            }
+            lineEnd();
+            Binding binding = new Binding(name.text(), type, name, bindings++);
+            scopes.peek().put(name.text(), binding); arguments.add(new Argument(binding, defaultValue));
         }
         private Statement statement() {
             Token start = take();
             if (start.text().equals("let")) {
                 Token name = require(Kind.NAME, "Expected a local variable name after let");
-                if (List.of("true", "false", "text", "let", "send", "if", "else").contains(name.text())) throw name.error("This keyword cannot be a variable name");
+                if (List.of("true", "false", "text", "let", "send", "if", "else", "arg").contains(name.text())) throw name.error("This keyword cannot be a variable name");
                 if (scopes.peek().containsKey(name.text())) throw name.error("Variable is already declared in this block. Use a different name.");
                 expect("="); Expression initializer = expression(); lineEnd();
-                Binding binding = new Binding(name.text(), initializer.type(), name); scopes.peek().put(name.text(), binding);
+                Binding binding = new Binding(name.text(), initializer.type(), name, bindings++); scopes.peek().put(name.text(), binding);
                 return new Let(binding, initializer);
             }
             if (start.text().equals("send")) {
@@ -297,7 +416,7 @@ public final class TextFrontend {
             return left;
         }
         private Expression unary() {
-            if (matches("!") || matches("-")) {
+            if (peek().kind() == Kind.SYMBOL && (matches("!") || matches("-"))) {
                 Token operator = take();
                 if (operator.text().equals("-") && peek().kind() == Kind.NUMBER) {
                     Token number = take();

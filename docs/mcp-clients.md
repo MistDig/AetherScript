@@ -1,17 +1,20 @@
-# MCP prototype interoperability
+# MCP client verification
 
-Protocol: MCP 2025-06-18 over stdio, JSON-RPC 2.0, UTF-8 newline framing. Lifecycle and tools are implemented directly for this small prototype; this is not an official SDK integration. Maximum frame: 128 KiB; oversized frames close the process. Maximum script: 64 KiB. Clients launch the MCP over stdio. A paired gateway uses either authenticated loopback HTTP for status or an owner-hosted HTTPS relay for scoped `.aether` authoring/tests. See the [pairing guide](wiki/Security-and-MCP.md).
+The shared endpoint uses Streamable HTTP and OAuth authorization code with S256 PKCE. Start from the Minecraft console `ais connect`, open the link in the same browser used for your AI app's authorization, then approve exact feature IDs.
 
-| Client | Version / OS | Discovery / validation | Live status / deploy / reconnect |
-|---|---|---|---|
-| Codex | Not tested | Not tested | Not tested / not tested |
-| Claude / Claude Code | Not tested | Not tested | Not tested / not tested |
-| Cursor | Not tested | Not tested | Not tested / not tested |
-| Cline | Not tested | Not tested | Not tested / not tested |
-| Automated Java protocol harness | JDK 25, Windows | Tested | Offline and paired status covered by the process harnesses |
+| Client | Setup path | Verification |
+| --- | --- | --- |
+| ChatGPT | Custom hosted MCP connector, subject to account/workspace availability | Actual app untested |
+| Claude Desktop | Remote connector settings, subject to account availability | Actual app untested |
+| Claude Code | Remote HTTP MCP with OAuth | Actual app untested |
+| Codex | Hosted MCP. Windows ZIP registers the endpoint and opens sign-in. | Hosted discovery checked separately from interactive chat. See release evidence. |
+| Cursor | Browser install link and OAuth | Actual app untested |
+| Cline | Remote MCP with OAuth where supported by the installed version | Actual app untested |
+| Edge browser plus HTTP harness | Real browser consent, hosted requests, Paper restart and revocation | Release evidence records the executed candidate |
+| Local gateway | Stdio offline/loopback/personal-relay modes | Automated process regression tests |
 
-Use a client configuration's stdio command/args fields with `java`, `-jar`, and the absolute gateway JAR path. Configuration syntax differs by client/version; no unverified client-specific configuration is shipped.
+The browser page does not verify an app's identity from its self-reported name. Review the registered callback origin. The localhost callback flow is for a desktop client. Hosted callback choices are limited to the displayed provider origins.
 
-Reference: https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle and https://modelcontextprotocol.io/specification/2025-06-18/server/tools .
+The v0.0.6 Codex app-server discovered nine stdio tools with a local relay profile. That historical test did not verify the new hosted browser sign-in.
 
-On Windows, Codex 0.167.0-alpha.3.2 discovered nine tools from the 0.0.6 gateway using a relay profile. The live-operation tests use a separate stdio harness.
+[Pairing guide](wiki/Security-and-MCP.md)

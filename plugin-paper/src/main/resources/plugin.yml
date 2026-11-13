@@ -6,7 +6,7 @@ description: Bounded scripts with transactional in-memory hot reload
 commands:
   ais:
     description: AetherScript local administration and feature dispatch
-    usage: /ais <status|list|validate|reload|run|history|diff|rollback|pair|unpair> [feature]
+    usage: /ais <status|list|validate|reload|run|history|diff|rollback|connect|connections|disconnect|pair|unpair> [feature]
 permissions:
   aetherscript.admin:
     default: op

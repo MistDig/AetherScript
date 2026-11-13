@@ -1,0 +1,20 @@
+{
+  "localRelayTestsPassed": 5,
+  "publicRelay": "https://aetherscript-relay.mistdig143.workers.dev",
+  "browser": "Microsoft Edge on Windows, controlled with Playwright",
+  "testedFlow": [
+    "fresh installation without relay.json",
+    "console ais connect",
+    "browser exact-ID consent",
+    "OAuth code with S256 PKCE",
+    "Codex hosted discovery: 6 tools",
+    "live source diagnostic",
+    "create script",
+    "two runtime argument lists",
+    "quoted Paper command",
+    "deny ungranted ID",
+    "restart preserves grant and script",
+    "console disconnect revokes access"
+  ],
+  "limits": "Browser and disposable Paper ran on the test machine through the public Worker. Interactive AI chat and the owner's two-PC Feather setup were not tested."
+}

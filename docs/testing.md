@@ -1,5 +1,17 @@
 # Actual test results
 
+## Release 0.0.7 — shared browser approval and runtime inputs
+
+Java 25 clean check build passed 183 tests. Five relay tests cover v1 regressions and v2 browser grants, OAuth S256 PKCE, replay prevention, exact IDs, live-status confirmation, revocation and retention. The local gateway passed protocol and AI-authoring subprocess checks. Complete runnable wiki examples, including deliberately invalid syntax, were checked by the packaged compiler.
+
+A fresh disposable Paper 26.3 build 245 installation generated its own identity and console link. Edge performed browser approval and returned authorization to a desktop HTTP test client. The installed Codex app-server discovered all six hosted tools using the resulting bearer. The hosted MCP created a native script, evaluated two different argument lists, captured the expected output, rejected an ungranted target, and returned a source location for invalid syntax. Paper console invocation exercised a quoted name. Restart preserved the connection and script; console disconnect revoked access.
+
+This live run used the public Cloudflare service and local browser/server processes. It did not use the owner's two-PC Feather server or interactive AI chat. ChatGPT, Claude, Cursor and Cline remain untested as actual clients. The Codex check verifies hosted discovery, not a full native OAuth chat session.
+
+The final JAR also passed 31 Paper recovery checks across five boots and 100 distinct reloads, including loopback pairing, rejected edits, restart, rollback and corrupted storage.
+
+The human site exports every wiki page into a versioned full guide. Generated link/search/export checks and Edge copy/download controls passed. [Versioned evidence](evidence/0.0.7/)
+
 ## Release 0.0.6 — Cloudflare script management
 
 Java 25 clean check build passed 152 tests including abrupt JVM exits during remote script publication. Three relay tests passed. The shipped gateway passed offline authoring and protocol tests. On Windows the Codex app-server discovered nine relay-mode tools. The Windows launcher paired the real gateway and passed the expected arguments to an isolated Codex registration command.

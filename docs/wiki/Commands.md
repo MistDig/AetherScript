@@ -1,19 +1,22 @@
-[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.6)
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.7)
 
 ---
 
 ## The command desk
 
-Use `/ais` in game, or `ais` in console. All operations except `run` require **`aetherscript.admin`**. Run checks the feature's own permission and sender rule.
+Use `/ais` in game, or `ais` in console. Script administration requires **`aetherscript.admin`**. Connection management requires the actual server console. Run checks the feature's own permission and sender rule.
 
 | Command | Behavior |
 | :--- | :--- |
+| `ais connect [feature-ids]` | Server console. Open a browser approval link; optional comma-separated IDs constrain the browser choice. |
+| `ais connections` | Server console. List connection IDs, names, permissions and revocations. |
+| `ais disconnect [connection-id]` | Server console. Revoke one connection or all connections. Wait for saved confirmation. |
 | `/ais status` | Version, readiness, generation, active count, busy state and AI status. |
 | `/ais status <feature>` | Running revision, editable path, file state, errors and next action. |
 | `/ais list` | Feature running/file states. |
 | `/ais validate [feature]` | Check source and command collisions; no activation or saved version. |
 | `/ais reload [feature]` | Activate and save valid changed source. |
-| `/ais run <feature>` | Invoke permission-checked message actions. |
+| `/ais run <feature> [arguments…]` | Invoke with typed positional arguments and permission checks. |
 | `/ais history <feature>` | Saved numbers, hashes, timestamps and active marker. |
 | `/ais diff <feature>` | Running saved source versus current edit, even if invalid. |
 | `/ais rollback <feature>` | Select the closest earlier readable, valid saved revision. |
@@ -41,4 +44,4 @@ Replies are bounded. Use per-feature commands or console for shortened lists. No
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.6
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.7

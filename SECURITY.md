@@ -1,5 +1,14 @@
 # Security status
 
+## Shared browser pairing in 0.0.7
+
+Console-only `ais connect` delegates a single ten-minute browser approval to choose explicit feature IDs. The plugin persists its random server identity and immutable grants in `connections.json`. Treat that file and console links as credentials. Local authorization and source validation are enforced on every operation, including after a restart. `ais disconnect` blocks access immediately and saves a revocation tombstone before confirming persistence.
+
+The hosted MCP uses OAuth authorization code flow with mandatory S256 PKCE, registered redirect validation and tokens scoped to a single connection/server. Browser sessions use HttpOnly cookies. The approval page displays the redirect origin and exact script IDs. A client-supplied name does not verify app identity. The pairing page confirms Connected only when the client requests status and Paper answers.
+
+The public service runs on Workers Free with bounded enrollments, registrations, grants, operations, payloads and retention. Relay operators can see scripts and output. Connections expire after 30 days and require new approval. Service outages do not stop local scripts. The 0.0.6 enrollment secret is used only for the personal relay workflow below.
+
+
 AetherScript 0.0.6 adds opt-in scoped remote `.aether` authoring and retains read-only loopback status pairing. The owner starts the bridge with `ais pair` in the server console. It binds to literal IPv4 loopback on an ephemeral port and grants the fixed `status` scope. The live response contains plugin version, readiness, busy state, registry generation, active feature count, recovery state and AI-deployment state. Offline authoring tools validate caller-supplied source and publish the language/template metadata.
 
 ## Pairing and credentials

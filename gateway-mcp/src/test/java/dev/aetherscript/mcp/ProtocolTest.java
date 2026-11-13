@@ -74,6 +74,20 @@ class ProtocolTest {
         var player = request("tools/call", Map.of("name", "aether_test", "arguments", Map.of("source", source.replace("\"sender\": \"any\"", "\"sender\": \"player\""), "format", "json", "expectedMessages", expected))).path("result").path("structuredContent");
         assertFalse(player.path("invoked").asBoolean()); assertFalse(player.path("matched").asBoolean());
     }
+    @Test void runtimeArgumentsWorkThroughLocalTestAndAreExposedInItsSchema() throws Exception {
+        initialize(); String source = Files.readString(Path.of("../examples/greet.aether"));
+        var args = Map.of("source", source, "format", "aether", "arguments", List.of("Alex", "3", "false"), "expectedMessages", List.of("Hello Alex. Count 3"));
+        var result = request("tools/call", Map.of("name", "aether_test", "arguments", args)).path("result");
+        assertFalse(result.path("isError").asBoolean()); assertTrue(result.path("structuredContent").path("matched").asBoolean());
+        var defaults = request("tools/call", Map.of("name", "aether_test", "arguments", Map.of("source", source, "format", "aether", "arguments", List.of("Sam"), "expectedMessages", List.of("Hello Sam! Count 1")))).path("result");
+        assertTrue(defaults.path("structuredContent").path("matched").asBoolean());
+        var missing = request("tools/call", Map.of("name", "aether_test", "arguments", Map.of("source", source, "format", "aether", "expectedMessages", List.of()))).path("result");
+        assertTrue(missing.path("isError").asBoolean()); assertEquals("$.arguments[0]", missing.path("structuredContent").path("path").asText());
+        assertEquals(3, missing.path("structuredContent").path("line").asInt());
+        assertEquals(-32602, request("tools/call", Map.of("name", "aether_test", "arguments", Map.of("source", source, "format", "aether", "arguments", List.of(1), "expectedMessages", List.of()))).path("error").path("code").asInt());
+        var tools = request("tools/list", Map.of()).path("result").path("tools");
+        for (var tool : tools) if (tool.path("name").asText().equals("aether_test")) assertEquals(16, tool.path("inputSchema").path("properties").path("arguments").path("maxItems").asInt());
+    }
     @Test void stdioIsJsonOnlyAndNotificationsHaveNoResponse() throws Exception {
         var input="{\"jsonrpc\":\"2.0\",\"method\":\"notifications/cancelled\"}\n{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"ping\"}\n";
         ByteArrayOutputStream output=new ByteArrayOutputStream(); server.serve(new ByteArrayInputStream(input.getBytes()),output);

@@ -36,7 +36,9 @@ export default defineConfig({
         { text: 'Test your server', link: '/guide/testing' }
       ] },
       { text: 'LOOK AHEAD', items: [
-        { text: 'Security & MCP', link: '/guide/security' },
+        { text: 'Connect your AI', link: '/guide/security' },
+        { text: 'MCP tool reference', link: '/guide/mcp-reference' },
+        { text: 'Troubleshooting', link: '/guide/troubleshooting' },
         { text: 'Performance', link: '/guide/performance' },
         { text: 'Roadmap', link: '/guide/roadmap' },
         { text: 'Changelog', link: '/changelog' }

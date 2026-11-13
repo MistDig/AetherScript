@@ -1,4 +1,4 @@
-[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.6)
+[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.7)
 
 ---
 
@@ -33,7 +33,46 @@ command helloai permission "aetherscript.example.hello" sender any {
 
 The result is `Hello from AetherScript!`. Values and conditions evaluate during preparation at validation/reload, and their selected messages are stored in the compiled feature. Every invocation then applies the feature's permission, sender and active-generation checks.
 
-The `command` header supplies metadata for the `/ais run <id>` dispatcher. Real command registration, invocation arguments, mutable runtime scopes and persistent player values are tracked in the [ecosystem backlog](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/backlog.md).
+The `command` header supplies metadata for the `/ais run <id>` dispatcher. Real command registration, mutable runtime scopes and persistent player values are tracked in the [ecosystem backlog](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/backlog.md).
+
+## Command arguments in 0.0.7
+
+Save this as `scripts/greet.aether`, validate it and reload it as an administrator.
+
+```aether
+feature greet version "1.0.0"
+command greet permission "aetherscript.example.greet" sender any {
+  arg name: text
+  arg count: integer = 1
+  arg excited: boolean = true
+  if excited {
+    send "Hello " + name + "!"
+  } else {
+    send "Hello " + name
+  }
+  if count > 1 {
+    send "Repeat count: " + text(count)
+  }
+}
+```
+
+Run `/ais run greet MistDig` to receive `Hello MistDig!`. Run `/ais run greet Alex` to receive `Hello Alex!` from the same active script. For a name containing spaces, use `/ais run greet "Alex Smith"`.
+
+Run `/ais run greet Alex 2 false` to receive `Hello Alex` and `Repeat count: 2`. An integer is a signed 64-bit decimal value. A boolean is `true` or `false`.
+
+Declare arguments before other statements. Required arguments precede defaults. Types are `text`, `integer` and `boolean`. There are at most 16 positional arguments. Missing, extra and mistyped arguments produce an error and usage example before messages are delivered. An unclosed quote reports how to close it.
+
+Argument-dependent calculations and conditions execute per invocation. Both branches are checked on validation. Scripts without arguments preserve their existing preparation behavior and hashes.
+
+The following deliberately invalid script has a text default for an integer argument.
+
+```aether-invalid
+feature bad-default version "1.0.0"
+command bad-default permission "aetherscript.example.bad" sender any {
+  arg count: integer = "many"
+  send text(count)
+}
+```
 
 ### Values and scope
 
@@ -43,7 +82,7 @@ The `command` header supplies metadata for the `/ais run <id>` dispatcher. Real 
 | `let greeting = "Hello"` | An immutable local text value. |
 | `let ready = count == 5` | An immutable local boolean. |
 | `send greeting + "!"` | Append a plain message to the selected compiled output. |
-| `if ready { ... } else { ... }` | Select a branch during preparation. |
+| `if ready { ... } else { ... }` | Select a branch during preparation, or per invocation in commands declaring arguments. |
 | `text(count)` | Explicitly convert an integer, boolean or text value to text. |
 
 Locals are lexically scoped. An inner block may shadow an outer name. Duplicate declarations in the same block fail. An initializer can refer to earlier bindings. Names are ASCII letters/digits/underscores, beginning with a letter or underscore; reserved statement/value keywords cannot be local names.
@@ -116,4 +155,4 @@ Copy an example to `scripts/welcome.aether` or `scripts/welcome.yml`. Set both f
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.6
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.7

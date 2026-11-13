@@ -1,0 +1,13 @@
+feature greet version "1.0.0"
+command greet permission "aetherscript.example.greet" sender any {
+  arg name: text
+  arg count: integer = 1
+  arg excited: boolean = true
+  let suffix = "."
+  if excited {
+    let suffix = "!"
+    send "Hello " + name + suffix + " Count " + text(count)
+  } else {
+    send "Hello " + name + suffix + " Count " + text(count)
+  }
+}

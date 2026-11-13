@@ -1,3 +1,5 @@
+import { handleV2, ServerDirectory } from './v2.js';
+export { ServerDirectory };
 import { DurableObject } from 'cloudflare:workers';
 const OPERATIONS = new Set(['status', 'scripts.list', 'scripts.read', 'scripts.validate', 'scripts.apply', 'scripts.test']);
 const LIMIT = 65536;
@@ -21,6 +23,7 @@ export default {
  async fetch(request, env) {
   const url = new URL(request.url);
   if(url.protocol !== 'https:' && !(env.ALLOW_LOCAL_HTTP === 'true' && ['localhost','127.0.0.1','[::1]'].includes(url.hostname))) return fail(400,'https_required');
+  if(url.pathname.startsWith('/v2/') || url.pathname.startsWith('/oauth/') || url.pathname.startsWith('/.well-known/') || url.pathname==='/connect' || url.pathname==='/mcp') return handleV2(request,env);
   if(request.method !== 'POST') return fail(405,'post_required');
   try {
    if(url.pathname === '/v1/sessions') {

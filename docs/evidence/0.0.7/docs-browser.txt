@@ -1,0 +1,1 @@
+Rendered homepage and guide copy/download controls: pass

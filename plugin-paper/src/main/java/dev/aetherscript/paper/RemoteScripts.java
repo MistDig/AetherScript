@@ -57,13 +57,15 @@ final class RemoteScripts {
                 return read(id);
             }
             case "scripts.test" -> {
-                exact(args, Set.of("id", "expectedMessages"));
+                Set<String> fields = new HashSet<>(args.keySet()); fields.remove("arguments");
+                if (!fields.equals(Set.of("id", "expectedMessages"))) throw new IllegalArgumentException("INVALID_ARGUMENTS");
+                List<String> invocation = invocationArguments(args);
                 if (!(args.get("expectedMessages") instanceof List<?> expected) || expected.size() > 128 || expected.stream().anyMatch(v -> !(v instanceof String)))
                     throw new IllegalArgumentException("INVALID_EXPECTED_MESSAGES");
                 return main.call(() -> {
                     authorized(); List<String> actual = new ArrayList<>();
                     // This synthetic capability can exercise only non-player message actions.
-                    boolean invoked = registry.run(id, false, permission -> !revoked, actual::add);
+                    boolean invoked = registry.run(id, invocation, false, permission -> !revoked, actual::add);
                     return Map.of("invoked", invoked, "actualMessages", List.copyOf(actual), "matched", invoked && actual.equals(expected), "sender", "synthetic-agent", "generation", registry.snapshot().generation());
                 });
             }
@@ -75,6 +77,12 @@ final class RemoteScripts {
         var history = manager.store().state().features().get(id);
         return Map.of("id", id, "exists", source != null, "source", source == null ? "" : source.text(), "hash", source == null ? "ABSENT" : source.hash(),
             "activeHash", active == null ? "" : active.sourceHash(), "generation", snapshot.generation(), "revision", history == null ? 0 : history.active());
+    }
+    private static List<String> invocationArguments(Map<String, Object> args) {
+        if (!args.containsKey("arguments")) return List.of();
+        if (!(args.get("arguments") instanceof List<?> values) || values.stream().anyMatch(value -> !(value instanceof String)))
+            throw new IllegalArgumentException("INVALID_ARGUMENTS");
+        return InvocationArguments.checked(values.stream().map(String.class::cast).toList());
     }
     private static String string(Map<String, Object> args, String key) {
         if (!(args.get(key) instanceof String text)) throw new IllegalArgumentException("INVALID_ARGUMENT: " + key); return text;

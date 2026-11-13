@@ -25,7 +25,7 @@ To change the greeting, edit the quoted value on the `let message` line. Leave t
 
 Use a feature header, a command header, then one statement per line. Braces delimit blocks. `let` introduces an immutable local binding with an inferred type. Values can be text, signed 64-bit integers or booleans. `if` expects a boolean. `send` expects text. `text(value)` converts a value explicitly. Comments begin with `//`.
 
-The engine validates types and names across both branches. It evaluates the selected expressions while preparing the revision. The resulting messages execute on invocation under the command permission. This first language slice supports deterministic local calculations. Per-player variables, functions, argument binding and persistent gameplay state have separate implementation milestones.
+The engine checks names and types in both branches. Commands without arguments prepare their messages on reload. Commands declaring typed arguments evaluate their messages and conditions on each invocation, after checking argument values. Invocation checks the command permission and sender rule. Command arguments in 0.0.7 enable invocation-time values and conditions. See the language reference for declarations and quoting. Player data, functions and persistence remain planned.
 
 ## Get machine-readable instructions
 
@@ -35,23 +35,23 @@ The site also publishes [plain-text authoring instructions](https://mistdig.gith
 
 ## Validate from a terminal
 
-With Java 25 and the 0.0.6 MCP JAR, print the language contract:
+With Java 25 and the 0.0.7 MCP JAR, print the language contract:
 
 ```sh
-java -cp AetherScript-MCP-0.0.6.jar dev.aetherscript.cli.Validate --language
+java -cp AetherScript-MCP-0.0.7.jar dev.aetherscript.cli.Validate --language
 ```
 
 Validate a file through standard input on a POSIX shell:
 
 ```sh
-java -cp AetherScript-MCP-0.0.6.jar dev.aetherscript.cli.Validate aether < cloud-note.aether
+java -cp AetherScript-MCP-0.0.7.jar dev.aetherscript.cli.Validate aether < cloud-note.aether
 ```
 
 In PowerShell, pipe UTF-8 text into the command:
 
 ```powershell
 $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
-Get-Content -Raw -Encoding utf8 cloud-note.aether | java -cp AetherScript-MCP-0.0.6.jar dev.aetherscript.cli.Validate aether
+Get-Content -Raw -Encoding utf8 cloud-note.aether | java -cp AetherScript-MCP-0.0.7.jar dev.aetherscript.cli.Validate aether
 ```
 
 The CLI writes one JSON result. Exit code 0 means valid, 1 means validation failed, and 2 means the CLI arguments need correction. Use `yaml` or `json` to validate an existing structured definition. Validation reads the input and leaves deployment under the server administrator's control.
@@ -59,3 +59,9 @@ The CLI writes one JSON result. Exit code 0 means valid, 1 means validation fail
 ---
 
 [Back to the field guide](https://mistdig.github.io/AetherScript/)
+
+Use Copy docs link for AI on the documentation website to share the [complete release guide](https://mistdig.github.io/AetherScript/releases/0.0.7/llms-full.txt). Download it as an attachment when the AI cannot open links.
+
+## Runtime argument tests
+
+Declare `arg name: text` at the start of a command and use that name in messages and conditions. Supply `arguments: ["MistDig"]` when testing through MCP. Missing required arguments and invalid boolean/integer values should produce an error before any messages are sent. Each invocation gets fresh local values.

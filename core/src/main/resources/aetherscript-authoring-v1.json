@@ -4,8 +4,8 @@
   "fileExtension": ".aether",
   "exampleFile": "cloud-note.aether",
   "template": "feature cloud-note version \"1.0.0\"\ncommand cloud-note permission \"aetherscript.example.cloud\" sender any {\n  let message = \"Welcome to the clouds.\"\n  let stars = 2 + 1\n  if stars >= 3 {\n    send message\n  } else {\n    send \"Keep exploring.\"\n  }\n}\n",
-  "evaluation": "Pure local expressions and branches are evaluated when preparing a revision. Emitted sender messages execute when the command is invoked.",
-  "entryPoint": "/ais run <feature-id>",
+  "evaluation": "Scripts without arg declarations retain preparation-time expression evaluation. Declared arguments create a bounded typed program evaluated for each invocation with fresh immutable bindings. All branch names and types are validated before activation.",
+  "entryPoint": "/ais run <feature-id> [arguments...]",
   "capabilities": [
     "runtime.message.send"
   ],
@@ -24,6 +24,7 @@
     "boolean"
   ],
   "statements": [
+    "arg name: text | integer | boolean [= constantExpression]",
     "let name = expression",
     "send textExpression",
     "if booleanExpression { ... } else { ... }"
@@ -39,7 +40,7 @@
       "executionContext": "Paper main thread",
       "permissions": "declared command permission on invocation and before each action",
       "owner": "active feature revision",
-      "errors": "invalid text is rejected during preparation",
+      "errors": "Static scripts validate emitted text during preparation. Runtime argument programs validate argument values and prepare all messages before emitting them.",
       "example": "send \"Welcome!\"",
       "platform": "Paper 26.3 build 245"
     }
@@ -63,5 +64,33 @@
     "before": "Welcome to the clouds.",
     "after": "Welcome to our server.",
     "expectedChange": "Only the greeting changes. Feature ID, permission and sender remain the same."
+  },
+  "runtimeArguments": {
+    "exampleFile": "greet.aether",
+    "declarations": [
+      "arg name: text",
+      "arg count: integer = 1",
+      "arg excited: boolean = true"
+    ],
+    "ordering": "Declare arguments first in the command block. Required arguments precede defaults. Values bind positionally.",
+    "limits": {
+      "count": 16,
+      "textUtf16Units": 2048,
+      "executionSteps": 8192,
+      "messagesPerInvocation": 32
+    },
+    "types": {
+      "text": "Plain text supplied as one value",
+      "integer": "Signed 64-bit decimal, with an optional + or - sign",
+      "boolean": "Exactly true or false"
+    },
+    "mcpTestArguments": {
+      "arguments": [
+        "Alex",
+        "3",
+        "true"
+      ]
+    },
+    "failure": "Missing, extra or invalid arguments reject invocation before any message is emitted. Arithmetic and output errors include source locations."
   }
 }

@@ -41,3 +41,9 @@ Only `.aether` files can be created or edited. Apply validates the whole candida
 Source checks and atomic replacement serialize plugin-managed updates. An external editor does not participate in that lock: avoid editing the same feature while a remote apply is pending, since portable Java cannot atomically compare file contents and replace them against an unrelated writer. File and intent contents are forced; directory flushing is best-effort, so abrupt-JVM recovery tests do not imply a hardware power-loss guarantee.
 
 Live tests schedule actual Registry invocation on the platform thread with a synthetic non-player capability and capture messages. Offline tests use a fresh local Registry. Neither path impersonates a player. TLS is used without end-to-end encryption, so the relay sees source and results. There are no general commands, arbitrary filesystem/network operations or player actions. Remote-off, replacement, restart and expiry end authority. See `relay/README.md` and `docs/wiki/Security-and-MCP.md` for setup and limits.
+
+## Shared browser enrollment
+
+A new plugin installation persists a random server UUID and credential. Console `ais connect` creates a one-use browser delegation. OAuth approval selects a finite feature list, which Paper saves as an immutable local grant before acknowledging the connection. Requests carry a connection ID and are checked against that grant on Paper. Normal restarts restore approved grants. Disconnect blocks immediately and persists revocation before confirming.
+
+Commands that declare typed arguments compile to a bounded runtime program. Invocations bind fresh immutable values, resolve the message list, and only then emit messages after permission and retirement checks. Legacy source without argument declarations preserves preparation-time lowering.

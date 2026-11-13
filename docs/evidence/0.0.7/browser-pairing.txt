@@ -1,0 +1,5 @@
+Installed Codex discovered six hosted MCP tools: pass
+Scoped script creation, captured output and target denial: pass
+Browser approval and hosted status: pass
+Approved connection and script survived Paper restart: pass
+PASS: fresh Paper install, browser consent, live status, restart and revocation

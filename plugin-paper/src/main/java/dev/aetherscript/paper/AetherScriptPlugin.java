@@ -23,6 +23,9 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
     private PairedStatusBridge bridge;
     private volatile CloudRelayConnector cloud;
     private volatile RemoteScripts remote;
+    private volatile SharedRelayConnector shared;
+    private ConnectionStore connections;
+    private final Map<String, RemoteScripts> connectionServices = new ConcurrentHashMap<>();
 
     @Override public void onEnable() {
         running = true; busy.set(true);
@@ -54,6 +57,16 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
                     getLogger().info("Ready. Restored " + registry.snapshot().features().size() + " feature(s); saved-version limit=" + settings.retainVersions() + "; remote manage requires explicit console grant.");
                     return null;
                 });
+                try {
+                    connections = new ConnectionStore(data.resolve("connections.json"));
+                    Path serverDirectory = data.getParent() == null ? null : data.getParent().getParent();
+                    String serverName = serverDirectory == null || serverDirectory.getFileName() == null ? "Minecraft server" : serverDirectory.getFileName().toString();
+                    shared = new SharedRelayConnector(connections, this::connectionRequest, this::connectionGrant, this::connectionNotice, serverName);
+                    for (var grant : connections.state().grants().values()) if (!grant.revoked()) connectionGrant(grant);
+                    shared.start();
+                } catch (Exception connectionFailure) {
+                    getLogger().warning("Connections unavailable: inspect protected connections.json; scripts remain available locally.");
+                }
             } catch (Exception e) {
                 startupError = safeError(e);
                 getLogger().severe("Startup blocked: " + startupError);
@@ -66,6 +79,8 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
     }
     @Override public void onDisable() {
         running = false; ready = false;
+        connectionServices.values().forEach(RemoteScripts::revoke); connectionServices.clear();
+        if (shared != null) { shared.close(); shared = null; }
         revokeRemote();
         if (bridge != null) { bridge.close(); bridge = null; }
         getServer().getScheduler().cancelTasks(this); io.shutdownNow();
@@ -95,8 +110,41 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
     }
     private String principal(CommandSender sender) { return sender instanceof Player p ? "player:" + p.getUniqueId() : "local:" + sender.getName(); }
     @Override public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (args.length < 1 || args.length > 2) { say(sender, "/ais <status|list|validate|reload|run|history|diff|rollback|pair|unpair|remote|remote-off> [feature]"); return true; }
-        String op = args[0].toLowerCase(Locale.ROOT), selected = args.length == 2 ? args[1] : null;
+        if (args.length < 1) { say(sender, "/ais <operation> [feature]; /ais run <feature> [arguments...]"); return true; }
+        String op = args[0].toLowerCase(Locale.ROOT), selected = args.length >= 2 ? args[1] : null;
+        if ((!op.equals("run") && args.length > 2) || (op.equals("run") && args.length > InvocationArguments.MAX_COMMAND_LENGTH + 2)) {
+            say(sender, "Use /ais run <feature> with at most 16 arguments; other operations accept at most one value."); return true;
+        }
+        if (Set.of("connect", "connections", "disconnect").contains(op)) {
+            if (sender != getServer().getConsoleSender()) { say(sender, "CONNECTIONS_CONSOLE_ONLY"); return true; }
+            if (!ready || shared == null || connections == null) { say(sender, "CONNECTIONS_NOT_READY"); return true; }
+            if (op.equals("connect")) {
+                try {
+                    Set<String> targets = selected == null ? Set.of() : Set.copyOf(Arrays.asList(selected.split(",", -1)));
+                    if (targets.size() > 128) throw new IllegalArgumentException(); targets.forEach(FeatureParser::requireId);
+                    shared.enroll(targets); say(sender, "Creating a private browser approval link; no relay configuration is required.");
+                } catch (RuntimeException invalid) { say(sender, "Use /ais connect [feature-id[,feature-id]]; feature IDs must be exact."); }
+            } else if (op.equals("connections")) {
+                if (selected != null) { say(sender, "Use /ais connections"); return true; }
+                say(sender, "Named connections (revoked entries stay revoked across restart):");
+                connections.state().grants().values().stream().sorted(Comparator.comparing(ConnectionStore.Grant::name)).forEach(grant ->
+                    say(sender, grant.name() + " | " + grant.connectionId() + " | " + (grant.revoked() ? "REVOKED" : "APPROVED") + " | " + grant.allowedScriptIds().stream().sorted().toList()));
+                if (connections.state().grants().isEmpty()) say(sender, "No approved connections. Use /ais connect.");
+            } else {
+                String id = null;
+                if (selected != null) {
+                    String choice = selected;
+                    var matches = connections.state().grants().values().stream().filter(g -> g.connectionId().equals(choice) || g.name().equalsIgnoreCase(choice)).toList();
+                    if (matches.size() != 1) { say(sender, "Select an unambiguous connection ID from /ais connections, or use /ais disconnect to revoke all."); return true; }
+                    id = matches.getFirst().connectionId();
+                }
+                if (id == null) { connectionServices.values().forEach(RemoteScripts::revoke); connectionServices.clear(); }
+                else { var service = connectionServices.remove(id); if (service != null) service.revoke(); }
+                shared.disconnect(id);
+                say(sender, "Access blocked immediately; waiting for durable revocation confirmation.");
+            }
+            return true;
+        }
         if (op.equals("remote") || op.equals("remote-off")) {
             if (sender != getServer().getConsoleSender()) { say(sender, "REMOTE_CONSOLE_ONLY"); return true; }
             if (op.equals("remote-off")) { revokeRemote(); say(sender, "Remote manage grant revoked."); return true; }
@@ -163,8 +211,11 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
             return true;
         }
         if (op.equals("run")) {
-            if (!ready || selected == null || !registry.run(selected, sender instanceof Player, sender::hasPermission, text -> say(sender, text)))
-                say(sender, "Feature unavailable or permission denied.");
+            try {
+                List<String> invocation = InvocationArguments.fromCommandTokens(Arrays.copyOfRange(args, Math.min(2, args.length), args.length));
+                if (!ready || selected == null || !registry.run(selected, invocation, sender instanceof Player, sender::hasPermission, text -> say(sender, text)))
+                    say(sender, "Feature unavailable or permission denied.");
+            } catch (ValidationException error) { say(sender, safeError(error)); }
             return true;
         }
         if (!sender.hasPermission("aetherscript.admin")) {
@@ -179,7 +230,7 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
         }
         if (op.equals("status") && selected == null) {
             say(sender, "AetherScript " + BuildInfo.VERSION + "; " + getServer().getVersion() + "; ready=" + ready + "; generation=" + registry.snapshot().generation()
-                + "; features=" + registry.snapshot().features().size() + "; busy=" + busy.get() + "; remoteManage=" + (cloud != null && cloud.live()) + "; recovery=ENABLED"
+                + "; features=" + registry.snapshot().features().size() + "; busy=" + busy.get() + "; remoteManage=" + ((cloud != null && cloud.live()) || !connectionServices.isEmpty()) + "; recovery=ENABLED"
                 + (startupError.isEmpty() ? "" : "; " + startupError));
             return true;
         }
@@ -257,6 +308,35 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
     private void revokeRemote() {
         RemoteScripts service = remote; remote = null; if (service != null) service.revoke();
         CloudRelayConnector connector = cloud; cloud = null; if (connector != null) connector.close();
+    }
+    private void connectionNotice(String text) {
+        if (running) getServer().getScheduler().runTask(this, () -> { if (running) say(getServer().getConsoleSender(), text); });
+    }
+    private void connectionGrant(ConnectionStore.Grant grant) {
+        if (grant.revoked() || shared == null || shared.blocked(grant.connectionId())) {
+            var previous = connectionServices.remove(grant.connectionId()); if (previous != null) previous.revoke(); return;
+        }
+        connectionServices.computeIfAbsent(grant.connectionId(), id -> new RemoteScripts(manager, registry, grant.allowedScriptIds(), new RemoteScripts.Main() {
+            public <T> T call(Callable<T> action) throws Exception { return onMain(action); }
+        }, (before, change, authorized) -> apply(null, "connection:" + id, "remote-apply", UUID.randomUUID().toString(), before, change, authorized)));
+    }
+    private Map<String, Object> connectionRequest(ConnectionStore.Grant grant, String operation, Map<String, Object> arguments) throws Exception {
+        String id = grant.connectionId(); var service = connectionServices.get(id);
+        if (!running || !ready || shared == null || shared.blocked(id) || service == null || grant.revoked()) throw new SecurityException("CONNECTION_REVOKED");
+        if (!busy.compareAndSet(false, true)) throw new IllegalStateException("BUSY");
+        CompletableFuture<Map<String, Object>> result = new CompletableFuture<>();
+        try { io.execute(() -> {
+            try {
+                if (shared == null || shared.blocked(id) || connectionServices.get(id) != service) throw new SecurityException("CONNECTION_REVOKED");
+                var value = service.execute(operation, arguments);
+                audit.append(UUID.randomUUID().toString(), "connection:" + id, operation, "SUCCEEDED", registry.snapshot().generation(), Map.of()); result.complete(value);
+            } catch (Exception rejected) {
+                try { audit.append(UUID.randomUUID().toString(), "connection:" + id, operation, "REJECTED", registry.snapshot().generation(), Map.of()); } catch (IOException ignored) { }
+                result.completeExceptionally(rejected);
+            } finally { busy.set(false); }
+        }); } catch (RejectedExecutionException rejected) { busy.set(false); throw rejected; }
+        try { return result.get(); }
+        catch (ExecutionException failure) { if (failure.getCause() instanceof Exception cause) throw cause; throw failure; }
     }
     private static String safeError(Exception e) {
         if (e instanceof ValidationException || e instanceof SecurityException || e instanceof IOException)

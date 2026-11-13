@@ -1,5 +1,10 @@
 # Roadmap and exit gates
 
+## Release 0.0.7 — browser pairing and command inputs
+
+Shared browser pairing removes personal relay configuration from the normal installation. Native text commands gain typed positional arguments and invocation-time conditions. The human wiki and full AI text use one maintained source. Functions, gameplay events, persistent player values, ten-heart blocks and addon adapters remain tracked in the capability matrix.
+
+
 ## Release 0.0.4 — native authoring
 
 The first language slice prepares checked expressions, local bindings and conditional sender messages. The CLI, Paper and MCP gateway share a compiler. The next engine milestone adds invocation-time expressions before functions, events and persistent player state. Follow the [dependency backlog](ecosystem/backlog.md) and [capability matrix](ecosystem/capabilities.csv) for the scope and acceptance criteria of each feature.

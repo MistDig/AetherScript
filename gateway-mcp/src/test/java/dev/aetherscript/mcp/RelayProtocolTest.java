@@ -37,6 +37,24 @@ class RelayProtocolTest {
         assertEquals(-32602, request(main, "tools/call", Map.of("name", "aether_scripts_apply", "arguments", Map.of("id", "hello-ai", "source", "source"))).path("error").path("code").asInt());
         assertEquals(1, calls.size());
     }
+    @Test void liveTestForwardsOptionalTypedArgumentStringsAndRejectsMalformedArrays() {
+        var profile = new PairingProfile(URI.create("https://relay.example"), "a".repeat(64), Instant.now().plusSeconds(60), "session", "server", List.of("scripts.test"));
+        List<JsonNode> forwarded = new ArrayList<>();
+        Main main = new Main(new BridgeClient(profile) {
+            @Override boolean live() { return true; }
+            @Override JsonNode operation(String operation, JsonNode arguments) {
+                assertEquals("scripts.test", operation); forwarded.add(arguments.deepCopy());
+                return FeatureParser.JSON.valueToTree(Map.of("matched", true));
+            }
+        });
+        request(main, "initialize", Map.of("protocolVersion", "2025-06-18", "capabilities", Map.of(), "clientInfo", Map.of()));
+        main.handle(FeatureParser.JSON.valueToTree(Map.of("jsonrpc", "2.0", "method", "notifications/initialized")));
+        var args = Map.of("id", "greet", "arguments", List.of("Alex", "2"), "expectedMessages", List.of("Hi Alex"));
+        assertTrue(request(main, "tools/call", Map.of("name", "aether_scripts_test", "arguments", args)).path("result").path("structuredContent").path("matched").asBoolean());
+        assertEquals(List.of("Alex", "2"), FeatureParser.JSON.convertValue(forwarded.getFirst().path("arguments"), List.class));
+        assertEquals(-32602, request(main, "tools/call", Map.of("name", "aether_scripts_test", "arguments", Map.of("id", "greet", "arguments", List.of(true), "expectedMessages", List.of()))).path("error").path("code").asInt());
+        assertEquals(1, forwarded.size());
+    }
     @Test void relayOriginsAndPersistedRoutingAreStrict() {
         for (String uri : List.of("http://relay.example", "https://user:password@relay.example", "https://relay.example/path", "https://relay.example?token=x", "https://relay.example#x"))
             assertThrows(IllegalArgumentException.class, () -> RelayClient.validateEndpoint(URI.create(uri)));

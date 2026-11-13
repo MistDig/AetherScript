@@ -21,12 +21,19 @@ public final class Registry {
     }
     /** Caller must run on the platform thread; one invocation captures one immutable generation. */
     public boolean run(String id, boolean player, Predicate<String> permitted, Consumer<String> send) {
+        return run(id, List.of(), player, permitted, send);
+    }
+    public boolean run(String id, List<String> arguments, boolean player, Predicate<String> permitted, Consumer<String> send) {
         Snapshot captured = current;
         CompiledFeature feature = captured.features().get(id);
         if (feature == null) return false;
         Feature.Command command = feature.definition().command();
         if ((!player && command.sender().equals("player")) || !permitted.test(command.permission())) return false;
-        for (Feature.MessageAction action : command.actions()) {
+        List<String> checked = InvocationArguments.checked(arguments);
+        if (feature.program() == null && !checked.isEmpty())
+            throw new ValidationException("$.arguments", "This feature takes no invocation arguments");
+        List<Feature.MessageAction> actions = feature.program() == null ? command.actions() : feature.program().evaluate(checked);
+        for (Feature.MessageAction action : actions) {
             if (captured != current || !permitted.test(command.permission())) return false;
             send.accept(action.text());
         }

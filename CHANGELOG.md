@@ -2,6 +2,19 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.7] - 2026-11-13
+
+- Added console `ais connect`, browser approval and hosted OAuth MCP. Fresh servers generate their identity automatically and connect through the shared AetherScript service.
+- Added exact per-app feature grants, persistent restart reconnection, `ais connections` and immediate/durable `ais disconnect` revocation.
+- Added a browser page with AI app setup choices and the registered callback destination. Connected is confirmed after an authorized app reads live Paper status.
+- The Windows Codex setup now registers hosted MCP and starts native OAuth login. The local MCP JAR remains available for existing workflows.
+- Added bounds and retention for public enrollment, app registration, grants and pending work. Management connections expire after 30 days.
+
+- Added native typed command arguments and invocation-time conditions. Test tools accept argument values; existing scripts retain their original behavior.
+- Added troubleshooting and MCP reference guides, complete versioned AI documentation, and Copy docs link and Download docs controls. Runnable examples are checked by the shipped compiler.
+
+- Verification passed 183 Java tests, five relay tests, packaged authoring/protocol checks, and all runnable wiki examples. Real Edge consent and installed Codex hosted discovery were checked with a disposable Paper server. The recovery regression passed 31 Paper checks across five boots and 100 changed reloads. See the versioned test records for exact boundaries.
+
 ## [0.0.6] - 2026-11-12
 
 - Added a personal Cloudflare Worker that pairs Paper and a local MCP through outbound HTTPS. Server owners enroll using a private configuration and grant named native script features from the server console.

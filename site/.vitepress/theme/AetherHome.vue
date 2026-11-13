@@ -26,9 +26,11 @@ const features = [
       <h1 id="hero-title">Your server.<br><span>Your little universe.</span></h1>
       <p class="hero-description">Build a little magic for your Minecraft server.<br class="desktop-break"> Live reloads, saved working versions, and a guide for every step.</p>
       <div class="hero-actions">
-        <a class="aether-button primary" :href="withBase('/guide/getting-started.html')">Start building <span aria-hidden="true">↗</span></a>
+        <a class="aether-button primary" :href="withBase('/guide/getting-started.html')">Write a script <span aria-hidden="true">↗</span></a>
         <a class="aether-button glass" :href="`https://github.com/MistDig/AetherScript/releases/download/v${theme.releaseVersion}/AetherScript-${theme.releaseVersion}.jar`">Download plugin <span aria-hidden="true">↓</span></a>
       </div>
+      <a class="text-link" :href="withBase('/guide/security.html')">Connect my AI →</a>
+      <AiDocsButton />
       <p class="hero-meta">Paper 26.3 <span aria-hidden="true">·</span> Java 25 <span aria-hidden="true">·</span> Open source</p>
     </div>
     <div class="cloud-scene">
@@ -78,7 +80,7 @@ const features = [
     </div>
   </section>
 
-  <section class="home-section honest-section" aria-labelledby="scope-title"><span class="scope-mark" aria-hidden="true">i</span><div><h2 id="scope-title">Small on purpose. Growing with care.</h2><p>Today's release supports plain messages, live reload and recovery. Events and richer gameplay are on the roadmap. Connect MCP through an owner-hosted relay to author and test explicitly granted scripts. Server grants protect each operation. Offline validation and exact-message tests also work. General console execution is unavailable.</p></div><a class="text-link" :href="withBase('/guide/security.html')">Read the boundaries <span aria-hidden="true">↗</span></a></section>
+  <section class="home-section honest-section" aria-labelledby="scope-title"><span class="scope-mark" aria-hidden="true">i</span><div><h2 id="scope-title">Small on purpose. Growing with care.</h2><p>Today's release supports plain messages, live reload and recovery. Events and richer gameplay are on the roadmap. Connect MCP through an shared relay to author and test explicitly granted scripts. Server grants protect each operation. Offline validation and exact-message tests also work. General console execution is unavailable.</p></div><a class="text-link" :href="withBase('/guide/security.html')">Read the boundaries <span aria-hidden="true">↗</span></a></section>
 
   <section class="closing-section" aria-labelledby="closing-title"><p class="section-kicker">YOUR NEXT IDEA STARTS HERE</p><h2 id="closing-title">Make a little magic.</h2><p>One file. One reload. Something that is yours.</p><a class="aether-button primary" :href="withBase('/guide/getting-started.html')">Let's build something <span aria-hidden="true">↗</span></a></section>
 </div>

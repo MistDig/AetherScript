@@ -93,13 +93,13 @@ public final class Main {
                     value = bridge.operation(operation, args);
                 }
                 case "aether_test" -> {
-                    if (args.size() != 3 || !args.path("source").isTextual() || !args.path("format").isTextual() || (!args.path("expectedMessages").isArray() || args.path("expectedMessages").size() > 128)) throw new IllegalArgumentException();
+                    if ((args.size() != 3 && !(args.size() == 4 && args.has("arguments"))) || !args.path("source").isTextual() || !args.path("format").isTextual() || (!args.path("expectedMessages").isArray() || args.path("expectedMessages").size() > 128)) throw new IllegalArgumentException();
                     List<String> expected = new ArrayList<>();
                     for (JsonNode message : args.path("expectedMessages")) { if (!message.isTextual()) throw new IllegalArgumentException(); expected.add(message.textValue()); }
                     CompiledFeature feature = new FeatureParser().parse(args.path("source").textValue().getBytes(StandardCharsets.UTF_8), args.path("format").textValue());
                     Registry registry = new Registry(); registry.replace(0, Map.of(feature.definition().id(), feature));
                     List<String> actual = new ArrayList<>();
-                    boolean invoked = registry.run(feature.definition().id(), false, permission -> true, actual::add);
+                    boolean invoked = registry.run(feature.definition().id(), invocationArguments(args), false, permission -> true, actual::add);
                     value = Map.of("matched", invoked && expected.equals(actual), "invoked", invoked, "expectedMessages", expected, "actualMessages", actual, "sender", "synthetic-agent", "serverAuthorizationChecked", false);
                 }
                 case "aether_validate" -> {
@@ -126,18 +126,27 @@ public final class Main {
             tool("aether_capabilities", "Lists local validation capabilities; no server grants", empty),
             tool("aether_validate", "Validates bounded YAML/JSON/AetherScript source without server authorization", Map.of("type", "object", "required", List.of("source", "format"),
                 "properties", Map.of("source", Map.of("type", "string", "maxLength", FeatureParser.MAX_BYTES), "format", Map.of("type", "string", "enum", List.of("yaml", "json", "aether"))), "additionalProperties", false))));
-        result.add(tool("aether_test", "Runs source with the shared Registry and synthetic console sender; compares exact messages", schema(Map.of("source", text(), "format", text(), "expectedMessages", messages()), "source", "format", "expectedMessages")));
+        result.add(tool("aether_test", "Runs source with the shared Registry and synthetic console sender; compares exact messages", schema(Map.of("source", text(), "format", text(), "expectedMessages", messages(), "arguments", invocationSchema()), "source", "format", "expectedMessages")));
         if (bridge != null && bridge.live()) {
             result.add(tool("aether_scripts_list", "Lists authorized live server scripts", empty));
             result.add(tool("aether_scripts_read", "Reads authorized source, hash, activeHash and generation", schema(Map.of("id", text()), "id")));
             result.add(tool("aether_scripts_validate", "Validates a candidate against server authorization", schema(Map.of("id", text(), "source", text()), "id", "source")));
             Map<String,Object> apply = new HashMap<>(tool("aether_scripts_apply", "Creates or edits and activates authorized source using expectedHash CAS; ABSENT creates", schema(Map.of("id", text(), "source", text(), "expectedHash", text()), "id", "source", "expectedHash")));
             apply.put("annotations", Map.of("readOnlyHint", false, "destructiveHint", true, "idempotentHint", false, "openWorldHint", false)); result.add(apply);
-            result.add(tool("aether_scripts_test", "Tests active authorized script using a synthetic sender and exact messages", schema(Map.of("id", text(), "expectedMessages", messages()), "id", "expectedMessages")));
+            result.add(tool("aether_scripts_test", "Tests active authorized script using a synthetic sender and exact messages", schema(Map.of("id", text(), "expectedMessages", messages(), "arguments", invocationSchema()), "id", "expectedMessages")));
         }
         return result;
     }
     private static Map<String,Object> text() { return Map.of("type", "string", "maxLength", FeatureParser.MAX_BYTES); }
+    private static Map<String,Object> invocationSchema() { return Map.of("type", "array", "items", Map.of("type", "string", "maxLength", InvocationArguments.MAX_TEXT), "maxItems", InvocationArguments.MAX_COUNT); }
+    private static List<String> invocationArguments(JsonNode args) {
+        if (!args.has("arguments")) return List.of();
+        JsonNode supplied = args.get("arguments");
+        if (!supplied.isArray() || supplied.size() > InvocationArguments.MAX_COUNT) throw new IllegalArgumentException();
+        List<String> result = new ArrayList<>();
+        for (JsonNode value : supplied) { if (!value.isTextual()) throw new IllegalArgumentException(); result.add(value.textValue()); }
+        return InvocationArguments.checked(result);
+    }
     private static Map<String,Object> messages() { return Map.of("type", "array", "items", text(), "maxItems", 128); }
     private static Map<String,Object> schema(Map<String,Object> properties, String... required) { return Map.of("type", "object", "properties", properties, "required", List.of(required), "additionalProperties", false); }
     private static void validateLiveArguments(String operation, JsonNode args) {
@@ -150,7 +159,10 @@ public final class Main {
             default -> throw new IllegalArgumentException();
         };
         Set<String> actual = new HashSet<>(); args.fieldNames().forEachRemaining(actual::add);
-        if (!actual.equals(required)) throw new IllegalArgumentException();
+        Set<String> allowed = new HashSet<>(required);
+        if (operation.equals("scripts.test")) allowed.add("arguments");
+        if (!actual.containsAll(required) || !allowed.containsAll(actual)) throw new IllegalArgumentException();
+        if (args.has("arguments")) invocationArguments(args);
         for (String key : required) {
             if (key.equals("expectedMessages")) { if (!args.get(key).isArray() || args.get(key).size() > 128) throw new IllegalArgumentException(); for (JsonNode message : args.get(key)) if (!message.isTextual()) throw new IllegalArgumentException(); }
             else if (!args.get(key).isTextual()) throw new IllegalArgumentException();

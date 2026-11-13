@@ -18,6 +18,19 @@ class RemoteScriptsTest {
             authorized.run(); registry.replace(before.generation(), change.target()); manager.store().commit(change.durable());
         });
     }
+    @Test void liveSyntheticTestsBindRuntimeArgumentsBeforeEvaluatingBranches() throws Exception {
+        var manager = new FeatureManager(new ScriptStore(Files.createDirectory(root.resolve("scripts"))), new RevisionStore(root.resolve("storage"), 5));
+        var registry = new Registry(); var service = service(manager, registry);
+        String runtime = Files.readString(Path.of("../examples/greet.aether")).replace("feature greet", "feature hello-ai").replace("command greet", "command helloai");
+        service.execute("scripts.apply", Map.of("id", "hello-ai", "source", runtime, "expectedHash", "ABSENT"));
+        var result = service.execute("scripts.test", Map.of("id", "hello-ai", "arguments", List.of("Alex", "3", "false"), "expectedMessages", List.of("Hello Alex. Count 3")));
+        assertEquals(true, result.get("matched")); assertEquals(List.of("Hello Alex. Count 3"), result.get("actualMessages"));
+        var defaults = service.execute("scripts.test", Map.of("id", "hello-ai", "arguments", List.of("Sam"), "expectedMessages", List.of("Hello Sam! Count 1")));
+        assertEquals(true, defaults.get("matched"));
+        var missing = assertThrows(ValidationException.class, () -> service.execute("scripts.test", Map.of("id", "hello-ai", "expectedMessages", List.of())));
+        assertEquals("$.arguments[0]", missing.path());
+        assertThrows(IllegalArgumentException.class, () -> service.execute("scripts.test", Map.of("id", "hello-ai", "arguments", List.of(1), "expectedMessages", List.of())));
+    }
     @Test void createEditReadbackActualMessagesStaleAndRevocation() throws Exception {
         var manager = new FeatureManager(new ScriptStore(Files.createDirectory(root.resolve("scripts"))), new RevisionStore(root.resolve("storage"), 5));
         var registry = new Registry(); var service = service(manager, registry);

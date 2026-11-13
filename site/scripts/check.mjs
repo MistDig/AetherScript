@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 const dist = resolve(dirname(fileURLToPath(import.meta.url)), '../.vitepress/dist');
 const files = (path) => readdirSync(path).flatMap(name => { const p=resolve(path,name); return statSync(p).isDirectory()?files(p):[p] });
 const htmlFiles=files(dist).filter(p=>p.endsWith('.html'));
-assert.equal(htmlFiles.length,13,'Homepage, ten guides, changelog and 404 must be generated');
+assert.equal(htmlFiles.length,15,'Homepage, twelve guides, changelog and 404 must be generated');
 let checked=0;
 for(const file of htmlFiles){
  const html=readFileSync(file,'utf8');
@@ -49,3 +49,12 @@ console.log(JSON.stringify({result:'pass',htmlPages:htmlFiles.length,localTarget
 const contract = readFileSync(resolve(dist, '../../../core/src/main/resources/aetherscript-authoring-v1.json'), 'utf8');
 assert.equal(readFileSync(resolve(dist, 'authoring-v1.json'), 'utf8'), contract);
 assert.ok(readFileSync(resolve(dist, 'llms.txt'), 'utf8').includes(JSON.parse(contract).template));
+const full = readFileSync(resolve(dist, 'llms-full.txt'), 'utf8');
+const wiki = resolve(dist, '../../../docs/wiki');
+for (const name of readdirSync(wiki).filter(name => name.endsWith('.md') && !name.startsWith('_'))) {
+  assert.ok(full.includes(readFileSync(resolve(wiki, name), 'utf8').trim()), 'Missing complete wiki page ' + name);
+}
+assert.match(home, /Copy docs link for AI/);
+assert.match(home, /Download docs/);
+const releaseVersion = readFileSync(resolve(dist, '../../../gradle.properties'), 'utf8').match(/^version=(.+)$/m)[1].trim();
+assert.equal(readFileSync(resolve(dist, 'releases', releaseVersion, 'llms-full.txt'), 'utf8'), full);

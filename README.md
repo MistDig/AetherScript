@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/assets/aetherscript-banner.png" alt="AetherScript — little scripts, big possibilities" width="1200"></p>
 
-<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.6"><b>Download 0.0.6</b></a> · <a href="https://mistdig.github.io/AetherScript/">Explore the docs</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
+<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.7"><b>Download 0.0.7</b></a> · <a href="https://mistdig.github.io/AetherScript/">Explore the docs</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
 
 [![Build](https://github.com/MistDig/AetherScript/actions/workflows/ci.yml/badge.svg)](https://github.com/MistDig/AetherScript/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/MistDig/AetherScript)](https://github.com/MistDig/AetherScript/releases)
@@ -8,13 +8,21 @@
 
 An open-source Minecraft scripting engine with **live hot reloading**, saved working revisions and a path toward secure, vendor-neutral AI tooling. Target: **Paper 26.3 build 245 · Java 25**.
 
-## Scoped remote authoring in 0.0.6
+## Browser pairing in 0.0.7
 
-Connect an agent through an owner-hosted HTTPS relay to create, edit, activate and test explicitly selected `.aether` features. The server console grants feature IDs; the plugin checks that grant on every operation. No general console, shell, arbitrary file access or player impersonation is exposed. The cloud relay can see script source and results; transport is TLS, without end-to-end encryption.
+Install the plugin, run `ais connect` in the Minecraft server console, and open the private link on your AI computer. Choose your app and approve exact script IDs in its browser authorization screen. Each server creates its own identity automatically. The shared service handles the connection.
 
-Windows users can extract **AetherScript-Codex-Windows-0.0.6.zip** and run **Connect-AetherScript.cmd** after the server owner configures the relay and runs `ais remote cloud-note`. Paste the private pairing link into its prompt. Java 25 and Codex are required. The [complete setup and security guide](https://mistdig.github.io/AetherScript/guide/security.html) covers private `relay.json`, server grants, revocation and observed message output.
+For Codex on Windows, the page links a ZIP. Extract it and double-click `Connect-AetherScript.cmd` to register the hosted MCP and open sign-in. Other OAuth MCP apps use the address displayed on the page. [Step-by-step guide](https://mistdig.github.io/AetherScript/guide/security.html)
 
-## Text scripts introduced in 0.0.4
+Use `ais connections` to see grants and `ais disconnect` to revoke access. Normal server restarts preserve approved connections. The service can see scripts/results, and connections expire after 30 days.
+
+## Runtime inputs in 0.0.7
+
+Declare `arg name: text` at the beginning of a native command, then use that value in expressions and conditions. `/ais run greet MistDig` and `/ais run greet Alex` evaluate the same installed script with fresh values. Integer and boolean arguments can have defaults. Quoted text supports spaces. See the [language guide](https://mistdig.github.io/AetherScript/guide/language.html).
+
+The documentation site includes Copy docs link for AI and Download docs. The full text contains every wiki guide and the machine-readable language contract for that release.
+
+## Native script language
 
 The first `.aether` frontend supports immutable local values, checked integer arithmetic, text and boolean expressions, `if`/`else`, explicit `text(...)` conversion and source-located diagnostics. Expressions evaluate during validation/reload and compile into the existing permission-checked message actions.
 
@@ -47,7 +55,7 @@ This experimental release supports sender-only message actions and preparation-t
 
 ## Get started
 
-1. Stop Paper, back up existing AetherScript data, and install **AetherScript-0.0.6.jar** from the release. Keep only one plugin JAR installed.
+1. Stop Paper, back up existing AetherScript data, and install **AetherScript-0.0.7.jar** from the release. Keep only one plugin JAR installed.
 2. Start with Java 25 and wait for `Ready. Restored ...`. A new install creates and activates `plugins/AetherScript/scripts/hello-ai.yml`.
 3. Run `/ais run hello-ai`. Players need `aetherscript.example.hello` (operators by default).
 4. Edit its quoted `text`, save, then `/ais validate hello-ai` and `/ais reload hello-ai`.
@@ -83,27 +91,16 @@ python integration-tests/mcp_stdio.py
 
 Linux/macOS: `./gradlew clean check build`. Gradle 9.1.0 wrapper, dependency locks and checksums are committed. First build needs network access.
 
-- `plugin-paper/build/libs/plugin-paper-0.0.6.jar`: standalone plugin; do not install the thin JAR.
-- `gateway-mcp/build/libs/gateway-mcp-0.0.6.jar`: separate executable MCP process.
+- `plugin-paper/build/libs/plugin-paper-0.0.7.jar`: standalone plugin; do not install the thin JAR.
+- `gateway-mcp/build/libs/gateway-mcp-0.0.7.jar`: separate executable MCP process.
 
 Verification history: 0.0.2 passed **70 automated tests**, the packaged MCP check, and **28 Paper console checks across five boots and 100 distinct reloads**. The 0.0.3 build repeats those automated tests and packaged MCP verification. Current 0.0.4 results are recorded in the [test notes](docs/testing.md). Tests cover invalid edits, restart, rollback, retention, corrupt storage and abruptly halted JVM saves. See [0.0.2 server evidence](docs/evidence/0.0.2) and [testing notes](docs/testing.md). Connected-player 0.0.4 checks, Purpur, named MCP clients and performance benchmarks remain open.
 
 ## MCP connection
 
-For Windows, extract the complete `AetherScript-Codex-Windows-0.0.6.zip` and run `Connect-AetherScript.cmd`. It installs the gateway under `%LOCALAPPDATA%/AetherScript`, pairs through a private prompt, and registers a local stdio MCP entry with Codex. Open a new chat after setup.
+The default connection uses the shared hosted MCP at `https://aetherscript-relay.mistdig143.workers.dev/mcp`. Start from `ais connect` to establish the owner browser session before your AI app begins OAuth. Approval limits the connection to named features and the six script operations.
 
-The server owner first configures an owner-controlled relay using [relay/README.md](relay/README.md), protects `plugins/AetherScript/relay.json`, and runs `ais remote cloud-note` from the actual server console. Only that feature ID is granted, including creation when absent. `ais remote-off` revokes it. The pairing URI is a secret: paste it into the local setup prompt, never into chat, an issue or command arguments.
-
-Manual pairing and stdio startup:
-
-```text
-java -jar AetherScript-MCP-0.0.6.jar pair-cloud --profile C:/AetherScript/private/profile.json
-java -jar AetherScript-MCP-0.0.6.jar serve --profile C:/AetherScript/private/profile.json
-```
-
-A relay profile exposes `aether_scripts_list`, `aether_scripts_read`, `aether_scripts_validate`, `aether_scripts_apply` and `aether_scripts_test`. Read first, apply using the returned hash (`ABSENT` for a new feature), then read back and compare exact observed messages. Apply validates, saves and activates; it rejects stale edits. Synthetic tests capture actual Registry messages and reject player-only scripts; they do not send chat to a real player. A timeout can have an unknown outcome: inspect before retrying.
-
-No-argument startup still provides offline `aether_validate`, `aether_capabilities` and `aether_test`. Existing `ais pair` / `pair --endpoint http://127.0.0.1:PORT --profile PATH` remains status-only; `ais unpair` revokes it. Local `forget --profile PATH` removes a credential file and does not revoke an existing server grant. See the [full connection guide](https://mistdig.github.io/AetherScript/guide/security.html) and [client verification matrix](docs/mcp-clients.md).
+The local gateway JAR retains offline validation, synthetic message tests, the 0.0.5 loopback status mode and the 0.0.6 personal-relay mode. It is optional for hosted pairing. [Client verification](docs/mcp-clients.md) records exactly which checks ran.
 
 ## Reliability and performance
 

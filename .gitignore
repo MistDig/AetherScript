@@ -51,3 +51,6 @@ __pycache__/
 /relay/.dev.vars*
 /relay/.env*
 relay.json
+
+/site/public/llms-full.txt
+/site/public/releases/
