@@ -59,3 +59,8 @@ assert.match(home, /Copy docs link for AI/);
 assert.match(home, /Download docs/);
 const releaseVersion = readFileSync(resolve(dist, '../../../gradle.properties'), 'utf8').match(/^version=(.+)$/m)[1].trim();
 assert.equal(readFileSync(resolve(dist, 'releases', releaseVersion, 'llms-full.txt'), 'utf8'), full);
+
+const aiReference = readFileSync(resolve(dist, '../../../docs/ai-reference.md'), 'utf8').trim();
+assert.ok(full.includes(aiReference));
+assert.ok(full.indexOf(aiReference) < full.indexOf('# Human wiki appendix'));
+assert.equal(readFileSync(resolve(dist, 'ai-reference.txt'), 'utf8').trim(), aiReference);

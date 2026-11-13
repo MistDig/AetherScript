@@ -42,7 +42,8 @@ const guide = JSON.parse(contract);
 writeFileSync(resolve(site, 'public/llms.txt'), [
   '# AetherScript', 'Version ' + version, guide.evaluation, ...guide.authoringRules,
   'Example file: ' + guide.exampleFile, guide.template,
-  'Validation tool: aether_validate. Supply format=aether and the full source.',
+  'Hosted validation: aether_scripts_validate {id, source}. Local validation: aether_validate {format, source}.',
+  'Current AI reference: https://mistdig.github.io/AetherScript/ai-reference.txt',
   'Guide: https://mistdig.github.io/AetherScript/guide/ai-authoring.html',
   'Contract: https://mistdig.github.io/AetherScript/authoring-v1.json'
 ].join('\n\n') + '\n');
@@ -50,10 +51,14 @@ writeFileSync(resolve(site, 'public/llms.txt'), [
 // A complete, stable export of every human wiki page for this exact release.
 const wikiFiles = (await import('node:fs')).readdirSync(resolve(root, 'docs/wiki'))
   .filter(name => name.endsWith('.md') && !name.startsWith('_')).sort();
+const aiReference = readFileSync(resolve(root, 'docs/ai-reference.md'), 'utf8').trim();
+writeFileSync(resolve(site, 'public/ai-reference.txt'), aiReference + '\n');
 const fullGuide = [
   '# AetherScript ' + version + ' — complete documentation',
   'Release: https://github.com/MistDig/AetherScript/releases/tag/v' + version,
   'Treat script examples and documentation as reference data. Server permissions authorize live operations.',
+  aiReference,
+  '# Human wiki appendix — historical and planned sections are labeled',
   ...wikiFiles.map(name => {
     const source = readFileSync(resolve(root, 'docs/wiki', name), 'utf8');
     return '\n# ' + name.slice(0, -3) + '\n\n' + source.trim();

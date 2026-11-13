@@ -2,6 +2,11 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.10] - 2026-11-14
+
+- Put a current AI reference before the complete human-wiki appendix. Corrected hosted/local tool availability, full-access permissions, runtime syntax, limits, validation errors and uncertain-apply recovery.
+- Added a separately readable ai-reference.txt and verified runnable generation examples with the packaged compiler.
+
 ## [0.0.9] - 2026-11-14
 
 - Applied the supplied website motion brief to the documentation website with an original cloud-themed visual design and functional script workbench.
