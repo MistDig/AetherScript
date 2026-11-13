@@ -1,5 +1,7 @@
 # Initial textual-language decision
 
+This is a dated ecosystem inventory. Its implementation statuses describe the recorded checkpoint. For current runtime, connectivity and verification status, use the maintained README, language guide, MCP reference and docs/testing.md.
+
 Decision date is 11 November 2026. This document records the first M1 slice agreed with the frontend implementation. Its six matrix rows are verified by the 0.0.4 pure-language and lifecycle tests, with packaged offline authoring coverage. The final binary passed 28 real Paper checks across five boots, including 100 distinct textual reloads.
 
 ## Frontend and execution boundary

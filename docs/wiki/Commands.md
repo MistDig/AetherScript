@@ -1,4 +1,4 @@
-[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.9)
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.10)
 
 ---
 
@@ -40,8 +40,8 @@ Unchanged reloads report `UNCHANGED` and add no revision or generation. An expli
 
 The actual server console can run `ais remote cloud-note` to grant scoped relay management of that feature, and `ais remote-off` to revoke it. `ais remote id1,id2` grants several IDs. Remote mode requires private `relay.json` configuration. The server console can also run `ais pair` to start a read-only status session and `ais unpair` to revoke it. Follow the [pairing guide](https://github.com/MistDig/AetherScript/wiki/Security-and-MCP).
 
-Replies are bounded. Use per-feature commands or console for shortened lists. No deploy command or remote mutation endpoint exists.
+Replies are bounded. Use per-feature commands or console for shortened lists. Hosted MCP supports permission-checked remote validation, source reading, creation/editing, activation and synthetic message tests. The `aether_scripts_apply` tool validates, activates, saves and reads back native source using an expected hash. Selected grants cover exact IDs; full access covers the supported native-script operations across valid feature IDs, including existing .aether files. General console commands, arbitrary filesystem access, Java/plugin installation and broader world operations are outside these grants. See the MCP reference and connection guide.
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.9
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.10

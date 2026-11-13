@@ -1,4 +1,4 @@
-[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.9)
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.10)
 
 ---
 
@@ -6,9 +6,9 @@
 
 Published versions start at 0.0.1. The original v0.1–v0.5 roadmap labels describe engineering milestones, not automatic patch numbers. Planned features are not valid syntax today.
 
-### Now · 0.0.2
+### Available now
 
-Saved revisions, startup recovery, useful diagnostics, running-versus-editable status, diff, history and rollback. Offline read-only MCP continues alongside it. The ten-heart block system was intentionally deferred from this release.
+Native message commands support typed arguments and invocation-time conditions, plus preparation-time commands without arguments. Live reload, saved revisions, startup recovery, diagnostics, diff, history and rollback are available. Hosted OAuth MCP can read, validate, apply and test native scripts under selected or full native-script grants. Events and the ten-heart block remain planned.
 
 ### Next · reusable gameplay primitives
 
@@ -31,7 +31,7 @@ The block-health idea needs block-break events, location-scoped state, controlle
 
 First implement server-side capability policy, scoped principals, authenticated loopback access, revocation, quotas, bound approvals and crash-safe transactions. Local revisions are one piece, not completion of the remote security milestone.
 
-0.0.6 adds scoped `.aether` authoring and exact-message tests through an owner-hosted relay; loopback pairing remains status-only. Broader gameplay authority and per-edit approvals remain future work. Verify client reconnects, timeouts, unknown results and named clients.
+Personal-relay authoring was introduced in 0.0.6, shared hosted OAuth in 0.0.7, and explicit full/selected native-script grants in 0.0.8. The separate loopback pairing remains status-only. Broader gameplay authority and per-edit approvals remain future work. Verify client reconnects, timeouts, unknown results and named clients.
 
 Remote servers need owner-provisioned identities, TLS/mTLS or a reviewed private tunnel, expiring scoped credentials, rotation/revocation and replay defenses. Test impersonation, compromised gateways, partitions, retries and lost acknowledgements. A tunnel does not replace application authorization.
 
@@ -41,4 +41,4 @@ Performance measurements and connected-player checks remain release gates. Purpu
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.9
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.10

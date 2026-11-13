@@ -34,6 +34,8 @@ jobs:
         run: python integration-tests/ai_authoring.py
       - name: Verify runnable wiki examples
         run: python integration-tests/wiki_examples.py
+      - name: Verify current documentation consistency
+        run: node site/scripts/sync.mjs && python integration-tests/docs_consistency.py
       - name: Prepare release and verify tag version
         env:
           RELEASE_TAG: ${{ github.ref_name }}

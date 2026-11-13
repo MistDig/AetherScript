@@ -1,4 +1,4 @@
-[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.9)
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.10)
 
 ---
 
@@ -12,7 +12,7 @@ After starting the updated server, type `ais connect` in its console. Open the l
 
 ### 1 · Install
 
-Download **AetherScript-0.0.9.jar** from the [release](https://github.com/MistDig/AetherScript/releases/tag/v0.0.9). Stop Paper, place it in `plugins/`, and start the server. Keep only one AetherScript plugin JAR installed. The separate MCP JAR does not belong in `plugins/`.
+Download **AetherScript-0.0.10.jar** from the [release](https://github.com/MistDig/AetherScript/releases/tag/v0.0.10). Stop Paper, place it in `plugins/`, and start the server. Keep only one AetherScript plugin JAR installed. The separate MCP JAR does not belong in `plugins/`.
 
 Wait for `Ready. Restored ...`. A fresh install creates and activates `plugins/AetherScript/scripts/hello-ai.yml` automatically.
 
@@ -59,9 +59,9 @@ A missing configuration is generated. If you previously created a custom config,
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.9
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.10
 
 
 ## Connect Codex on Windows
 
-For scoped remote authoring, the owner first configures a personal HTTPS relay and private `plugins/AetherScript/relay.json`, then runs `ais remote cloud-note` from the server console. Extract `AetherScript-Codex-Windows-0.0.9.zip` and double-click `Connect-AetherScript.cmd` on the Codex computer. Paste the private pairing URI into the helper prompt, then open a new Codex chat. Keep the URI out of chat/logs and use `ais remote-off` to revoke access. Follow the [complete connection guide](https://github.com/MistDig/AetherScript/wiki/Security-and-MCP) for grants, privacy and setup requirements.
+For hosted remote authoring, type `ais connect` in the actual server console, open its private link on the AI computer and approve full native-script access or selected IDs. The plugin creates its identity automatically. The Windows helper registers the hosted MCP and opens OAuth sign-in. Use `ais disconnect` to revoke it. Personal `relay.json` configuration and `ais remote` belong to the optional legacy workflow introduced in 0.0.6. Follow the [connection guide](https://github.com/MistDig/AetherScript/wiki/Security-and-MCP).

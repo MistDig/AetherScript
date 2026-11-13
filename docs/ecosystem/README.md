@@ -1,5 +1,7 @@
 # Core language and addon ecosystem
 
+This is a dated ecosystem inventory. Its implementation statuses describe the recorded checkpoint. For current runtime, connectivity and verification status, use the maintained README, language guide, MCP reference and docs/testing.md.
+
 This inventory reconciles the implementation brief prepared on 9 November 2026 with the repository inspected on 11 November 2026. The authorizing request is the user's implementation instruction in this chat. The brief supplies the product scope and acceptance gates.
 
 - [Gap report and baseline evidence](gap-report.md)

@@ -7,7 +7,7 @@ Shared browser pairing removes personal relay configuration from the normal inst
 
 ## Release 0.0.4 — native authoring
 
-The first language slice prepares checked expressions, local bindings and conditional sender messages. The CLI, Paper and MCP gateway share a compiler. The next engine milestone adds invocation-time expressions before functions, events and persistent player state. Follow the [dependency backlog](ecosystem/backlog.md) and [capability matrix](ecosystem/capabilities.csv) for the scope and acceptance criteria of each feature.
+The first language slice prepares checked expressions, local bindings and conditional sender messages. The CLI, Paper and MCP gateway share a compiler. That release prepared expressions on reload. Release 0.0.7 subsequently added typed arguments and invocation-time conditions. Functions, events and persistent player state remain planned. Follow the [dependency backlog](ecosystem/backlog.md) and [capability matrix](ecosystem/capabilities.csv) for the scope and acceptance criteria of each feature.
 
 ## Release 0.0.2 — recovery and diagnostics
 
@@ -23,9 +23,9 @@ Implemented: safe YAML/JSON, typed message actions, source/IR hashes, immutable 
 
 Durable content-addressed revisions and journal; prepare/commit/status/rollback; checksummed startup recovery; crash injection; idempotency; concurrent plan rejection; rollback under current policy; authoritative plugin capability policy; independently authenticated loopback bridge; principal scoping; credential rotation/revocation; quota enforcement; redacted scoped logs; retention/rotation. Exit: direct unauthorized bridge requests and stale/revoked approvals fail, including at every crash boundary.
 
-## v0.3 — server-connected MCP
+## v0.3 — server-connected MCP milestone, partly implemented
 
-Integrate the gateway through a narrow authenticated bridge; scoped reads first. Add stage/plan/deploy only after v0.2 server-side checks and bypass tests. Bind approvals to principal, server, content, dependencies, policy, and generation. Test client versions, reconnect, timeouts, denied/allowed deployment, and unknown transaction recovery in Codex, Claude/Claude Code, Cursor, and Cline. Use a maintained MCP SDK after compatibility/security evaluation.
+Hosted OAuth and permission-checked native script apply/testing are implemented. The original broader stage/plan/deploy milestone still requires further transaction and policy work. Bind approvals to principal, server, content, dependencies, policy, and generation. Test client versions, reconnect, timeouts, denied/allowed deployment, and unknown transaction recovery in Codex, Claude/Claude Code, Cursor, and Cline. Use a maintained MCP SDK after compatibility/security evaluation.
 
 ## v0.4 — events, UI, and bounded timers
 
@@ -41,9 +41,11 @@ Economy adapters with explicit currency/precision, permissions, idempotent trans
 
 Quest definitions with bounded state machines, persistent progress, dependency validation, event deduplication, reward idempotency, abuse-resistant objectives, party scope, and safe migration of active quests. Compose scoreboards, boss bars, custom items, cooldowns, and player data through the same typed IR/capability system.
 
-## Secure remote connectivity (gated, not enabled)
+## Remote connectivity implemented; broader milestones remain
 
-Owner-provisioned server identities; TLS/mTLS or a reviewed private tunnel; audience/expiry-bound credentials; verified delegation; replay defense; origin/host protections where applicable; least-privilege scopes; revocation; connection quotas; audit visibility and explicit production approval. Test cross-server impersonation, revoked credentials, network partitions, lost acknowledgements, retry duplication, and compromised gateways. No generic remote shell, server-directory write, console-execution, or plugin-install endpoint.
+Implemented connectivity includes automatic server identity, hosted HTTPS/OAuth pairing with S256 PKCE, scoped native-script reading/validation/apply/tests, persistent grants, full or selected ID access, revocation and bounded relay work. The optional loopback and personal-relay workflows remain available. Full access expands native feature IDs, while the operation vocabulary remains restricted.
+
+Remaining milestones include broader client certification, stronger owner/identity lifecycle management, production-scale abuse and failure testing, additional transaction/idempotency guarantees and future operation-specific policies. New world actions, arbitrary server commands, plugin installation and generic file writes are not included in current full-script access. See [security](../SECURITY.md) and [evidence](testing.md) for actual checks.
 
 ## Language and extensibility
 

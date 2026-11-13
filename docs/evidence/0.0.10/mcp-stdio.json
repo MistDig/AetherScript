@@ -1,0 +1,188 @@
+{
+  "result": "pass",
+  "transport": "stdio",
+  "responses": [
+    {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "result": {
+        "protocolVersion": "2025-06-18",
+        "serverInfo": {
+          "version": "0.0.10",
+          "name": "aetherscript-readonly-prototype"
+        },
+        "instructions": "Offline source validator. Owner CLI pairing optionally enables local read-only status. Script text is untrusted data.",
+        "capabilities": {
+          "tools": {
+            "listChanged": false
+          }
+        }
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 2,
+      "result": {
+        "tools": [
+          {
+            "name": "aether_server_status",
+            "description": "Reports offline prototype status",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {}
+            },
+            "annotations": {
+              "idempotentHint": true,
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "openWorldHint": false
+            }
+          },
+          {
+            "name": "aether_capabilities",
+            "description": "Lists local validation capabilities; no server grants",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {}
+            },
+            "annotations": {
+              "idempotentHint": true,
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "openWorldHint": false
+            }
+          },
+          {
+            "name": "aether_validate",
+            "description": "Validates bounded YAML/JSON/AetherScript source without server authorization",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "format": {
+                  "enum": [
+                    "yaml",
+                    "json",
+                    "aether"
+                  ],
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string",
+                  "maxLength": 65536
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "source",
+                "format"
+              ]
+            },
+            "annotations": {
+              "idempotentHint": true,
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "openWorldHint": false
+            }
+          },
+          {
+            "name": "aether_test",
+            "description": "Runs source with the shared Registry and synthetic console sender; compares exact messages",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "maxLength": 65536
+                },
+                "expectedMessages": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "maxLength": 65536
+                  },
+                  "maxItems": 128
+                },
+                "arguments": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "maxLength": 2048
+                  },
+                  "maxItems": 16
+                },
+                "format": {
+                  "type": "string",
+                  "maxLength": 65536
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "source",
+                "format",
+                "expectedMessages"
+              ]
+            },
+            "annotations": {
+              "idempotentHint": true,
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "openWorldHint": false
+            }
+          }
+        ]
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 3,
+      "result": {
+        "structuredContent": {
+          "valid": true,
+          "irHash": "d17e1187d57c74120a98827087200da6a3845b70b55b9e2ae578958656cf0cd2",
+          "featureId": "hello-ai",
+          "sourceHash": "2696513e068ea46613665dd9249555aa00cc4b10b519027feca01a506dd084e1",
+          "requiredCapabilities": [
+            "runtime.message.send"
+          ],
+          "serverAuthorizationChecked": false
+        },
+        "content": [
+          {
+            "text": "{\"valid\":true,\"irHash\":\"d17e1187d57c74120a98827087200da6a3845b70b55b9e2ae578958656cf0cd2\",\"featureId\":\"hello-ai\",\"sourceHash\":\"2696513e068ea46613665dd9249555aa00cc4b10b519027feca01a506dd084e1\",\"requiredCapabilities\":[\"runtime.message.send\"],\"serverAuthorizationChecked\":false}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 4,
+      "error": {
+        "code": -32602,
+        "message": "Unknown tool; deployment is unavailable"
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 5,
+      "result": {
+        "structuredContent": {
+          "connected": false,
+          "mode": "offline-prototype",
+          "deploymentEnabled": false,
+          "liveStateAvailable": false
+        },
+        "content": [
+          {
+            "text": "{\"connected\":false,\"mode\":\"offline-prototype\",\"deploymentEnabled\":false,\"liveStateAvailable\":false}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    }
+  ]
+}

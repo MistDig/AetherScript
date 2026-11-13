@@ -1,5 +1,7 @@
 # Dependency-ordered backlog
 
+This is a dated ecosystem inventory. Its implementation statuses describe the recorded checkpoint. For current runtime, connectivity and verification status, use the maintained README, language guide, MCP reference and docs/testing.md.
+
 Milestone identifiers follow the implementation brief. Published release numbers follow the repository release policy. A completed change batch receives its own version, changelog, tested artifacts and release.
 
 | Order | Work package | Matrix dependencies | Acceptance checkpoint |

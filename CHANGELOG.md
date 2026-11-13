@@ -6,6 +6,7 @@ Every published change batch receives a new version and GitHub release. Dates us
 
 - Put a current AI reference before the complete human-wiki appendix. Corrected hosted/local tool availability, full-access permissions, runtime syntax, limits, validation errors and uncertain-apply recovery.
 - Added a separately readable ai-reference.txt and verified runnable generation examples with the packaged compiler.
+- Audited README, commands, setup, roadmap, architecture and dated ecosystem reports against the implementation and versioned evidence. Corrected remote-operation boundaries and both execution modes; added a focused consistency check.
 
 ## [0.0.9] - 2026-11-14
 

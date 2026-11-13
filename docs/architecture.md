@@ -24,7 +24,7 @@ Startup normally loads valid editable files. Invalid/missing sources fall back t
 
 ## Current boundaries
 
-One command per feature; only `message.send` to sender; no aliases, events, mutable runtime variables, world mutation or general console execution. Preparation-time local values/conditionals are supported. Opt-in loopback status and outbound remote authoring are separate authenticated surfaces. Config only selects supported retention, not security bypasses. Future events/tasks must carry generation identity and implement cleanup, threading and quota rules before shipping.
+One command per feature; only `message.send` to sender; no aliases, events, mutable runtime variables, world mutation or general console execution. Preparation-time local values/conditionals and argument-based invocation-time programs are supported. Opt-in loopback status and outbound remote authoring are separate authenticated surfaces. Config only selects supported retention, not security bypasses. Future events/tasks must carry generation identity and implement cleanup, threading and quota rules before shipping.
 
 See `docs/wiki/Revisions-and-Recovery.md` for operator behavior and `docs/roadmap.md` for security gates.
 

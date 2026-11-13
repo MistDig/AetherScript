@@ -194,7 +194,7 @@ Use this current reference, discovered tool schemas and the bundled authoring co
 
 <p align="center"><img src="https://raw.githubusercontent.com/MistDig/AetherScript/v0.0.2/docs/assets/aetherscript-banner.png" width="1200" alt="AetherScript: little scripts, big possibilities. A smiling cloud welcomes you."></p>
 
-<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.9"><b>Download 0.0.9</b></a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Getting-Started">Start building</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Commands">Commands</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Roadmap">What's next</a></p>
+<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.10"><b>Download 0.0.10</b></a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Getting-Started">Start building</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Commands">Commands</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Roadmap">What's next</a></p>
 
 ---
 
@@ -246,12 +246,12 @@ If validation fails, fix the **same editable file**. The running saved revision 
 
 [Write your first script](https://github.com/MistDig/AetherScript/wiki/Language-Reference) · [Connect your AI](https://github.com/MistDig/AetherScript/wiki/Security-and-MCP) · [Fix a problem](https://github.com/MistDig/AetherScript/wiki/Troubleshooting)
 
-Use Copy docs link for AI on the [documentation website](https://mistdig.github.io/AetherScript/), or copy [the complete 0.0.7 guide](https://mistdig.github.io/AetherScript/releases/0.0.9/llms-full.txt) into your AI app. Human pages and the complete text share the same sources.
+Use Copy docs link for AI on the [documentation website](https://mistdig.github.io/AetherScript/), or copy [the complete 0.0.7 guide](https://mistdig.github.io/AetherScript/releases/0.0.10/llms-full.txt) into your AI app. Human pages and the complete text share the same sources.
 
 
 # Commands
 
-[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.9)
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.10)
 
 ---
 
@@ -293,16 +293,16 @@ Unchanged reloads report `UNCHANGED` and add no revision or generation. An expli
 
 The actual server console can run `ais remote cloud-note` to grant scoped relay management of that feature, and `ais remote-off` to revoke it. `ais remote id1,id2` grants several IDs. Remote mode requires private `relay.json` configuration. The server console can also run `ais pair` to start a read-only status session and `ais unpair` to revoke it. Follow the [pairing guide](https://github.com/MistDig/AetherScript/wiki/Security-and-MCP).
 
-Replies are bounded. Use per-feature commands or console for shortened lists. No deploy command or remote mutation endpoint exists.
+Replies are bounded. Use per-feature commands or console for shortened lists. Hosted MCP supports permission-checked remote validation, source reading, creation/editing, activation and synthetic message tests. The `aether_scripts_apply` tool validates, activates, saves and reads back native source using an expected hash. Selected grants cover exact IDs; full access covers the supported native-script operations across valid feature IDs, including existing .aether files. General console commands, arbitrary filesystem access, Java/plugin installation and broader world operations are outside these grants. See the MCP reference and connection guide.
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.9
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.10
 
 
 # Diagnostics-and-Diffs
 
-[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.9)
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.10)
 
 ---
 
@@ -350,12 +350,12 @@ Fix the shown file, validate it, reload it, then run the feature. Never edit int
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.9
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.10
 
 
 # Getting-Started
 
-[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.9)
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.10)
 
 ---
 
@@ -369,7 +369,7 @@ After starting the updated server, type `ais connect` in its console. Open the l
 
 ### 1 · Install
 
-Download **AetherScript-0.0.9.jar** from the [release](https://github.com/MistDig/AetherScript/releases/tag/v0.0.9). Stop Paper, place it in `plugins/`, and start the server. Keep only one AetherScript plugin JAR installed. The separate MCP JAR does not belong in `plugins/`.
+Download **AetherScript-0.0.10.jar** from the [release](https://github.com/MistDig/AetherScript/releases/tag/v0.0.10). Stop Paper, place it in `plugins/`, and start the server. Keep only one AetherScript plugin JAR installed. The separate MCP JAR does not belong in `plugins/`.
 
 Wait for `Ready. Restored ...`. A fresh install creates and activates `plugins/AetherScript/scripts/hello-ai.yml` automatically.
 
@@ -416,12 +416,12 @@ A missing configuration is generated. If you previously created a custom config,
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.9
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.10
 
 
 ## Connect Codex on Windows
 
-For scoped remote authoring, the owner first configures a personal HTTPS relay and private `plugins/AetherScript/relay.json`, then runs `ais remote cloud-note` from the server console. Extract `AetherScript-Codex-Windows-0.0.9.zip` and double-click `Connect-AetherScript.cmd` on the Codex computer. Paste the private pairing URI into the helper prompt, then open a new Codex chat. Keep the URI out of chat/logs and use `ais remote-off` to revoke access. Follow the [complete connection guide](https://github.com/MistDig/AetherScript/wiki/Security-and-MCP) for grants, privacy and setup requirements.
+For hosted remote authoring, type `ais connect` in the actual server console, open its private link on the AI computer and approve full native-script access or selected IDs. The plugin creates its identity automatically. The Windows helper registers the hosted MCP and opens OAuth sign-in. Use `ais disconnect` to revoke it. Personal `relay.json` configuration and `ais remote` belong to the optional legacy workflow introduced in 0.0.6. Follow the [connection guide](https://github.com/MistDig/AetherScript/wiki/Security-and-MCP).
 
 
 # Home
@@ -431,7 +431,7 @@ For scoped remote authoring, the owner first configures a personal HTTPS relay a
 
 <p align="center"><img src="https://raw.githubusercontent.com/MistDig/AetherScript/v0.0.2/docs/assets/aetherscript-banner.png" width="1200" alt="AetherScript: little scripts, big possibilities. A smiling cloud welcomes you."></p>
 
-<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.9"><b>Download 0.0.9</b></a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Getting-Started">Start building</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Commands">Commands</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Roadmap">What's next</a></p>
+<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.10"><b>Download 0.0.10</b></a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Getting-Started">Start building</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Commands">Commands</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Roadmap">What's next</a></p>
 
 ---
 
@@ -483,12 +483,12 @@ If validation fails, fix the **same editable file**. The running saved revision 
 
 [Write your first script](https://github.com/MistDig/AetherScript/wiki/Language-Reference) · [Connect your AI](https://github.com/MistDig/AetherScript/wiki/Security-and-MCP) · [Fix a problem](https://github.com/MistDig/AetherScript/wiki/Troubleshooting)
 
-Use Copy docs link for AI on the [documentation website](https://mistdig.github.io/AetherScript/), or copy [the complete 0.0.7 guide](https://mistdig.github.io/AetherScript/releases/0.0.9/llms-full.txt) into your AI app. Human pages and the complete text share the same sources.
+Use Copy docs link for AI on the [documentation website](https://mistdig.github.io/AetherScript/), or copy [the complete 0.0.7 guide](https://mistdig.github.io/AetherScript/releases/0.0.10/llms-full.txt) into your AI app. Human pages and the complete text share the same sources.
 
 
 # Language-Reference
 
-[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.9)
+[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.10)
 
 ---
 
@@ -645,7 +645,7 @@ Copy an example to `scripts/welcome.aether` or `scripts/welcome.yml`. Set both f
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.9
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.10
 
 
 # MCP-Reference
@@ -696,7 +696,7 @@ In 0.0.8 a superseded, rejected, expired or revoked approval yields HTTP 401 wit
 
 # Performance
 
-[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.9)
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.10)
 
 ---
 
@@ -726,12 +726,12 @@ The immediate work is keeping invocation small and profiling realistic workloads
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.9
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.10
 
 
 # Revisions-and-Recovery
 
-[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.9)
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.10)
 
 ---
 
@@ -796,12 +796,12 @@ If saving or the completion audit fails after activation, the engine attempts to
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.9
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.10
 
 
 # Roadmap
 
-[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.9)
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.10)
 
 ---
 
@@ -809,9 +809,9 @@ If saving or the completion audit fails after activation, the engine attempts to
 
 Published versions start at 0.0.1. The original v0.1–v0.5 roadmap labels describe engineering milestones, not automatic patch numbers. Planned features are not valid syntax today.
 
-### Now · 0.0.2
+### Available now
 
-Saved revisions, startup recovery, useful diagnostics, running-versus-editable status, diff, history and rollback. Offline read-only MCP continues alongside it. The ten-heart block system was intentionally deferred from this release.
+Native message commands support typed arguments and invocation-time conditions, plus preparation-time commands without arguments. Live reload, saved revisions, startup recovery, diagnostics, diff, history and rollback are available. Hosted OAuth MCP can read, validate, apply and test native scripts under selected or full native-script grants. Events and the ten-heart block remain planned.
 
 ### Next · reusable gameplay primitives
 
@@ -834,7 +834,7 @@ The block-health idea needs block-break events, location-scoped state, controlle
 
 First implement server-side capability policy, scoped principals, authenticated loopback access, revocation, quotas, bound approvals and crash-safe transactions. Local revisions are one piece, not completion of the remote security milestone.
 
-0.0.6 adds scoped `.aether` authoring and exact-message tests through an owner-hosted relay; loopback pairing remains status-only. Broader gameplay authority and per-edit approvals remain future work. Verify client reconnects, timeouts, unknown results and named clients.
+Personal-relay authoring was introduced in 0.0.6, shared hosted OAuth in 0.0.7, and explicit full/selected native-script grants in 0.0.8. The separate loopback pairing remains status-only. Broader gameplay authority and per-edit approvals remain future work. Verify client reconnects, timeouts, unknown results and named clients.
 
 Remote servers need owner-provisioned identities, TLS/mTLS or a reviewed private tunnel, expiring scoped credentials, rotation/revocation and replay defenses. Test impersonation, compromised gateways, partitions, retries and lost acknowledgements. A tunnel does not replace application authorization.
 
@@ -844,12 +844,12 @@ Performance measurements and connected-player checks remain release gates. Purpu
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.9
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.10
 
 
 # Security-and-MCP
 
-[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.9)
+[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.10)
 
 ---
 
@@ -1129,6 +1129,7 @@ Every published change batch receives a new version and GitHub release. Dates us
 
 - Put a current AI reference before the complete human-wiki appendix. Corrected hosted/local tool availability, full-access permissions, runtime syntax, limits, validation errors and uncertain-apply recovery.
 - Added a separately readable ai-reference.txt and verified runnable generation examples with the packaged compiler.
+- Audited README, commands, setup, roadmap, architecture and dated ecosystem reports against the implementation and versioned evidence. Corrected remote-operation boundaries and both execution modes; added a focused consistency check.
 
 ## [0.0.9] - 2026-11-14
 

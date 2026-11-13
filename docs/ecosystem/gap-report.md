@@ -1,6 +1,8 @@
 # M0 gap report
 
-Audit date is 11 November 2026. The baseline source is the 0.0.3 website checkpoint and the 0.0.2 engine behavior preserved by that release. The current working branch supplies the first preparation-time textual-language slice, with 113 passing combined tests and seven packaged offline authoring checks. The final binary passed 28 real Paper checks across five boots, including 100 distinct textual reloads.
+This is a dated ecosystem inventory. Its implementation statuses describe the recorded checkpoint. For current runtime, connectivity and verification status, use the maintained README, language guide, MCP reference and docs/testing.md.
+
+Audit date is 11 November 2026. The baseline source is the 0.0.3 website checkpoint and the 0.0.2 engine behavior preserved by that release. The 0.0.4 checkpoint supplied the first preparation-time textual-language slice, with 113 passing combined tests and seven packaged offline authoring checks. The final binary passed 28 real Paper checks across five boots, including 100 distinct textual reloads.
 
 ## Existing foundation
 
@@ -21,7 +23,7 @@ The stored 0.0.2 summary records 70 passing automated tests and 28 real Paper co
 
 The brief's starting README described 0.0.1. Durable source storage, automatic startup activation, recovery, history, bounded diff and local rollback arrived in 0.0.2. The 0.0.3 checkpoint adds the website. These capabilities therefore remain regression requirements during language work.
 
-The static `Feature` model contains one command and immutable message strings. `Registry.run` dispatches those precomputed strings. This makes preparation-time typed expressions a compatible first frontend. Per-invocation mutable locals, script state, persistent variables, loops, functions, server values and continuations require additional semantic/runtime representations. The full M1 gate remains open after a preparation-only slice.
+At the 0.0.4 checkpoint, the static `Feature` model contained one command and immutable message strings. That checkpoint dispatched precomputed strings. Current commands with declared arguments use a separate bounded runtime program. This makes preparation-time typed expressions a compatible first frontend. Per-invocation mutable locals, script state, persistent variables, loops, functions, server values and continuations require additional semantic/runtime representations. The full M1 gate remains open after a preparation-only slice.
 
 The plugin registers one `/ais` command through `plugin.yml`. `commands.name` is metadata checked for collisions. Real script command trees, aliases and typed arguments require a new registration/lifecycle adapter. The engine currently supplies no public gameplay event, timer, inventory, entity, world, economy or addon-registration APIs.
 

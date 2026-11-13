@@ -1,5 +1,13 @@
 # Actual test results
 
+## Published release 0.0.9 — website milestone
+
+The recorded 0.0.9 build passed 190 Java tests, packaged MCP and AI-authoring checks, and five runnable wiki examples. Site checks recorded 15 HTML pages, 549 local links/assets/anchors and five search queries. See [0.0.9 evidence](evidence/0.0.9/). Live server and OAuth results below belong to their named releases; this documentation audit does not relabel them as new runs.
+
+## Documentation correction candidate 0.0.10
+
+This batch corrects maintained claims and regenerates the current documentation. Its verification records are stored separately under evidence/0.0.10. Public client UI certification and the owner's two-PC test remain incomplete.
+
 ## Release 0.0.8 — OAuth and grant lifecycle fixes
 
 The Java 25 clean build passed 190 tests. Seven relay tests cover public and confidential client authentication, HTTPS Gemini-shaped callbacks, PKCE, exact/full grants, legacy compatibility, stale/pending expiration, first-request acknowledgement waits, and terminal authentication challenges. Repeated invalid offers are checked for one warning per state, durable pending cleanup and rejection acknowledgement.

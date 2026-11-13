@@ -22,3 +22,5 @@ jobs:
       - run: ./gradlew --no-daemon clean check build
       - run: python integration-tests/ai_authoring.py
       - run: python integration-tests/wiki_examples.py
+      - run: node site/scripts/sync.mjs
+      - run: python integration-tests/docs_consistency.py
