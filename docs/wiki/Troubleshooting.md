@@ -20,6 +20,8 @@ On the Minecraft computer, type `ais connect` again. Open the fresh link on the 
 
 Do not share the link or paste it into an AI conversation. A previously consumed link cannot be reused.
 
+If authorization returns `open_console_link_first`, open a fresh link from the intended Paper server and restart authorization in that same browser profile. If Claude asks you to reconnect after token expiry, use a new enrollment. The relay issues authorization-code tokens and currently requires reconnecting when they expire.
+
 ## The page says waiting
 
 Approve the exact feature IDs and finish the AI app's sign-in. Ask the app to check AetherScript server status. Connected appears after that app's request reaches Paper and Paper answers.

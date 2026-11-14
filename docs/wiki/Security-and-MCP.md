@@ -1,10 +1,10 @@
-[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.12)
+[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.13)
 
 ---
 
 ## Connect your AI
 
-Install AetherScript 0.0.8 in the Minecraft server's plugins folder and start the server. Java 25 is required. Keep one plugin JAR installed.
+Install AetherScript 0.0.13 in the Minecraft server's plugins folder and start the server. Java 25 is required. Keep one plugin JAR installed.
 
 ### On the Minecraft computer
 
@@ -18,7 +18,18 @@ Choose your AI app on the page. Follow its setup instructions and use the same b
 
 For Codex on Windows, download the linked ZIP, extract it, and double-click `Connect-AetherScript.cmd`. It registers the hosted server and opens Codex sign-in. Java and a separate MCP JAR are unnecessary for this hosted connection.
 
-For ChatGPT or Claude, add the displayed hosted MCP address in your app's custom connector settings and begin authorization. Availability depends on your account and workspace settings. For Cursor use the installation link. Claude Code and Cline can use the hosted OAuth address if the installed client supports it. Their actual client verification is recorded in the [matrix](https://github.com/MistDig/AetherScript/blob/v0.0.8/docs/mcp-clients.md).
+**Claude custom connector.** Select Claude on the enrollment page. Add the displayed HTTPS MCP address in Claude's custom connector settings and start authorization. The relay supports dynamic client registration with public-client PKCE. Use a fresh console link from the Paper server you want to connect. Every Paper server has its own private enrollment link and the hosted MCP address is shared.
+
+**Codex CLI.** Select Codex on the enrollment page, then run these commands on the AI computer. Use the displayed URL if you run your own relay.
+
+```sh
+codex mcp add aetherscript --url https://aetherscript-relay.mistdig143.workers.dev/mcp
+codex mcp login aetherscript
+```
+
+If AetherScript is already configured, run the login command. Complete authorization in the browser with the enrollment page and use `/mcp` in Codex to check the connection.
+
+For ChatGPT, add the displayed hosted MCP address in your app's custom connector settings and begin authorization. Availability depends on your account and workspace settings. For Cursor use the installation link. Claude Code and Cline can use the hosted OAuth address if the installed client supports it. Their actual client verification is recorded in the [matrix](https://github.com/MistDig/AetherScript/blob/v0.0.13/docs/mcp-clients.md).
 
 ### Approve and check
 

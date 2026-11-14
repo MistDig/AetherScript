@@ -5,9 +5,9 @@ The shared endpoint uses Streamable HTTP and OAuth authorization code with S256 
 | Client | Setup path | Verification |
 | --- | --- | --- |
 | ChatGPT | Custom hosted MCP connector, subject to account/workspace availability | Actual app untested |
-| Claude Desktop | Remote connector settings, subject to account availability | Actual app untested |
+| Claude custom connector | Remote connector settings, subject to account availability | Live OAuth discovery, DCR, and authorization pages for both Claude callbacks checked in 0.0.13. Authenticated tool call pending. |
 | Claude Code | Remote HTTP MCP with OAuth | Actual app untested |
-| Codex | Hosted MCP. Windows ZIP registers the endpoint and opens sign-in. | Hosted discovery checked separately from interactive chat. See release evidence. |
+| Codex | Hosted MCP via the Windows setup ZIP or native Codex CLI OAuth. | Hosted discovery checked separately from interactive chat. See release evidence. |
 | Cursor | Browser install link and OAuth | Actual app untested |
 | Gemini Web / Desktop | Hosted OAuth and automatic or per-client manual registration | HTTPS callback, confidential OAuth and CORS tested at protocol level. Actual Gemini app verification pending. |
 | Cline | Remote MCP with OAuth where supported by the installed version | Actual app untested |

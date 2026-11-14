@@ -2,6 +2,12 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.13] - 2026-11-15
+
+- Accept Claude-style OAuth registration requests that include authorization_code and optionally refresh_token. Advertise authorization_code, the implemented grant.
+- Document Claude custom connector enrollment, Codex CLI setup, and recovery from an expired or missing browser enrollment.
+- Verified eight relay tests and a Java 25 clean build for the relay fix. The live Worker passed OAuth discovery, public registration, both Claude authorization callback checks, and unknown-client rejection. An authenticated live tool call still requires Paper enrollment.
+
 ## [0.0.12] - 2026-11-15
 
 - Add homogeneous immutable lists, typed empty constructors, indexing, length/append, typed function list parameters/results and bounded for iteration. Structural equality shares the execution budget; list size/depth are capped.
