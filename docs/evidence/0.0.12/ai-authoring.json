@@ -1,0 +1,19 @@
+{
+  "result": "pass",
+  "version": "0.0.12",
+  "checks": [
+    "discover template",
+    "validate template",
+    "single-line edit changes behavior",
+    "comment preserves behavior",
+    "type error identifies line and column",
+    "CLI and MCP agree on valid source",
+    "CLI and MCP agree on invalid source",
+    "loop/function example validates through packaged CLI and MCP",
+    "loop/function example runs with two argument lists",
+    "invalid mutable assignment has source diagnostic",
+    "list iteration example emits expected total",
+    "mixed append rejects with source diagnostic",
+    "function defaults and explicit overrides run through packaged MCP"
+  ]
+}

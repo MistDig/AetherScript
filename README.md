@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/assets/aetherscript-banner.png" alt="AetherScript — little scripts, big possibilities" width="1200"></p>
 
-<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.11"><b>Download 0.0.11</b></a> · <a href="https://mistdig.github.io/AetherScript/">Explore the docs</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
+<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.12"><b>Download 0.0.12</b></a> · <a href="https://mistdig.github.io/AetherScript/">Explore the docs</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
 
 [![Build](https://github.com/MistDig/AetherScript/actions/workflows/ci.yml/badge.svg)](https://github.com/MistDig/AetherScript/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/MistDig/AetherScript)](https://github.com/MistDig/AetherScript/releases)
@@ -21,6 +21,12 @@ Use `ais connections` to see grants and `ais disconnect` to revoke access. Norma
 Declare `arg name: text` at the beginning of a native command, then use that value in expressions and conditions. `/ais run greet MistDig` and `/ais run greet Alex` evaluate the same installed script with fresh values. Integer and boolean arguments can have defaults. Quoted text supports spaces. See the [language guide](https://mistdig.github.io/AetherScript/guide/language.html).
 
 The documentation site includes Copy docs link for AI and Download docs. The full text contains every wiki guide and the machine-readable language contract for that release.
+
+## Lists and storage foundations in 0.0.12
+
+Use typed immutable lists, indexing, `length`, `append`, and `for` iteration to process data. Function parameters can have trailing constant defaults. [scores.aether](examples/scores.aether) totals a typed list through reusable functions.
+
+The core Java API now offers a separate SQLite variable backend with transaction/CAS tests and a pinned JDBC provider. Storage is not yet exposed to scripts or automatically activated on Paper; script persistence remains an M2 task.
 
 ## Runtime foundations in 0.0.11
 
@@ -47,7 +53,7 @@ command helloai permission "aetherscript.example.hello" sender any {
 
 Save this as `scripts/hello-ai.aether`, using one source file for that feature ID. Validate, reload and run it with the existing `/ais` commands. The [language guide](https://mistdig.github.io/AetherScript/guide/language.html) covers types, scope, operators and preparation limits.
 
-The [documentation website](https://mistdig.github.io/AetherScript/) includes local search, sidebar guides, dark mode and mobile navigation. The [ecosystem inventory](docs/ecosystem/README.md) tracks the brief's concrete capabilities, evidence and dependency order. The [halfway milestone](docs/ecosystem/halfway-milestone.md) tracks M1–M3. Scalar runtime locals, loops, functions and owned direct commands are implemented foundations. Collections, events, gameplay bindings, script persistence, menus and the addon SDK remain open.
+The [documentation website](https://mistdig.github.io/AetherScript/) includes local search, sidebar guides, dark mode and mobile navigation. The [ecosystem inventory](docs/ecosystem/README.md) tracks the brief's concrete capabilities, evidence and dependency order. The [halfway milestone](docs/ecosystem/halfway-milestone.md) tracks M1–M3. Scalar runtime locals, loops, functions and owned direct commands are implemented foundations. Lists are available; maps/sets/records, events, gameplay bindings, script persistence, menus and the addon SDK remain open.
 
 ## What the engine does
 
@@ -57,11 +63,11 @@ The [documentation website](https://mistdig.github.io/AetherScript/) includes lo
 - Clear editable-file versus running-version status, field/line/column errors, history and bounded diffs.
 - A separate MCP gateway with offline validation/exact message tests, opt-in loopback status and scoped remote `.aether` authoring.
 
-This experimental release supports sender-only message effects with both preparation-time legacy logic and invocation-time argument/control-flow programs. A typed, versioned persistent-variable service exists in core, with atomic JSON storage; script bindings and SQLite are not implemented. Events, block health, gameplay APIs and UI remain in the [dependency backlog](docs/ecosystem/backlog.md). Published versions begin at 0.0.1; milestone labels describe engineering phases.
+This experimental release supports sender-only message effects with both preparation-time legacy logic and invocation-time argument/control-flow programs. A typed, versioned persistent-variable service exists in core, with atomic JSON and a separate SQLite backend; script bindings are not implemented. Events, block health, gameplay APIs and UI remain in the [dependency backlog](docs/ecosystem/backlog.md). Published versions begin at 0.0.1; milestone labels describe engineering phases.
 
 ## Get started
 
-1. Stop Paper, back up existing AetherScript data, and install **AetherScript-0.0.11.jar** from the release. Keep only one plugin JAR installed.
+1. Stop Paper, back up existing AetherScript data, and install **AetherScript-0.0.12.jar** from the release. Keep only one plugin JAR installed.
 2. Start with Java 25 and wait for `Ready. Restored ...`. A new install creates and activates `plugins/AetherScript/scripts/hello-ai.yml`.
 3. Run `/ais run hello-ai`. Players need `aetherscript.example.hello` (operators by default).
 4. Edit its quoted `text`, save, then `/ais validate hello-ai` and `/ais reload hello-ai`.
@@ -97,10 +103,10 @@ python integration-tests/mcp_stdio.py
 
 Linux/macOS: `./gradlew clean check build`. Gradle 9.1.0 wrapper, dependency locks and checksums are committed. First build needs network access.
 
-- `plugin-paper/build/libs/plugin-paper-0.0.11.jar`: standalone plugin; do not install the thin JAR.
-- `gateway-mcp/build/libs/gateway-mcp-0.0.11.jar`: separate executable MCP process.
+- `plugin-paper/build/libs/plugin-paper-0.0.12.jar`: standalone plugin; do not install the thin JAR.
+- `gateway-mcp/build/libs/gateway-mcp-0.0.12.jar`: separate executable MCP process.
 
-The 0.0.11 clean build passed **234 Java tests** and seven relay tests. The final JAR passed 18 Paper runtime/command checks over two boots and 28 recovery checks over five boots with 100 changed reloads. Packaged CLI/MCP authoring, seven wiki examples and documentation checks also pass. [0.0.11 evidence](docs/evidence/0.0.11) records exact scope. Historical OAuth/client results keep their original version in [test notes](docs/testing.md). Connected-player command-tree/suggestion behavior, interactive client certification, the owner's two-PC Feather setup, Purpur and quantitative performance measurements remain incomplete.
+The 0.0.12 clean build passed **254 Java tests**. Both packaged JARs passed native SQLite storage/license checks; the CLI/MCP, nine wiki examples and seven published 0.0.11 semantic-hash compatibility cases pass. Paper passed 19 runtime/command checks over two boots. [0.0.12 evidence](docs/evidence/0.0.12) records exact scope. The five-boot/100-reload recovery run and seven relay tests remain attributed to 0.0.11 in [test notes](docs/testing.md). Connected-player command-tree/suggestions, client certification, the owner's two-PC Feather setup, Purpur and quantitative performance measurements remain incomplete.
 
 ## MCP connection
 

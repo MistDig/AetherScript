@@ -2,6 +2,14 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.12] - 2026-11-15
+
+- Add homogeneous immutable lists, typed empty constructors, indexing, length/append, typed function list parameters/results and bounded for iteration. Structural equality shares the execution budget; list size/depth are capped.
+- Add trailing typed function defaults with immutable constant scalar/list values, canonical semantic hashes and preserved no-default compatibility.
+- Add a separate core SQLite variable backend using prepared statements, revision CAS batches, strict schema/codecs and explicit worker-thread ownership. Script bindings and automatic migration remain open.
+- Pin and verify the SQLite JDBC provider; retain licenses and verify both packaged JARs against real native-backed storage.
+- Verified 254 Java tests, both packaged SQLite providers/licenses, nine wiki examples, packaged CLI/MCP authoring and seven published 0.0.11 semantic-hash cases. Paper passed 19 runtime/command checks across two boots. Updated language/AI guides and the still-open halfway checkpoint.
+
 ## [0.0.11] - 2026-11-15
 
 - Add mutable invocation locals, bounded while/repeat loops, nearest-loop break/continue, typed scalar functions and return values. Calls have isolated frames, source-linked errors, shared execution/output budgets and bounded self-recursion. Legacy static IR hashes remain compatible.

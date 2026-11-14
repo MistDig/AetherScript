@@ -4,3 +4,7 @@ Copyright 2026 AetherScript contributors
 The plugin distribution includes relocated Jackson (FasterXML) and SnakeYAML,
 both licensed under Apache License 2.0. Their original license/notice resources
 are retained where available. Gradle wrapper files carry their upstream license.
+
+The distributions also include Xerial SQLite JDBC 3.54.1.0 and its native
+platform libraries. Its Apache 2.0 and original Zentus license resources are
+retained under META-INF/maven/org.xerial/sqlite-jdbc/.

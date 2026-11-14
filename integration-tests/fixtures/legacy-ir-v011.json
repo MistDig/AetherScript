@@ -1,0 +1,49 @@
+{
+  "baselineRelease": "v0.0.11",
+  "baselineAsset": "AetherScript-MCP-0.0.11.jar",
+  "baselineSha256": "3afeebfb343936ec80cfeac9972e7122fbc2611c7639f7e179b615d0015529a1",
+  "cases": [
+    {
+      "name": "hello-ai.aether",
+      "format": "aether",
+      "source": "feature hello-ai version \"1.0.0\"\ncommand helloai permission \"aetherscript.example.hello\" sender any {\n  let greeting = \"Hello\"\n  let count = 2 + 3\n  if count == 5 {\n    send greeting + \" from AetherScript!\"\n  } else {\n    send \"Unexpected count\"\n  }\n}\n",
+      "irHash": "d17e1187d57c74120a98827087200da6a3845b70b55b9e2ae578958656cf0cd2"
+    },
+    {
+      "name": "greet.aether",
+      "format": "aether",
+      "source": "feature greet version \"1.0.0\"\ncommand greet permission \"aetherscript.example.greet\" sender any {\n  arg name: text\n  arg count: integer = 1\n  arg excited: boolean = true\n  let suffix = \".\"\n  if excited {\n    let suffix = \"!\"\n    send \"Hello \" + name + suffix + \" Count \" + text(count)\n  } else {\n    send \"Hello \" + name + suffix + \" Count \" + text(count)\n  }\n}\n",
+      "irHash": "23f86ba66ff6261de0579c193c6c5d9dbad9017f7b1ef0161854aca5a53e514f"
+    },
+    {
+      "name": "countdown.aether",
+      "format": "aether",
+      "source": "feature countdown version \"1.0.0\"\nfn label(value: integer): text {\n  return \"Count \" + text(value)\n}\ncommand countdown permission \"aetherscript.example.countdown\" sender any {\n  arg count: integer = 3\n  var remaining = count\n  while remaining > 0 {\n    send label(remaining)\n    set remaining = remaining - 1\n  }\n  send \"Done\"\n}\n",
+      "irHash": "2bfc1687998bd45438aafa1ec956599af03f3bd3ed862d047c3ebfb13a9f8c4d"
+    },
+    {
+      "name": "hello-ai.yml",
+      "format": "yaml",
+      "source": "schemaVersion: 1\nid: hello-ai\nversion: 1.0.0\nrequires: [runtime.message.send]\ncommands:\n  - name: helloai\n    permission: aetherscript.example.hello\n    sender: any\n    actions:\n      - type: message.send\n        target: sender\n        text: \"Hello from AetherScript!\"\n",
+      "irHash": "d17e1187d57c74120a98827087200da6a3845b70b55b9e2ae578958656cf0cd2"
+    },
+    {
+      "name": "hello-ai.json",
+      "format": "json",
+      "source": "{\n  \"schemaVersion\": 1,\n  \"id\": \"hello-ai\",\n  \"version\": \"1.0.0\",\n  \"requires\": [\n    \"runtime.message.send\"\n  ],\n  \"commands\": [\n    {\n      \"name\": \"helloai\",\n      \"permission\": \"aetherscript.example.hello\",\n      \"sender\": \"any\",\n      \"actions\": [\n        {\n          \"type\": \"message.send\",\n          \"target\": \"sender\",\n          \"text\": \"Hello from AetherScript!\"\n        }\n      ]\n    }\n  ]\n}\n",
+      "irHash": "d17e1187d57c74120a98827087200da6a3845b70b55b9e2ae578958656cf0cd2"
+    },
+    {
+      "name": "contextual-identifiers",
+      "format": "aether",
+      "source": "feature compat version \"1\"\ncommand compat permission \"example.compat\" sender any {\n let integer = 2\n let list = 1\n let repeat = integer + list\n send text(repeat)\n}\n",
+      "irHash": "6537af7666792a5e4fa5a970e4a97e1031d5274435ca8efb877d98c8261371ef"
+    },
+    {
+      "name": "builtin-function-names",
+      "format": "aether",
+      "source": "feature compat version \"1\"\nfn length(n: integer): integer { return n + 1 }\nfn append(n: integer): integer { return n + 2 }\ncommand compat permission \"example.compat\" sender any {\n send text(length(1))\n send text(append(1))\n}\n",
+      "irHash": "e8bc68ba459e537ffcfdbebe911e2b8576169136073fa65cd33e8d2ec7405544"
+    }
+  ]
+}

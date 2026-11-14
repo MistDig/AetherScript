@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.aetherscript.mcp.ProtocolTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-11-14T19:24:02.956Z" hostname="VARUN" time="0.102">
+  <properties/>
+  <testcase name="runtimeArgumentsWorkThroughLocalTestAndAreExposedInItsSchema()" classname="dev.aetherscript.mcp.ProtocolTest" time="0.053"/>
+  <testcase name="syntheticTestComparesExactMessagesAndRejectsPlayerOnly()" classname="dev.aetherscript.mcp.ProtocolTest" time="0.007"/>
+  <testcase name="lifecycleAndDiscovery()" classname="dev.aetherscript.mcp.ProtocolTest" time="0.001"/>
+  <testcase name="noMutationToolsOrFileTools()" classname="dev.aetherscript.mcp.ProtocolTest" time="0.002"/>
+  <testcase name="validAndInvalidSourcesUseSharedParser()" classname="dev.aetherscript.mcp.ProtocolTest" time="0.004"/>
+  <testcase name="stdioIsJsonOnlyAndNotificationsHaveNoResponse()" classname="dev.aetherscript.mcp.ProtocolTest" time="0.002"/>
+  <testcase name="malformedAndDuplicateJsonRejected()" classname="dev.aetherscript.mcp.ProtocolTest" time="0.001"/>
+  <testcase name="textualAuthoringIsDiscoverableAndUsesTheSharedValidator()" classname="dev.aetherscript.mcp.ProtocolTest" time="0.008"/>
+  <testcase name="oversizedFramesTerminateWithoutResponse()" classname="dev.aetherscript.mcp.ProtocolTest" time="0.015"/>
+  <testcase name="statusNeverPretendsLiveConnection()" classname="dev.aetherscript.mcp.ProtocolTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

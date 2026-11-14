@@ -19,6 +19,8 @@ public final class TextFrontend {
     public static final int MAX_STEPS = 8192;
     public static final int MAX_CALL_DEPTH = 32;
     public static final int MAX_FUNCTIONS = 32;
+    public static final int MAX_COLLECTION = 256;
+    public static final int MAX_COLLECTION_DEPTH = 8;
     // Retain the original reserved identifiers. New statement words are contextual
     // so an existing `let repeat = 3` remains valid after an engine upgrade.
     private static final List<String> RESERVED = List.of("true", "false", "text", "let", "send", "if", "else", "arg");
@@ -37,7 +39,15 @@ public final class TextFrontend {
     }
 
     private enum Kind { NAME, NUMBER, STRING, SYMBOL, NEWLINE, END }
-    private enum Type { INTEGER, TEXT, BOOLEAN }
+    private record Type(String name, Type element) {
+        static final Type INTEGER = new Type("INTEGER", null), TEXT = new Type("TEXT", null), BOOLEAN = new Type("BOOLEAN", null);
+        static Type list(Type element, Token token) {
+            int depth = 1;
+            for (Type type = element; type.element != null; type = type.element) depth++;
+            if (depth > MAX_COLLECTION_DEPTH) throw token.error("Collection nesting exceeds 8");
+            return new Type("LIST<" + element.name + ">", element);
+        }
+    }
     private record Token(Kind kind, String text, int line, int column) {
         ValidationException error(String reason) { return new ValidationException("$", reason, line, column); }
     }
@@ -45,6 +55,7 @@ public final class TextFrontend {
         long integer() { return (Long) value; }
         boolean bool() { return (Boolean) value; }
         String text() { return (String) value; }
+        @SuppressWarnings("unchecked") List<Value> list() { return (List<Value>) value; }
     }
     private record Binding(String name, Type type, Token declaration, int slot, boolean mutable) {}
     private record Argument(Binding binding, Value defaultValue) {}
@@ -52,9 +63,10 @@ public final class TextFrontend {
         final Token name;
         final List<Binding> parameters;
         final Type result;
+        final Map<Integer, Value> defaults;
         List<Statement> body;
-        Function(Token name, List<Binding> parameters, Type result) {
-            this.name = name; this.parameters = List.copyOf(parameters); this.result = result;
+        Function(Token name, List<Binding> parameters, Type result, Map<Integer, Value> defaults) {
+            this.name = name; this.parameters = List.copyOf(parameters); this.result = result; this.defaults = Map.copyOf(defaults);
         }
     }
 
@@ -104,7 +116,7 @@ public final class TextFrontend {
                     String operator = Character.toString(c);
                     if (index + 1 < input.length() && List.of("==", "!=", "<=", ">=", "&&", "||").contains(input.substring(index, index + 2))) {
                         operator = input.substring(index, index + 2); advance();
-                    } else if ("{}(),:+-*/%<>=!".indexOf(c) < 0) {
+                    } else if ("{}[](),:+-*/%<>=!".indexOf(c) < 0) {
                         throw error(startLine, startColumn, "Unexpected character. Use the documented operators and double-quoted text.");
                     }
                     advance(); add(Kind.SYMBOL, operator, startLine, startColumn);
@@ -175,8 +187,8 @@ public final class TextFrontend {
                     case "<=" -> new Value(type, a.integer() <= b.integer());
                     case ">" -> new Value(type, a.integer() > b.integer());
                     case ">=" -> new Value(type, a.integer() >= b.integer());
-                    case "==" -> new Value(type, a.value().equals(b.value()));
-                    case "!=" -> new Value(type, !a.value().equals(b.value()));
+                    case "==" -> new Value(type, valuesEqual(a, b, execution, operator));
+                    case "!=" -> new Value(type, !valuesEqual(a, b, execution, operator));
                     case "&&" -> new Value(type, a.bool() && b.bool());
                     case "||" -> new Value(type, a.bool() || b.bool());
                     default -> throw new AssertionError(operator.text());
@@ -184,10 +196,48 @@ public final class TextFrontend {
             } catch (ArithmeticException error) { throw operator.error("Integer overflow. Keep arithmetic within signed 64-bit bounds."); }
         }
     }
+    private static boolean valuesEqual(Value left, Value right, Execution execution, Token token) {
+        if (left.type().element() == null) return left.value().equals(right.value());
+        execution.step(token);
+        if (left == right) return true;
+        List<Value> a = left.list(), b = right.list();
+        if (a.size() != b.size()) return false;
+        for (int i = 0; i < a.size(); i++) if (!valuesEqual(a.get(i), b.get(i), execution, token)) return false;
+        return true;
+    }
     private record AsText(Expression operand, Token token) implements Expression {
         public Type type() { return Type.TEXT; }
         public int depth() { return operand.depth() + 1; }
         public Value evaluate(Execution execution) { execution.step(); return textValue(operand.evaluate(execution).value().toString(), token); }
+    }
+    private record ListValue(Type type, List<Expression> elements) implements Expression {
+        public int depth() { return 1 + elements.stream().mapToInt(Expression::depth).max().orElse(0); }
+        public Value evaluate(Execution execution) {
+            execution.step();
+            return new Value(type, elements.stream().map(element -> element.evaluate(execution)).toList());
+        }
+    }
+    private record Index(Expression collection, Expression index, Token token) implements Expression {
+        public Type type() { return collection.type().element(); }
+        public int depth() { return 1 + Math.max(collection.depth(), index.depth()); }
+        public Value evaluate(Execution execution) {
+            execution.step(token); List<Value> values = collection.evaluate(execution).list();
+            long offset = index.evaluate(execution).integer();
+            if (offset < 0 || offset >= values.size()) throw token.error("List index out of bounds");
+            return values.get((int) offset);
+        }
+    }
+    private record ListOperation(Expression collection, Expression value, Token token) implements Expression {
+        public Type type() { return value == null ? Type.INTEGER : collection.type(); }
+        public int depth() { return 1 + Math.max(collection.depth(), value == null ? 0 : value.depth()); }
+        public Value evaluate(Execution execution) {
+            execution.step(token); List<Value> values = collection.evaluate(execution).list();
+            if (value == null) return new Value(Type.INTEGER, (long) values.size());
+            if (values.size() >= MAX_COLLECTION) throw token.error("List exceeds 256 elements");
+            Value added = value.evaluate(execution);
+            List<Value> result = new ArrayList<>(values.size() + 1); result.addAll(values); result.add(added);
+            return new Value(type(), List.copyOf(result));
+        }
     }
     private record Call(Function function, List<Expression> arguments, Token token) implements Expression {
         public Type type() { return function.result; }
@@ -198,7 +248,7 @@ public final class TextFrontend {
             if (execution.callDepth >= MAX_CALL_DEPTH) throw token.error("Function call depth exceeds 32");
             Map<Binding, Value> caller = execution.values;
             execution.values = new HashMap<>(); execution.callDepth++;
-            for (int i = 0; i < values.size(); i++) execution.values.put(function.parameters.get(i), values.get(i));
+            for (int i = 0; i < function.parameters.size(); i++) execution.values.put(function.parameters.get(i), i < values.size() ? values.get(i) : function.defaults.get(i));
             try {
                 for (Statement statement : function.body) statement.prepare(execution);
                 throw token.error("Function did not return a value");
@@ -228,6 +278,16 @@ public final class TextFrontend {
             if (counted && remaining < 0) throw token.error("repeat count must be nonnegative");
             while (counted ? remaining-- > 0 : condition.evaluate(execution).bool()) {
                 execution.step(token);
+                try { for (Statement statement : body) statement.prepare(execution); }
+                catch (LoopJump jump) { if (!jump.continueLoop) break; }
+            }
+        }
+    }
+    private record For(Binding binding, Expression collection, List<Statement> body, Token token) implements Statement {
+        public void prepare(Execution execution) {
+            execution.step(token);
+            for (Value value : collection.evaluate(execution).list()) {
+                execution.step(token); execution.values.put(binding, value);
                 try { for (Statement statement : body) statement.prepare(execution); }
                 catch (LoopJump jump) { if (!jump.continueLoop) break; }
             }
@@ -328,9 +388,29 @@ public final class TextFrontend {
             case Unary unary -> usesName(unary.operand());
             case Binary binary -> usesName(binary.left()) || usesName(binary.right());
             case AsText conversion -> usesName(conversion.operand());
+            case ListValue list -> list.elements().stream().anyMatch(TextFrontend::usesName);
+            case Index item -> usesName(item.collection()) || usesName(item.index());
+            case ListOperation operation -> usesName(operation.collection()) || operation.value() != null && usesName(operation.value());
             case Call ignored -> true;
             default -> false;
         };
+    }
+    private static Object constantDescription(Value value, Execution budget, Token token) {
+        budget.step(token);
+        Object content = value.type().element() == null ? value.value()
+            : value.list().stream().map(element -> constantDescription(element, budget, token)).toList();
+        return List.of(value.type().name(), content);
+    }
+    private static Object functionDescription(Function function) {
+        Object original = List.of(function.name.text(), function.result.name(),
+            function.parameters.stream().map(parameter -> List.of(parameter.slot(), parameter.type().name())).toList(), statementsDescription(function.body));
+        if (function.defaults.isEmpty()) return original;
+        Execution budget = new Execution(); List<Object> defaults = new ArrayList<>();
+        for (int i = 0; i < function.parameters.size(); i++) {
+            Value value = function.defaults.get(i);
+            defaults.add(value == null ? List.of() : constantDescription(value, budget, function.parameters.get(i).declaration()));
+        }
+        return List.of(original, "parameter-defaults-v1", defaults);
     }
     private static List<Object> statementsDescription(List<Statement> statements) {
         return statements.stream().map(statement -> switch (statement) {
@@ -339,6 +419,7 @@ public final class TextFrontend {
             case Condition condition -> (Object) List.of("if", expressionDescription(condition.condition()), statementsDescription(condition.yes()), statementsDescription(condition.no()));
             case Assign assign -> (Object) List.of("set", assign.binding().slot(), expressionDescription(assign.value()));
             case Loop loop -> (Object) List.of(loop.counted() ? "repeat" : "while", expressionDescription(loop.condition()), statementsDescription(loop.body()));
+            case For loop -> (Object) List.of("for", loop.binding().slot(), expressionDescription(loop.collection()), statementsDescription(loop.body()));
             case Jump jump -> (Object) List.of(jump.continueLoop() ? "continue" : "break");
             case Return returned -> (Object) List.of("return", expressionDescription(returned.value()));
             default -> throw new AssertionError("Unknown statement");
@@ -351,6 +432,9 @@ public final class TextFrontend {
             case Unary unary -> List.of("unary", unary.operator().text(), expressionDescription(unary.operand()));
             case Binary binary -> List.of("binary", binary.operator().text(), expressionDescription(binary.left()), expressionDescription(binary.right()));
             case AsText conversion -> List.of("text", expressionDescription(conversion.operand()));
+            case ListValue list -> List.of("list", list.type().name(), list.elements().stream().map(TextFrontend::expressionDescription).toList());
+            case Index item -> List.of("index", expressionDescription(item.collection()), expressionDescription(item.index()));
+            case ListOperation operation -> List.of(operation.value() == null ? "length" : "append", expressionDescription(operation.collection()), operation.value() == null ? List.of() : expressionDescription(operation.value()));
             case Call call -> List.of("call", call.function().name.text(), call.arguments().stream().map(TextFrontend::expressionDescription).toList());
             default -> throw new AssertionError("Unknown expression");
         };
@@ -394,8 +478,7 @@ public final class TextFrontend {
                 arguments.stream().map(argument -> List.of(argument.binding().name(), argument.binding().type().name(),
                     argument.defaultValue() == null ? List.of() : List.of(argument.defaultValue().value()))).toList(),
                 statementsDescription(body));
-            if (advanced) semantic = List.of(semantic, functions.values().stream().map(function -> List.of(function.name.text(), function.result.name(),
-                function.parameters.stream().map(parameter -> List.of(parameter.slot(), parameter.type().name())).toList(), statementsDescription(function.body))).toList());
+            if (advanced) semantic = List.of(semantic, functions.values().stream().map(TextFrontend::functionDescription).toList());
             return compiled(feature, original, program, semantic);
         }
         private void function() {
@@ -404,18 +487,25 @@ public final class TextFrontend {
             Token name = identifier("Expected a function name");
             if (functions.containsKey(name.text())) throw name.error("Function is already declared");
             expect("("); List<Binding> parameters = new ArrayList<>(); Map<String, Binding> parameterScope = new HashMap<>();
+            Map<Integer, Value> defaults = new HashMap<>(); Execution defaultBudget = new Execution();
             if (!matches(")")) do {
                 Token parameter = identifier("Expected a parameter name");
                 if (parameterScope.containsKey(parameter.text())) throw parameter.error("Duplicate function parameter");
                 if (parameters.size() >= InvocationArguments.MAX_COUNT) throw parameter.error("A function supports at most 16 parameters");
                 expect(":"); Type type = declaredType();
+                if (matches("=")) {
+                    take(); Expression value = expression();
+                    requireType(value, type, parameter, "Parameter default must match its declared type");
+                    if (usesName(value)) throw parameter.error("Parameter defaults must be constant expressions without names or function calls");
+                    defaults.put(parameters.size(), value.evaluate(defaultBudget));
+                } else if (!defaults.isEmpty()) throw parameter.error("Required parameters must precede parameters with defaults");
                 Binding binding = new Binding(parameter.text(), type, parameter, bindings++, false);
                 parameters.add(binding); parameterScope.put(parameter.text(), binding);
                 if (!matches(",")) break;
                 take();
             } while (true);
             expect(")"); expect(":"); Type result = declaredType();
-            Function function = new Function(name, parameters, result);
+            Function function = new Function(name, parameters, result, defaults);
             functions.put(name.text(), function); currentFunction = function;
             scopes.push(parameterScope); function.body = block(); scopes.pop(); currentFunction = null;
             if (!returns(function.body)) throw name.error("Function must return " + result.name().toLowerCase(java.util.Locale.ROOT) + " on every path");
@@ -433,7 +523,12 @@ public final class TextFrontend {
             return token;
         }
         private Type declaredType() {
-            Token token = require(Kind.NAME, "Expected text, integer or boolean");
+            Token token = require(Kind.NAME, "Expected text, integer, boolean or list<type>");
+            if (token.text().equals("list")) {
+                if (++expressionDepth > MAX_DEPTH) throw token.error("Type nesting exceeds 32");
+                expect("<"); Type element = declaredType(); expect(">"); expressionDepth--;
+                advanced = true; return Type.list(element, token);
+            }
             return switch (token.text()) {
                 case "text" -> Type.TEXT; case "integer" -> Type.INTEGER; case "boolean" -> Type.BOOLEAN;
                 default -> throw token.error("Type must be text, integer or boolean");
@@ -506,6 +601,14 @@ public final class TextFrontend {
                 expect("="); Expression value = expression(); requireType(value, binding.type(), name, "Assignment must preserve the variable type");
                 lineEnd(); advanced = true; return new Assign(binding, value, start);
             }
+            if (start.text().equals("for")) {
+                Token name = identifier("Expected a loop variable"); expect("in"); Expression collection = expression();
+                requireList(collection, start);
+                Binding binding = new Binding(name.text(), collection.type().element(), name, bindings++, false);
+                scopes.push(new HashMap<>()); scopes.peek().put(name.text(), binding);
+                loopDepth++; List<Statement> body = block(); loopDepth--; scopes.pop(); advanced = true;
+                return new For(binding, collection, body, start);
+            }
             if (start.text().equals("while") || start.text().equals("repeat")) {
                 boolean counted = start.text().equals("repeat"); Expression condition = expression();
                 requireType(condition, counted ? Type.INTEGER : Type.BOOLEAN, start, counted ? "repeat expects an integer count" : "while expects a boolean condition");
@@ -554,10 +657,10 @@ public final class TextFrontend {
                         requireType(right, Type.BOOLEAN, operator, "Boolean operators require booleans"); type = Type.BOOLEAN;
                     }
                     case "==", "!=" -> {
-                        if (left.type() != right.type()) throw operator.error("Equality requires values of the same type"); type = Type.BOOLEAN;
+                        if (!left.type().equals(right.type())) throw operator.error("Equality requires values of the same type"); type = Type.BOOLEAN;
                     }
                     case "+" -> {
-                        if (left.type() != right.type() || left.type() == Type.BOOLEAN) throw operator.error("+ requires two integers or two text values. Use text(value) explicitly.");
+                        if (!left.type().equals(right.type()) || left.type() != Type.INTEGER && left.type() != Type.TEXT) throw operator.error("+ requires two integers or two text values. Use text(value) explicitly.");
                         type = left.type();
                     }
                     default -> {
@@ -584,7 +687,43 @@ public final class TextFrontend {
                 requireType(operand, type, operator, "Unary operator has the wrong operand type");
                 return node(new Unary(operator, operand, type), operator);
             }
+            Expression value = primary();
+            while (matches("[")) {
+                Token token = take(); requireList(value, token); Expression index = expression(); expect("]");
+                requireType(index, Type.INTEGER, token, "List index must be an integer");
+                value = node(new Index(value, index, token), token); advanced = true;
+            }
+            return value;
+        }
+        private void requireList(Expression value, Token token) {
+            if (value.type().element() == null) throw token.error("Expected a list value");
+        }
+        private Expression primary() {
             Token token = take();
+            if (token.text().equals("[")) {
+                if (matches("]")) throw token.error("Empty lists require list<type>()");
+                List<Expression> elements = new ArrayList<>(); Type element = null;
+                do {
+                    if (elements.size() >= MAX_COLLECTION) throw token.error("List exceeds 256 elements");
+                    Expression value = expression();
+                    if (element == null) element = value.type();
+                    requireType(value, element, token, "List elements must have the same type"); elements.add(value);
+                    if (!matches(",")) break; take();
+                } while (true);
+                expect("]"); advanced = true;
+                return node(new ListValue(Type.list(element, token), List.copyOf(elements)), token);
+            }
+            if (token.text().equals("list") && matches("<") && scopes.stream().noneMatch(scope -> scope.containsKey("list"))) {
+                expect("<"); Type element = declaredType(); expect(">"); expect("("); expect(")"); advanced = true;
+                return node(new ListValue(Type.list(element, token), List.of()), token);
+            }
+            if ((token.text().equals("length") || token.text().equals("append")) && matches("(") && !functions.containsKey(token.text())) {
+                take(); Expression collection = expression(); requireList(collection, token); Expression value = null;
+                if (token.text().equals("append")) {
+                    expect(","); value = expression(); requireType(value, collection.type().element(), token, "Appended value must match the list element type");
+                }
+                expect(")"); advanced = true; return node(new ListOperation(collection, value, token), token);
+            }
             if (token.kind() == Kind.STRING) return node(new Literal(new Value(Type.TEXT, token.text())), token);
             if (token.kind() == Kind.NUMBER) {
                 try { return node(new Literal(new Value(Type.INTEGER, Long.parseLong(token.text()))), token); }
@@ -593,7 +732,7 @@ public final class TextFrontend {
             if (token.text().equals("true") || token.text().equals("false")) return node(new Literal(new Value(Type.BOOLEAN, Boolean.parseBoolean(token.text()))), token);
             if (token.text().equals("(")) { Expression result = expression(); expect(")"); return result; }
             if (token.text().equals("text")) {
-                expect("("); Expression value = expression(); expect(")"); return node(new AsText(value, token), token);
+                expect("("); Expression value = expression(); expect(")"); if (value.type().element() != null) throw token.error("text expects an integer, boolean or text value"); return node(new AsText(value, token), token);
             }
             if (token.kind() == Kind.NAME) {
                 if (matches("(")) {
@@ -608,7 +747,7 @@ public final class TextFrontend {
                         take();
                     } while (true);
                     expect(")");
-                    if (values.size() != function.parameters.size()) throw token.error("Missing function argument");
+                    if (values.size() < function.parameters.size() - function.defaults.size()) throw token.error("Missing function argument");
                     return node(new Call(function, List.copyOf(values), token), token);
                 }
                 return node(new Name(lookup(token), token), token);
@@ -643,7 +782,7 @@ public final class TextFrontend {
         private void bounded(Token token, int max, String field) {
             if (token.text().isEmpty() || token.text().length() > max) throw token.error(field + " must contain 1.." + max + " characters");
         }
-        private void requireType(Expression value, Type type, Token token, String reason) { if (value.type() != type) throw token.error(reason); }
+        private void requireType(Expression value, Type type, Token token, String reason) { if (!value.type().equals(type)) throw token.error(reason); }
         private void lineEnd() {
             if (peek().kind() == Kind.NEWLINE) { newlines(); return; }
             if (matches("}") || peek().kind() == Kind.END) return;

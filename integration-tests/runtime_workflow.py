@@ -6,14 +6,21 @@ def verify(command, start, stop, source, original, evidence):
         evidence.append(dict(test=name, result='pass', detail=result))
 
     runtime = '''feature hello-ai version "runtime-1"
-fn triangular(n: integer): integer {
+fn total(values: list<integer>, multiplier: integer = 1): integer {
     var total = 0
+    for value in values {
+        set total = total + value
+    }
+    return total * multiplier
+}
+fn triangular(n: integer): integer {
+    var values = list<integer>()
     var index = 0
     while index < n {
         set index = index + 1
-        set total = total + index
+        set values = append(values, index)
     }
-    return total
+    return total(values)
 }
 command helloai permission "aetherscript.example.hello" sender any {
     arg name: text
@@ -29,6 +36,8 @@ command helloai permission "aetherscript.example.hello" sender any {
     check('same-revision-Alex', 'helloai Alex 2', 'Hello Alex! total=3')
     check('unchanged-functions-retain-generation', 'ais reload hello-ai', 'UNCHANGED: no new revision; generation=2')
     check('quoted-name-and-default', 'helloai "Alex Smith"', 'Hello Alex Smith! total=6')
+    source.write_text(runtime.replace('append(values, index)', 'append(values, false)'), encoding='utf-8')
+    check('mixed-list-edit-preserves-active', 'ais reload hello-ai', 'active generation unchanged')
     source.write_text(runtime.replace('while index < n', 'while "bad"'), encoding='utf-8')
     check('invalid-loop-preserves-active', 'ais reload hello-ai', 'active generation unchanged')
     check('previous-command-still-runs', 'helloai Alex 2', 'Hello Alex! total=3')

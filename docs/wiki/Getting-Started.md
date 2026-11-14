@@ -1,4 +1,4 @@
-[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.11)
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.12)
 
 ---
 
@@ -12,7 +12,7 @@ After starting the updated server, type `ais connect` in its console. Open the l
 
 ### 1 · Install
 
-Download **AetherScript-0.0.11.jar** from the [release](https://github.com/MistDig/AetherScript/releases/tag/v0.0.11). Stop Paper, place it in `plugins/`, and start the server. Keep only one AetherScript plugin JAR installed. The separate MCP JAR does not belong in `plugins/`.
+Download **AetherScript-0.0.12.jar** from the [release](https://github.com/MistDig/AetherScript/releases/tag/v0.0.12). Stop Paper, place it in `plugins/`, and start the server. Keep only one AetherScript plugin JAR installed. The separate MCP JAR does not belong in `plugins/`.
 
 Wait for `Ready. Restored ...`. A fresh install creates and activates `plugins/AetherScript/scripts/hello-ai.yml` automatically.
 
@@ -59,7 +59,7 @@ A missing configuration is generated. If you previously created a custom config,
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.11
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.12
 
 
 ## Connect Codex on Windows

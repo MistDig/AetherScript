@@ -62,8 +62,25 @@ assert bad_control != countdown
 bad_result = calls([('aether_validate', {'format':'aether','source':bad_control})])[0]
 assert bad_result['valid'] is False and bad_result['line'] > 0
 assert json.loads(run([*cli,'aether'],countdown))['irHash'] == runtime_valid['irHash']
+scores = (repo/'examples/scores.aether').read_text(encoding='utf-8')
+list_test = calls([('aether_test', {'format':'aether','source':scores,'expectedMessages':['6']})])[0]
+assert list_test['matched'], list_test
+bad_list = scores.replace('append(values, 3)', 'append(values, false)')
+assert bad_list != scores
+list_error = calls([('aether_validate', {'format':'aether','source':bad_list})])[0]
+assert list_error['valid'] is False and list_error['line'] > 0
+defaults = '''feature default-demo version "1"
+fn multiply(value: integer, factor: integer = 2): integer { return value * factor }
+command default-demo permission "example.defaults" sender any {
+  send text(multiply(3))
+  send text(multiply(3, 4))
+}
+'''
+assert calls([('aether_test', {'format':'aether','source':defaults,'expectedMessages':['6','12']})])[0]['matched']
 print(json.dumps({"result":"pass","version":version,"checks":["discover template","validate template",
     "single-line edit changes behavior","comment preserves behavior","type error identifies line and column",
     "CLI and MCP agree on valid source","CLI and MCP agree on invalid source",
     "loop/function example validates through packaged CLI and MCP",
-    "loop/function example runs with two argument lists", "invalid mutable assignment has source diagnostic"]},indent=2))
+    "loop/function example runs with two argument lists", "invalid mutable assignment has source diagnostic",
+    "list iteration example emits expected total", "mixed append rejects with source diagnostic",
+    "function defaults and explicit overrides run through packaged MCP"]},indent=2))

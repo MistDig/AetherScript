@@ -1,0 +1,15 @@
+feature scores version "1.0.0"
+fn total(values: list<integer>): integer {
+  var result = 0
+  for value in values {
+    set result = result + value
+  }
+  return result
+}
+command scores permission "aetherscript.example.scores" sender any {
+  var values = list<integer>()
+  set values = append(values, 1)
+  set values = append(values, 2)
+  set values = append(values, 3)
+  send text(total(values))
+}

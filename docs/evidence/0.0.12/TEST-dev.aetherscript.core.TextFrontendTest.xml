@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.aetherscript.core.TextFrontendTest" tests="36" skipped="0" failures="0" errors="0" timestamp="2026-11-14T19:24:10.245Z" hostname="VARUN" time="0.066">
+  <properties/>
+  <testcase name="sourceStructureAndPreparationWorkAreBounded()" classname="dev.aetherscript.core.TextFrontendTest" time="0.014"/>
+  <testcase name="arithmeticPrecedenceConversionAndBooleanExpressionsAreTyped()" classname="dev.aetherscript.core.TextFrontendTest" time="0.002"/>
+  <testcase name="missingDelimitersAndUnclosedTextRemainActionable()" classname="dev.aetherscript.core.TextFrontendTest" time="0.003"/>
+  <testcase name="literalEscapesCommentsCrLfAndUtf8HaveStableSemantics()" classname="dev.aetherscript.core.TextFrontendTest" time="0.003"/>
+  <testcase name="variablesAndSelectedConditionsLowerToTheExistingIr()" classname="dev.aetherscript.core.TextFrontendTest" time="0.003"/>
+  <testcase name="metadataUsesTheSamePermissionSenderAndIdConstraints()" classname="dev.aetherscript.core.TextFrontendTest" time="0.004"/>
+  <testcase name="integerExtremesAndExactArithmeticHaveDefinedBehavior()" classname="dev.aetherscript.core.TextFrontendTest" time="0.001"/>
+  <testcase name="inactiveBranchesAreTypeCheckedWhileEvaluationShortCircuits()" classname="dev.aetherscript.core.TextFrontendTest" time="0.002"/>
+  <testcase name="lexicalScopesPermitShadowingAndResolveTheInitializerFromTheOuterScope()" classname="dev.aetherscript.core.TextFrontendTest" time="0.002"/>
+  <testcase name="[1] 9223372036854775807 + 1" classname="dev.aetherscript.core.TextFrontendTest" time="0.002"/>
+  <testcase name="[2] -9223372036854775808 - 1" classname="dev.aetherscript.core.TextFrontendTest" time="0.001"/>
+  <testcase name="[3] 9223372036854775807 * 2" classname="dev.aetherscript.core.TextFrontendTest" time="0.001"/>
+  <testcase name="[4] -9223372036854775808 / -1" classname="dev.aetherscript.core.TextFrontendTest" time="0.001"/>
+  <testcase name="[5] -(-9223372036854775808)" classname="dev.aetherscript.core.TextFrontendTest" time="0.001"/>
+  <testcase name="[6] 9223372036854775808" classname="dev.aetherscript.core.TextFrontendTest" time="0.001"/>
+  <testcase name="[7] -9223372036854775809" classname="dev.aetherscript.core.TextFrontendTest" time="0.001"/>
+  <testcase name="[8] 1 / 0" classname="dev.aetherscript.core.TextFrontendTest" time="0.0"/>
+  <testcase name="[9] 1 % 0" classname="dev.aetherscript.core.TextFrontendTest" time="0.0"/>
+  <testcase name="[1] let value = 1&#10;let value = 2&#10;send text(value)" classname="dev.aetherscript.core.TextFrontendTest" time="0.002"/>
+  <testcase name="[2] let value = later&#10;send &quot;x&quot;" classname="dev.aetherscript.core.TextFrontendTest" time="0.001"/>
+  <testcase name="[3] let value = value&#10;send &quot;x&quot;" classname="dev.aetherscript.core.TextFrontendTest" time="0.001"/>
+  <testcase name="[4] let value = 1&#10;value = 2&#10;send text(value)" classname="dev.aetherscript.core.TextFrontendTest" time="0.0"/>
+  <testcase name="[5] send 4" classname="dev.aetherscript.core.TextFrontendTest" time="0.0"/>
+  <testcase name="[6] send true" classname="dev.aetherscript.core.TextFrontendTest" time="0.001"/>
+  <testcase name="[7] send &quot;x&quot; + 1" classname="dev.aetherscript.core.TextFrontendTest" time="0.0"/>
+  <testcase name="[8] send text(1 == true)" classname="dev.aetherscript.core.TextFrontendTest" time="0.0"/>
+  <testcase name="[9] send text(true + false)" classname="dev.aetherscript.core.TextFrontendTest" time="0.0"/>
+  <testcase name="[10] send text(&quot;x&quot; &lt; &quot;y&quot;)" classname="dev.aetherscript.core.TextFrontendTest" time="0.0"/>
+  <testcase name="[11] if 1 {&#10; send &quot;yes&quot;&#10;}" classname="dev.aetherscript.core.TextFrontendTest" time="0.0"/>
+  <testcase name="[12] send &quot;x&quot; send &quot;y&quot;" classname="dev.aetherscript.core.TextFrontendTest" time="0.001"/>
+  <testcase name="[13] send &quot;&quot;" classname="dev.aetherscript.core.TextFrontendTest" time="0.001"/>
+  <testcase name="[14] send &quot;unsafe\nmessage&quot;" classname="dev.aetherscript.core.TextFrontendTest" time="0.001"/>
+  <testcase name="[15] send &quot;unsafe§message&quot;" classname="dev.aetherscript.core.TextFrontendTest" time="0.001"/>
+  <testcase name="[16] send &quot;bad\u0041&quot;" classname="dev.aetherscript.core.TextFrontendTest" time="0.0"/>
+  <testcase name="[17] while 1 {&#10; send &quot;x&quot;&#10;}" classname="dev.aetherscript.core.TextFrontendTest" time="0.0"/>
+  <testcase name="[18] import java.lang.System" classname="dev.aetherscript.core.TextFrontendTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,4 +1,4 @@
-[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.11)
+[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.12)
 
 ---
 
@@ -33,7 +33,7 @@ command helloai permission "aetherscript.example.hello" sender any {
 
 The result is `Hello from AetherScript!`. Values and conditions evaluate during preparation at validation/reload, and their selected messages are stored in the compiled feature. Every invocation then applies the feature's permission, sender and active-generation checks.
 
-The `command` header supplies Paper native command metadata as well as the `/ais run <id>` dispatcher. Native metadata is registered, but client command-tree visibility has not yet been verified. Use `/ais run <id>` as the verified invocation path.
+The `command` header registers a real Paper command name. Direct console invocation, replacement and restart are tested. Connected-player command-tree visibility remains unverified; `/ais run <id>` is also available.
 
 ## Command arguments in 0.0.7
 
@@ -79,7 +79,7 @@ command bad-default permission "aetherscript.example.bad" sender any {
 | Form | Meaning |
 | --- | --- |
 | `let count = 2 + 3` | An immutable local integer. |
-| `var count = 3` | A mutable local scalar, fresh for each invocation. |
+| `var count = 3` | A mutable local value, fresh for each invocation. |
 | `set count = count - 1` | Update the nearest visible mutable binding with a matching type. |
 | `let greeting = "Hello"` | An immutable local text value. |
 | `let ready = count == 5` | An immutable local boolean. |
@@ -95,7 +95,7 @@ Locals are lexically scoped. An inner block may shadow an outer name. Duplicate 
 | --- | --- |
 | `+` | Add two integers or concatenate two text values. Use `text(...)` for mixed text/integer/boolean output. |
 | `-`, `*`, `/`, `%` | Integer arithmetic. Division truncates toward zero and remainder keeps the dividend's sign. |
-| `==`, `!=` | Equality between matching types. |
+| `==`, `!=` | Equality between matching types; lists compare structurally. |
 | `<`, `<=`, `>`, `>=` | Integer comparisons. |
 | `!`, `&&`, `||` | Boolean negation, conjunction and disjunction. |
 | `(...)` | Explicit grouping. |
@@ -113,11 +113,11 @@ Source is strict UTF-8 with an optional leading BOM. Diagnostics identify the so
 
 ## Mutable locals, loops and typed functions
 
-var count = 3 declares an inferred mutable scalar. set count = count - 1 updates the nearest visible mutable binding with the same type. let, arguments and function parameters remain immutable. Locals support only text, integer and boolean; state is fresh for every invocation and function call.
+var count = 3 declares an inferred mutable local. set count = count - 1 updates the nearest visible mutable binding with the same type. let, arguments and function parameters remain immutable. Locals support text, integer, boolean and homogeneous lists; state is fresh for every invocation and function call.
 
 while condition { ... } requires a boolean. repeat count { ... } evaluates a nonnegative integer count once. break exits the nearest enclosing loop; continue skips to its next iteration. These keywords are valid only inside loops.
 
-Declare fn name(parameter: integer): integer { ... } between the feature header and command. Parameters and results must declare text, integer or boolean types. Call functions in expressions, for example text(double(3)). Every path must return a matching value with return expression. Functions can call earlier declarations or themselves, but cannot call later declarations or capture command locals. Limits are 32 functions, 16 parameters per function and 32 active function calls. Loops, expressions and nested calls share one 8192-step invocation budget and one 32-message output budget.
+Declare fn name(parameter: integer): integer { ... } between the feature header and command. Parameters and results must declare text, integer, boolean or `list<elementType>` types. Call functions in expressions, for example text(double(3)). Every path must return a matching value with return expression. Functions can call earlier declarations or themselves, but cannot call later declarations or capture command locals. Trailing parameters may declare typed constant defaults, for example fn double(value: integer = 2): integer { return value * 2 }. Required parameters precede defaults. Defaults cannot reference names or call user functions; immutable scalar/list constants are shared safely across fresh frames. Limits are 32 functions, 16 parameters per function and 32 active function calls. Loops, expressions and nested calls share one 8192-step invocation budget and one 32-message output budget.
 
 Save as countdown.aether:
 
@@ -140,7 +140,39 @@ This example emits its lines immediately; loops do not delay server ticks. Timed
 
 Test with {"id":"countdown","expectedMessages":["Count 3","Count 2","Count 1","Done"]}. Run /ais run countdown twice; both invocations start at 3.
 
-PersistentVariables is a core host service using bounded JSON snapshots, not SQLite. It has no script-level bindings; var does not persist values or expose player storage. Native metadata registration and this runtime slice do not establish completion of the broader gameplay ecosystem.
+PersistentVariables provides the JSON host backend; SQLiteVariables provides a separate transactional SQLite backend. Both are core Java services without script-level bindings; var does not persist values or expose player storage. Hosts must select a backend and run storage calls on bounded workers; no automatic migration is performed. Native metadata registration and this runtime slice do not establish completion of the broader gameplay ecosystem.
+
+## Immutable lists
+
+Lists contain values of one type: `[1, 2, 3]`, `["red", "blue"]` or `[[1], [2]]`. Write an empty list with its element type: `list<integer>()` or `list<list<text>>()`. List types such as `list<integer>` are accepted for function parameters and results. Command arguments still accept only `text`, `integer` and `boolean`.
+
+`values[0]` reads the first element; indices must be integers within bounds. `length(values)` returns an integer. `append(values, value)` returns a new list with a matching element type. Lists are immutable: use `var values = list<integer>()` followed by `set values = append(values, 1)` to replace a local list value. There is no indexed assignment or arbitrary host-array access. Lists contain at most 256 elements each and nest at most eight list types deep.
+
+`==` and `!=` compare matching list types structurally, including nested elements. List concatenation with `+` and `text(listValue)` are rejected. Convert individual scalar elements with `text(value)` when building messages. Feature functions named `length` or `append` take precedence over these built-ins.
+
+`for value in values { ... }` evaluates its list once and visits its elements in order. The loop variable is immutable and scoped to the body; it may shadow an outer name. `break` and `continue` target the nearest loop. Iteration and structural equality share the existing 8192-step invocation budget with expressions and function calls. Lists provide no maps, sets, records, closures or modules.
+
+Save as `scores.aether`:
+
+```aether
+feature scores version "1.0.0"
+fn total(values: list<integer>): integer {
+  var result = 0
+  for value in values {
+    set result = result + value
+  }
+  return result
+}
+command scores permission "aetherscript.example.scores" sender any {
+  var values = list<integer>()
+  set values = append(values, 1)
+  set values = append(values, 2)
+  set values = append(values, 3)
+  send text(total(values))
+}
+```
+
+Test with `{"id":"scores","expectedMessages":["6"]}`. Each invocation emits `6` and starts with fresh local state.
 
 ## YAML and JSON
 
@@ -185,8 +217,8 @@ The engine caps active features at 128, tracked histories at 128 and scripts-dir
 
 Copy an example to `scripts/welcome.aether` or `scripts/welcome.yml`. Set both feature ID and command name to `welcome`, choose the explicit permission `aetherscript.example.welcome`, and write your message. Validate, reload and invoke `/ais run welcome`.
 
-[Working examples](https://github.com/MistDig/AetherScript/tree/v0.0.11/examples) · [Structured JSON Schema](https://github.com/MistDig/AetherScript/blob/v0.0.11/schema/feature-v1.schema.json) · [Grammar and architecture decision](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/language-decision.md) · [Capability matrix](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/capabilities.csv)
+[Working examples](https://github.com/MistDig/AetherScript/tree/v0.0.12/examples) · [Structured JSON Schema](https://github.com/MistDig/AetherScript/blob/v0.0.12/schema/feature-v1.schema.json) · [Grammar and architecture decision](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/language-decision.md) · [Capability matrix](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/capabilities.csv)
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.11
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.12

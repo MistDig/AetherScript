@@ -1,5 +1,11 @@
 # Actual test results
 
+## Release 0.0.12 — immutable lists, defaults and SQLite baseline
+
+Java 25 clean check build passed 254 tests. Both shaded JARs passed real native SQLite restart/CAS and retained-license checks. Packaged CLI/MCP authoring tests cover typed lists, iteration, function defaults/overrides and invalid type diagnostics; nine runnable wiki examples pass. Seven semantic hashes match a checksum-verified published 0.0.11 validator.
+
+Paper 26.3 build 245 passed 19 runtime/command checks across two boots, including typed list parameters, append/iteration, function defaults, fresh invocation data, unchanged reload, invalid-update preservation and command collision/rename/removal/restart. The 100-reload recovery fixture and relay tests below retain their 0.0.11 attribution. No connected-player GUI/tree/suggestion, actual-client, two-PC Feather or performance check is claimed. SQLite is a core host service with no script bindings or automatic migration. [Evidence](evidence/0.0.12/)
+
 ## Release 0.0.11 — bounded runtime and owned commands
 
 Java 25 clean check build passed 234 tests. Seven relay tests passed with loopback networking. Packaged MCP/CLI authoring verifies functions/loops with two argument lists and rejects a typed assignment error; seven runnable wiki examples pass.

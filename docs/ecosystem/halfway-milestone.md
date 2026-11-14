@@ -31,6 +31,12 @@ Paper now registers real feature command names, enforces the same invocation per
 
 Exact verification is recorded in [0.0.11 evidence](../evidence/0.0.11/) and [testing](../testing.md). M1, M2 and M3 gates remain open. Next dependency work is the broader value/callable model, then typed gameplay/event/scheduler and persistent script bindings before homes/kits/join rewards.
 
+## 0.0.12 list/default/SQLite slice — 15 November 2026
+
+Homogeneous immutable lists now support literals, typed empty constructors, indexing, length/append, structural equality and bounded for iteration. Functions accept list parameters/results and trailing typed constant defaults. List length/depth and shared execution budgets are checked. Legacy semantic hashes are compared with the published 0.0.11 artifact. Maps, sets, user-defined records, closures, modules and the broader public callable/value model remain open.
+
+A separate SQLite host backend supplies transactional revision CAS and strict typed/schema validation. Real provider tests and both packaged JARs verify restart/CAS behavior. It has no script bindings, automatic migration, deletion/change hooks or variable editor. M2-D remains open. All M1–M3 phase gates remain open; this is a verified subset, not halfway completion. [Evidence](../evidence/0.0.12/)
+
 ## Dependency order and measurable gates
 
 A phase is accepted only after every relevant gate below has implementation, public syntax/API documentation, runnable example, positive/negative tests and lifecycle/thread/version evidence. Partial slices remain partial; a passing unit suite cannot stand in for Paper/client acceptance.

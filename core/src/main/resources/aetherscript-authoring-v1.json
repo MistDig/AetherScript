@@ -14,15 +14,16 @@
     "Keep the command name unique among active features.",
     "Write each statement on its own line and delimit blocks with braces.",
     "Keep permission nodes explicit and preserve them when editing message text.",
-    "Use text, integer or boolean scalars. let and parameters are immutable; var creates a mutable local and set updates its nearest visible mutable binding without changing type.",
-    "Check both branches for type errors. Use text(value) for explicit conversion.",
+    "Use text, integer, boolean or homogeneous immutable lists. let and parameters are immutable; var creates a mutable local and set replaces its nearest visible mutable binding without changing type.",
+    "Check both branches for type errors. Use text(value) only for scalar conversion; text(listValue) is rejected.",
     "Declare functions after the feature header and before the command, before use. Functions have typed parameters and results, no captures, and must return a matching value on every path.",
     "Validate the complete edited source before requesting a local reload."
   ],
   "valueTypes": [
     "text",
     "integer",
-    "boolean"
+    "boolean",
+    "list<elementType>"
   ],
   "statements": [
     "arg name: text | integer | boolean [= constantExpression]",
@@ -33,9 +34,10 @@
     "set name = expression",
     "while booleanExpression { ... }",
     "repeat integerExpression { ... }",
+    "for name in listExpression { ... }",
     "break",
     "continue",
-    "fn name(parameter: type): type { ... }",
+    "fn name(parameter: type [= constantExpression]): type { ... }",
     "return expression"
   ],
   "operations": [
@@ -104,15 +106,43 @@
   },
   "runtimeControl": {
     "exampleFile": "countdown.aether",
-    "localState": "Fresh per invocation and function call. Only text, integer and boolean scalars; no persistent script bindings.",
-    "loops": "while checks its boolean condition each iteration; repeat evaluates a nonnegative integer count once. break and continue target the nearest enclosing loop.",
-    "functions": "At most 32 feature-level functions and 16 typed parameters per function. Declare before use; direct self-recursion is allowed, forward calls and captures are rejected. Every path must return a value matching the declared scalar result.",
+    "localState": "Fresh per invocation and function call. Scalars and immutable homogeneous lists; no persistent script bindings.",
+    "loops": "while checks its boolean condition each iteration; repeat evaluates a nonnegative integer count once. break and continue target the nearest enclosing loop. for evaluates a list once and visits each element with an immutable body-scoped binding.",
+    "functions": "At most 32 feature-level functions and 16 typed parameters per function. Declare before use; direct self-recursion is allowed, forward calls and captures are rejected. Every path must return a value matching the declared scalar or list result. Trailing typed constant defaults are supported; required parameters precede defaults. Defaults reject named values and user function calls.",
     "limits": {
       "sharedExecutionSteps": 8192,
       "functionCallDepth": 32
     },
     "budget": "The entire invocation, including loops and nested function calls, shares one execution-step and 32-message budget.",
     "nativeCommands": "Paper registers real command names. Server-console dispatch, replacement, removal and restart are tested; connected-player command-tree visibility and suggestions remain unverified.",
-    "persistence": "PersistentVariables is a core host service backed by bounded JSON snapshots. It is not SQLite and has no script-level bindings."
+    "persistence": "Core Java host services offer JSON and SQLite backends. Neither has script bindings or automatic migration; run storage calls on bounded host workers."
+  },
+  "collections": {
+    "exampleFile": "scores.aether",
+    "types": "Homogeneous recursive list<elementType>; scalar command argument types remain unchanged. No host objects or arbitrary host-array access.",
+    "literals": [
+      "[1, 2, 3]",
+      "[[1], [2]]",
+      "list<integer>()",
+      "list<list<text>>()"
+    ],
+    "operations": [
+      "values[0] reads an element using a zero-based integer index within bounds",
+      "length(values) returns integer",
+      "append(values, value) returns a new list of the same type; use set to replace a mutable local",
+      "== and != compare matching list types structurally"
+    ],
+    "limits": {
+      "elementsPerList": 256,
+      "listTypeDepth": 8,
+      "sharedExecutionSteps": 8192
+    },
+    "restrictions": "No indexed assignment, list + concatenation, text(listValue), maps, sets, records, closures or modules. Convert scalar elements with text(value). Feature functions named length or append take precedence over built-ins.",
+    "test": {
+      "id": "scores",
+      "expectedMessages": [
+        "6"
+      ]
+    }
   }
 }

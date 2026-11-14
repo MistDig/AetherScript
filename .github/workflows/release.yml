@@ -34,6 +34,10 @@ jobs:
         run: python integration-tests/ai_authoring.py
       - name: Verify runnable wiki examples
         run: python integration-tests/wiki_examples.py
+      - name: Verify packaged SQLite provider and licenses
+        run: python integration-tests/storage_package.py
+      - name: Verify published language compatibility corpus
+        run: python integration-tests/legacy_ir.py
       - name: Verify current documentation consistency
         run: node site/scripts/sync.mjs && python integration-tests/docs_consistency.py
       - name: Prepare release and verify tag version

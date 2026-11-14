@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.aetherscript.core.RuntimeControlTest" tests="30" skipped="0" failures="0" errors="0" timestamp="2026-11-14T19:24:08.988Z" hostname="VARUN" time="0.165">
+  <properties/>
+  <testcase name="runtimeControlSurvivesRestartAndInvalidEditPreservesWorkingRevision()" classname="dev.aetherscript.core.RuntimeControlTest" time="0.042"/>
+  <testcase name="functionsAreTypedReusableAndRecursiveFramesDoNotOverwriteTheCaller()" classname="dev.aetherscript.core.RuntimeControlTest" time="0.004"/>
+  <testcase name="functionCallsValidateArityAndTypesAndCannotCaptureCommandArguments()" classname="dev.aetherscript.core.RuntimeControlTest" time="0.005"/>
+  <testcase name="[1] let n = 1&#10;set n = 2" classname="dev.aetherscript.core.RuntimeControlTest" time="0.003"/>
+  <testcase name="[2] arg n: integer&#10;set n = 2" classname="dev.aetherscript.core.RuntimeControlTest" time="0.003"/>
+  <testcase name="[3] var n = 1&#10;set n = true" classname="dev.aetherscript.core.RuntimeControlTest" time="0.004"/>
+  <testcase name="[4] while 1 { break }" classname="dev.aetherscript.core.RuntimeControlTest" time="0.003"/>
+  <testcase name="[5] repeat true { break }" classname="dev.aetherscript.core.RuntimeControlTest" time="0.003"/>
+  <testcase name="[6] break" classname="dev.aetherscript.core.RuntimeControlTest" time="0.003"/>
+  <testcase name="[7] continue" classname="dev.aetherscript.core.RuntimeControlTest" time="0.003"/>
+  <testcase name="[8] return 1" classname="dev.aetherscript.core.RuntimeControlTest" time="0.003"/>
+  <testcase name="[9] if false { set missing = 1 }" classname="dev.aetherscript.core.RuntimeControlTest" time="0.002"/>
+  <testcase name="[10] var true = 2" classname="dev.aetherscript.core.RuntimeControlTest" time="0.003"/>
+  <testcase name="[11] repeat 1 { let n = 1 }&#10;send text(n)" classname="dev.aetherscript.core.RuntimeControlTest" time="0.003"/>
+  <testcase name="[1] fn f(n: integer): integer { return true }" classname="dev.aetherscript.core.RuntimeControlTest" time="0.004"/>
+  <testcase name="[2] fn f(n: integer): integer { if n &gt; 0 { return 1 } }" classname="dev.aetherscript.core.RuntimeControlTest" time="0.002"/>
+  <testcase name="[3] fn f(n: integer, n: integer): integer { return n }" classname="dev.aetherscript.core.RuntimeControlTest" time="0.003"/>
+  <testcase name="[4] fn f(): integer { break&#10;return 1 }" classname="dev.aetherscript.core.RuntimeControlTest" time="0.002"/>
+  <testcase name="[5] fn f(): integer { arg n: integer&#10;return n }" classname="dev.aetherscript.core.RuntimeControlTest" time="0.003"/>
+  <testcase name="[6] fn f(): integer { return missing }" classname="dev.aetherscript.core.RuntimeControlTest" time="0.003"/>
+  <testcase name="[7] fn f(): number { return 1 }" classname="dev.aetherscript.core.RuntimeControlTest" time="0.002"/>
+  <testcase name="[8] fn text(): text { return &quot;x&quot; }" classname="dev.aetherscript.core.RuntimeControlTest" time="0.003"/>
+  <testcase name="[9] fn f(): integer { return later() }&#10;fn later(): integer { return 1 }" classname="dev.aetherscript.core.RuntimeControlTest" time="0.003"/>
+  <testcase name="newStatementWordsRemainLegalLegacyIdentifiersInUnambiguousPositions()" classname="dev.aetherscript.core.RuntimeControlTest" time="0.003"/>
+  <testcase name="runtimeFailuresHaveOriginalLocationAndCallTrace()" classname="dev.aetherscript.core.RuntimeControlTest" time="0.006"/>
+  <testcase name="semanticHashIncludesFunctionBodiesAndControlButNotCommentsOrPositions()" classname="dev.aetherscript.core.RuntimeControlTest" time="0.004"/>
+  <testcase name="mutationLoopsBreakAndContinueUseFreshInvocationLocals()" classname="dev.aetherscript.core.RuntimeControlTest" time="0.003"/>
+  <testcase name="infiniteLoopsAndRecursiveCallsAreBoundedAndEmitNoPartialEffects()" classname="dev.aetherscript.core.RuntimeControlTest" time="0.014"/>
+  <testcase name="countedLoopEvaluatesCountOnceAndNestedBreakIsLocal()" classname="dev.aetherscript.core.RuntimeControlTest" time="0.005"/>
+  <testcase name="functionLocalsAndBlockShadowingAreIsolated()" classname="dev.aetherscript.core.RuntimeControlTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

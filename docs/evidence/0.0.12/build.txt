@@ -1,0 +1,77 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.io.tmpdir=C:\Users\surya\Documents\Codex\2026-11-09\read-aetherscript-codex-handoff-md-completely\work
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.1.0/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :clean
+> Task :check UP-TO-DATE
+> Task :assemble UP-TO-DATE
+> Task :build UP-TO-DATE
+> Task :gateway-mcp:clean
+> Task :core:clean
+> Task :gateway-mcp:processResources NO-SOURCE
+> Task :gateway-mcp:processTestResources NO-SOURCE
+> Task :plugin-paper:clean
+> Task :plugin-paper:processResources
+> Task :plugin-paper:processTestResources NO-SOURCE
+> Task :core:compileJava
+> Task :core:processResources
+> Task :core:classes
+> Task :core:jar
+> Task :gateway-mcp:compileJava
+> Task :gateway-mcp:classes
+> Task :gateway-mcp:jar
+> Task :core:compileTestJava
+> Task :core:processTestResources NO-SOURCE
+> Task :core:testClasses
+> Task :plugin-paper:compileJava
+> Task :plugin-paper:classes
+> Task :plugin-paper:jar
+
+> Task :core:test
+Picked up JAVA_TOOL_OPTIONS: -Djava.io.tmpdir=C:\Users\surya\Documents\Codex\2026-11-09\read-aetherscript-codex-handoff-md-completely\work
+
+> Task :gateway-mcp:shadowJar
+> Task :gateway-mcp:compileTestJava
+> Task :gateway-mcp:testClasses
+
+> Task :gateway-mcp:test
+Picked up JAVA_TOOL_OPTIONS: -Djava.io.tmpdir=C:\Users\surya\Documents\Codex\2026-11-09\read-aetherscript-codex-handoff-md-completely\work
+
+> Task :gateway-mcp:check
+> Task :gateway-mcp:startScripts
+> Task :gateway-mcp:distTar
+> Task :gateway-mcp:distZip
+> Task :plugin-paper:shadowJar
+> Task :gateway-mcp:startShadowScripts
+> Task :gateway-mcp:shadowDistTar
+> Task :plugin-paper:compileTestJava
+> Task :plugin-paper:testClasses
+> Task :gateway-mcp:shadowDistZip
+> Task :gateway-mcp:assemble
+> Task :gateway-mcp:build
+
+> Task :plugin-paper:test
+Picked up JAVA_TOOL_OPTIONS: -Djava.io.tmpdir=C:\Users\surya\Documents\Codex\2026-11-09\read-aetherscript-codex-handoff-md-completely\work
+
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.sqlite.SQLiteJDBCLoader in an unnamed module (file:/C:/Users/surya/.gradle/caches/modules-2/files-2.1/org.xerial/sqlite-jdbc/3.54.1.0/b74a59de3ae1dbab7c550fe7c46099980261a676/sqlite-jdbc-3.54.1.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+
+> Task :plugin-paper:check
+> Task :plugin-paper:assemble
+> Task :plugin-paper:build
+> Task :core:check
+> Task :core:assemble
+> Task :core:build
+
+[Incubating] Problems report is available at: file:///C:/Users/surya/Documents/Codex/2026-11-09/read-aetherscript-codex-handoff-md-completely/outputs/AetherScript/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.1.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 25s
+26 actionable tasks: 26 executed
