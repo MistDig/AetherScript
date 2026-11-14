@@ -313,3 +313,101 @@ a:focus-visible, button:focus-visible, pre:focus-visible, summary:focus-visible 
 @media (prefers-reduced-motion: reduce) {
   .aether-mascot, .mascot-face i { animation: none; }
 }
+
+.cloud-scene .aurora {
+  position: absolute;
+  inset: -35% -60% 4%;
+  z-index: -1;
+  background: conic-gradient(from 20deg, transparent, #54f7e980, #768bff99, transparent 52%, #fff7cb99, transparent);
+  filter: blur(24px);
+  animation: sky-turn 18s linear infinite;
+}
+.flight-orbits {
+  position: absolute;
+  inset: 24% 8% 29%;
+  pointer-events: none;
+}
+.flight-orbits i {
+  position: absolute;
+  inset: 7% 0;
+  border: 1px solid #fff9;
+  border-radius: 50%;
+  transform: rotate(var(--tilt)) scaleY(.56);
+  animation: orbit-glow 4s ease-in-out infinite alternate;
+  animation-delay: var(--delay);
+  --tilt: -24deg;
+  --delay: 0s;
+}
+.flight-orbits i:nth-child(2) { --tilt: 29deg; --delay: -1.2s; }
+.flight-orbits i:nth-child(3) { --tilt: 4deg; --delay: -2.5s; }
+.flight-orbits i::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: conic-gradient(transparent 75%, #fff 90%, transparent 91%);
+  mask: radial-gradient(ellipse closest-side, transparent 96%, #000);
+  animation: sky-turn 5s linear infinite;
+}
+.sky-comets i {
+  position: absolute;
+  left: 8%;
+  top: 37%;
+  width: 32%;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, #fff);
+  box-shadow: 12px 0 18px #fff;
+  opacity: 0;
+  animation: sky-comet 7s linear infinite;
+}
+.sky-comets i:nth-child(2) { top: 56%; animation-delay: -3.8s; }
+.flight-sequence {
+  position: absolute;
+  inset: auto 6% 13%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.flight-sequence > div {
+  padding: 9px;
+  border: 1px solid #fff;
+  border-radius: 12px;
+  background: #edf7ff;
+  font-size: clamp(10px, 1.1vw, 13px);
+  line-height: 1.25;
+  animation: flight-stage 9s infinite;
+}
+.flight-sequence > div:nth-child(2) { animation-delay: -6s; }
+.flight-sequence > div:nth-child(3) { animation-delay: -3s; }
+.flight-sequence strong, .flight-sequence span { display: block; }
+.flight-sequence strong { margin-bottom: .35em; }
+.sky-motion-control {
+  position: absolute;
+  z-index: 2;
+  bottom: 5%;
+  right: 6%;
+  padding: 4px 9px;
+  border: 1px solid #7397c3;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 11px;
+  line-height: 1.3;
+}
+.cloud-scene .scene-bottom { display: none; }
+.motion-paused *, .motion-paused *::after { animation-play-state: paused !important; }
+@keyframes sky-turn { to { rotate: 360deg; } }
+@keyframes orbit-glow { to { opacity: .36; } }
+@keyframes sky-comet {
+  0%, 64% { opacity: 0; transform: translate(-35%, 80px) rotate(-19deg); }
+  70% { opacity: .9; }
+  82%, 100% { opacity: 0; transform: translate(235%, -85px) rotate(-19deg); }
+}
+@keyframes flight-stage {
+  0%, 30% { transform: translateY(-5px); background: #fff; box-shadow: 0 6px 18px #17478435; }
+  37%, 96% { transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cloud-scene *, .cloud-scene *::after { animation: none !important; }
+  .sky-motion-control { display: none; }
+}

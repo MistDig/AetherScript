@@ -1,10 +1,10 @@
-[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.14)
+[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.15)
 
 ---
 
 ## Connect your AI
 
-Install AetherScript 0.0.14 in the Minecraft server's plugins folder and start the server. Java 25 is required. Keep one plugin JAR installed.
+Install AetherScript 0.0.15 in the Minecraft server's plugins folder and start the server. Java 25 is required. Keep one plugin JAR installed.
 
 ### On the Minecraft computer
 
@@ -29,7 +29,7 @@ codex mcp login aetherscript
 
 If AetherScript is already configured, run the login command. Complete authorization in the browser with the enrollment page and use `/mcp` in Codex to check the connection.
 
-For ChatGPT, add the displayed hosted MCP address in your app's custom connector settings and begin authorization. Availability depends on your account and workspace settings. For Cursor use the installation link. Claude Code and Cline can use the hosted OAuth address if the installed client supports it. Their actual client verification is recorded in the [matrix](https://github.com/MistDig/AetherScript/blob/v0.0.14/docs/mcp-clients.md).
+For ChatGPT, add the displayed hosted MCP address in your app's custom connector settings and begin authorization. Availability depends on your account and workspace settings. For Cursor use the installation link. Claude Code and Cline can use the hosted OAuth address if the installed client supports it. Their actual client verification is recorded in the [matrix](https://github.com/MistDig/AetherScript/blob/v0.0.15/docs/mcp-clients.md).
 
 ### Approve and check
 

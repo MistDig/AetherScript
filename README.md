@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/assets/aetherscript-banner.png" alt="AetherScript — little scripts, big possibilities" width="1200"></p>
 
-<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.14"><b>Download 0.0.14</b></a> · <a href="https://mistdig.github.io/AetherScript/">Explore the docs</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
+<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.15"><b>Download 0.0.15</b></a> · <a href="https://mistdig.github.io/AetherScript/">Explore the docs</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
 
 [![Build](https://github.com/MistDig/AetherScript/actions/workflows/ci.yml/badge.svg)](https://github.com/MistDig/AetherScript/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/MistDig/AetherScript)](https://github.com/MistDig/AetherScript/releases)
@@ -67,7 +67,7 @@ This experimental release supports sender-only message effects with both prepara
 
 ## Get started
 
-1. Stop Paper, back up existing AetherScript data, and install **AetherScript-0.0.14.jar** from the release. Keep only one plugin JAR installed.
+1. Stop Paper, back up existing AetherScript data, and install **AetherScript-0.0.15.jar** from the release. Keep only one plugin JAR installed.
 2. Start with Java 25 and wait for `Ready. Restored ...`. A new install creates and activates `plugins/AetherScript/scripts/hello-ai.yml`.
 3. Run `/ais run hello-ai`. Players need `aetherscript.example.hello` (operators by default).
 4. Edit its quoted `text`, save, then `/ais validate hello-ai` and `/ais reload hello-ai`.
@@ -103,8 +103,8 @@ python integration-tests/mcp_stdio.py
 
 Linux/macOS: `./gradlew clean check build`. Gradle 9.1.0 wrapper, dependency locks and checksums are committed. First build needs network access.
 
-- `plugin-paper/build/libs/plugin-paper-0.0.14.jar`: standalone plugin; do not install the thin JAR.
-- `gateway-mcp/build/libs/gateway-mcp-0.0.14.jar`: separate executable MCP process.
+- `plugin-paper/build/libs/plugin-paper-0.0.15.jar`: standalone plugin; do not install the thin JAR.
+- `gateway-mcp/build/libs/gateway-mcp-0.0.15.jar`: separate executable MCP process.
 
 The 0.0.12 clean build passed **254 Java tests**. Both packaged JARs passed native SQLite storage/license checks; the CLI/MCP, nine wiki examples and seven published 0.0.11 semantic-hash compatibility cases pass. Paper passed 19 runtime/command checks over two boots. [0.0.12 evidence](docs/evidence/0.0.12) records exact scope. The five-boot/100-reload recovery run and seven relay tests remain attributed to 0.0.11 in [test notes](docs/testing.md). Connected-player command-tree/suggestions, client certification, the owner's two-PC Feather setup, Purpur and quantitative performance measurements remain incomplete.
 

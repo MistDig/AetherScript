@@ -4,6 +4,12 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { withBase, useData } from 'vitepress'
 const { theme } = useData()
 const copyState = ref('')
+const motionPaused = ref(false)
+const stages = [
+  { label: 'Prompt', text: 'Give players a custom welcome command.' },
+  { label: 'AetherScript', text: 'command welcome …' },
+  { label: 'In Minecraft', text: '/welcome → Welcome to the server!' }
+]
 const imageFailed = ref(false)
 const example = authoring.template
 let observer
@@ -40,7 +46,10 @@ const principles = [
       </div>
       <p class="hero-meta">Paper 26.3 <span>·</span> Java 25 <span>·</span> Open source</p>
     </div>
-    <div class="cloud-scene">
+    <div class="cloud-scene" :class="{ 'motion-paused': motionPaused }">
+      <div class="aurora" aria-hidden="true"></div>
+      <div class="flight-orbits" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="sky-comets" aria-hidden="true"><i></i><i></i></div>
       <div class="sky-rings" aria-hidden="true"></div>
       <span class="scene-caption">AI → AETHERSCRIPT → PAPER</span>
       <div class="aether-mascot" role="img" aria-label="A smiling cloud mascot">
@@ -48,7 +57,10 @@ const principles = [
       <div class="mascot-face" aria-hidden="true"><i></i><i></i><span></span></div>
     </div>
     <span class="scene-star star-one" aria-hidden="true">✦</span><span class="scene-star star-two" aria-hidden="true">✧</span>
-      <div class="scene-note"><span aria-hidden="true">↳</span> “Give players a custom welcome command.”</div>
+      <div class="flight-sequence" aria-label="Illustrative prompt-to-game sequence">
+        <div v-for="stage in stages" :key="stage.label"><strong>{{ stage.label }}</strong><span>{{ stage.text }}</span></div>
+      </div>
+      <button class="sky-motion-control" type="button" @click="motionPaused = !motionPaused">{{ motionPaused ? 'Play animation' : 'Pause animation' }}</button>
       <div class="scene-bottom"><span>AetherScript</span><span>Example prompt</span></div>
     </div>
   </section>
