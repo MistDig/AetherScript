@@ -73,7 +73,7 @@ async function handleV2Core(req,env,cors){
  try{
   if(path==='/register'||path==='/oauth/register'){
    const input=await read(req),method=input.token_endpoint_auth_method??'client_secret_basic';
-   if(!Array.isArray(input.redirect_uris)||input.redirect_uris.length<1||input.redirect_uris.length>5||!input.redirect_uris.every(s=>typeof s==='string'&&s.length<=2048&&safeRedirect(s))||!AUTH_METHODS.includes(method)||input.grant_types&&(!Array.isArray(input.grant_types)||input.grant_types.length!==1||input.grant_types.some(x=>x!=='authorization_code'))||input.response_types&&(!Array.isArray(input.response_types)||input.response_types.length!==1||input.response_types.some(x=>x!=='code')))return deny('invalid_client_metadata');
+   if(!Array.isArray(input.redirect_uris)||input.redirect_uris.length<1||input.redirect_uris.length>5||!input.redirect_uris.every(s=>typeof s==='string'&&s.length<=2048&&safeRedirect(s))||!AUTH_METHODS.includes(method)||input.grant_types!==undefined&&(!Array.isArray(input.grant_types)||!input.grant_types.includes('authorization_code')||input.grant_types.some(x=>x!=='authorization_code'&&x!=='refresh_token'))||input.response_types&&(!Array.isArray(input.response_types)||input.response_types.length!==1||input.response_types.some(x=>x!=='code')))return deny('invalid_client_metadata');
    return internal(env,'registry','register',{redirect_uris:input.redirect_uris,method,ip:await digest(req.headers.get('cf-connecting-ip')||'local')});
   }
   if(path==='/v2/enrollments'){

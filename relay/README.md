@@ -61,3 +61,14 @@ Validation: seven tests pass, including real local workerd coverage for public, 
 MCP initialization, tool discovery and tool calls now wait up to fifteen seconds for a valid new grant's Paper acknowledgement, rechecking the verifier once per second. If Paper acknowledges within that window, the first request succeeds without a client-specific retry workaround. Supersession, expiry or revocation during the wait returns 401 `invalid_token` immediately on the next check. A still-valid pending handshake that reaches the bound returns retryable HTTP 503 `temporarily_unavailable` with `Retry-After: 2`, rather than claiming the token is invalid.
 
 Script IDs use Paper's exact `^[a-z][a-z0-9-]{0,63}$` grammar in enrollment, approval, full-grant requests and MCP schemas. Older selected grants containing invalid IDs are terminally invalidated instead of repeatedly offered to Paper. The seven-test suite additionally covers acknowledgement during the first initialize request, supersession while initialization waits, retryable acknowledgement timeout, uppercase/dot/underscore rejection, and terminal cleanup of an older invalid selected grant.
+
+## Connect from Codex CLI
+
+Open a fresh private enrollment link from the Paper console in your browser and select Codex. Run these commands on the same computer and finish OAuth in that browser:
+
+```sh
+codex mcp add aetherscript --url https://aetherscript-relay.mistdig143.workers.dev/mcp
+codex mcp login aetherscript
+```
+
+Use the MCP URL of your own Worker for a self-hosted deployment. If the server is already configured, start at the login command. Use `/mcp` in Codex to check the connection, then ask Codex to call the AetherScript status tool.
