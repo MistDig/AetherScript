@@ -1,4 +1,4 @@
-[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.13)
+[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.14)
 
 ---
 
@@ -217,8 +217,8 @@ The engine caps active features at 128, tracked histories at 128 and scripts-dir
 
 Copy an example to `scripts/welcome.aether` or `scripts/welcome.yml`. Set both feature ID and command name to `welcome`, choose the explicit permission `aetherscript.example.welcome`, and write your message. Validate, reload and invoke `/ais run welcome`.
 
-[Working examples](https://github.com/MistDig/AetherScript/tree/v0.0.13/examples) · [Structured JSON Schema](https://github.com/MistDig/AetherScript/blob/v0.0.13/schema/feature-v1.schema.json) · [Grammar and architecture decision](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/language-decision.md) · [Capability matrix](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/capabilities.csv)
+[Working examples](https://github.com/MistDig/AetherScript/tree/v0.0.14/examples) · [Structured JSON Schema](https://github.com/MistDig/AetherScript/blob/v0.0.14/schema/feature-v1.schema.json) · [Grammar and architecture decision](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/language-decision.md) · [Capability matrix](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/capabilities.csv)
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.13
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.14

@@ -1,7 +1,7 @@
 ---
 layout: home
-title: Your server, your little universe
-description: Build something lovely with live Minecraft scripts. Learn AetherScript, recover working versions, and explore what comes next.
+title: AI scripting for Minecraft servers
+description: Connect your AI to Paper through MCP and build custom Minecraft features with AetherScript.
 ---
 
 <AetherHome />

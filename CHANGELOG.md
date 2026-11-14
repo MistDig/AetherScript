@@ -2,6 +2,11 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.14] - 2026-11-15
+
+- Redesign the homepage around an AI-to-Paper workflow, with an Aether cloudscape and a working script example.
+- Explain which scripting tools are available and which gameplay systems are planned for the broader AI-built server vision.
+
 ## [0.0.13] - 2026-11-15
 
 - Accept Claude-style OAuth registration requests that include authorization_code and optionally refresh_token. Advertise authorization_code, the implemented grant.

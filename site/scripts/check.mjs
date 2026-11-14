@@ -30,12 +30,12 @@ for(const file of htmlFiles){
 }
 assert.ok(files(dist).filter(p => /404\.md\..*\.js$/.test(p)).some(p => readFileSync(p,'utf8').includes('Return to the guide')), 'Custom not-found page must provide a way home');
 const home=readFileSync(resolve(dist,'index.html'),'utf8');
-assert.match(home,/Your server\./);
-assert.match(home,/universe\./);
+assert.match(home,/Describe the server\./);
+assert.match(home,/Build how it plays\./);
 assert.match(home,/Copy the complete cloud-note AetherScript example/);
 assert.match(home,/Server grants protect each operation/);
 assert.match(home,/General console execution is unavailable/);
-assert.match(home,/cloud-mascot\.png/);
+assert.match(home,/A smiling cloud mascot/);
 const search=files(dist).find(p=>p.includes('@localSearchIndexroot'));
 assert.ok(search,'Local full-text search index must exist');
 const serialized=(await import(pathToFileURL(search).href)).default;
