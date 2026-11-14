@@ -79,7 +79,7 @@ const principles = [
   </section>
 
   <section class="principles home-section" aria-labelledby="principles-title" data-reveal>
-    <div class="section-heading"><p class="section-kicker">THE AUTHORING WORKFLOW</p><h2 id="principles-title">From a prompt<br> to a playable feature.</h2></div>
+    <div class="section-heading"><p class="section-kicker">THE AUTHORING WORKFLOW</p><h2 id="principles-title">From a prompt to a playable feature.</h2></div>
     <div class="principle-list"><a v-for="item in principles" :key="item.title" :href="withBase(`/guide/${item.link}.html`)"><h3>{{ item.title }}</h3><p>{{ item.text }}</p><span>{{ item.label }} <b aria-hidden="true">↗︎</b></span></a></div>
   </section>
 

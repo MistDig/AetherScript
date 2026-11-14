@@ -530,3 +530,31 @@ a:focus-visible, button:focus-visible, pre:focus-visible, summary:focus-visible 
   .aether-home .flight-sequence { inset-inline: 5%; }
   .aether-home .docs-parcel { transform: none; padding: 24px; }
 }
+
+.aether-home .principles .section-heading {
+  display: block;
+  max-width: 48rem;
+}
+.aether-home .principles .section-kicker { margin-bottom: 12px; }
+.aether-home .principles h2 {
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  text-wrap: pretty;
+}
+.aether-home .principle-list {
+  gap: clamp(16px, 2.5vw, 32px);
+  margin-top: 32px;
+}
+.aether-home .principle-list > a {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 16px;
+  background: var(--aether-paper);
+}
+.aether-home .principle-list h3 { font-size: 1.25rem; }
+.aether-home .principle-list p { margin: 10px 0 14px; }
+.aether-home .principle-list > a > span {
+  justify-content: flex-start;
+  gap: 8px;
+  font-size: .875rem;
+}
