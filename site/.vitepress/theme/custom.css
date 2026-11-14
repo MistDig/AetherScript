@@ -438,3 +438,44 @@ a:focus-visible, button:focus-visible, pre:focus-visible, summary:focus-visible 
   from { opacity: 0; transform: translateY(40px) scale(.95); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+.flight-sequence {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.flight-sequence > .flight-output {
+  grid-column: 1 / -1;
+  display: grid;
+  min-height: 3.2em;
+  place-items: center;
+  overflow: hidden;
+  background: #142b49;
+  color: #effaff;
+  animation: none;
+  font-family: ui-monospace, monospace;
+}
+.flight-output span { animation: flight-output-in 420ms cubic-bezier(.2,.85,.25,1) both; }
+.flight-sequence button {
+  padding: 8px 3px;
+  border: 1px solid #ffffffc9;
+  border-radius: 10px;
+  background: #eaf6ff;
+  color: #193658;
+  font-size: clamp(10px, 1.2vw, 13px);
+  font-weight: 650;
+  line-height: 1.25;
+  transition: background 180ms, box-shadow 180ms;
+}
+.flight-sequence button:hover { background: #fff; }
+.flight-sequence button[aria-pressed="true"] {
+  background: #1e4772;
+  color: #fff;
+  box-shadow: 0 4px 12px #17478444;
+}
+@keyframes flight-output-in {
+  from { opacity: 0; transform: translateY(12px) scale(.97); filter: blur(4px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+.motion-paused .flight-output span { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .flight-sequence button { transition: none; }
+}

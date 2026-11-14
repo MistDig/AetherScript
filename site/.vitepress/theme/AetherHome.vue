@@ -5,6 +5,7 @@ import { withBase, useData } from 'vitepress'
 const { theme } = useData()
 const copyState = ref('')
 const motionPaused = ref(false)
+const selectedStage = ref(0)
 const stages = [
   { label: 'Prompt', text: 'Give players a custom welcome command.' },
   { label: 'AetherScript', text: 'command welcome …' },
@@ -69,7 +70,8 @@ const principles = [
     </div>
     <span class="scene-star star-one" aria-hidden="true">✦</span><span class="scene-star star-two" aria-hidden="true">✧</span>
       <div class="flight-sequence" aria-label="Illustrative prompt-to-game sequence">
-        <div v-for="stage in stages" :key="stage.label"><strong>{{ stage.label }}</strong><span>{{ stage.text }}</span></div>
+        <div class="flight-output" aria-live="polite"><span :key="selectedStage">{{ stages[selectedStage].text }}</span></div>
+        <button v-for="(stage, index) in stages" :key="stage.label" type="button" :aria-pressed="selectedStage === index" @click="selectedStage = index">{{ stage.label }}</button>
       </div>
       <button class="sky-motion-control" type="button" @click="motionPaused = !motionPaused">{{ motionPaused ? 'Play animation' : 'Pause animation' }}</button>
       <div class="scene-bottom"><span>AetherScript</span><span>Example prompt</span></div>
