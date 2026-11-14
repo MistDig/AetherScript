@@ -479,3 +479,54 @@ a:focus-visible, button:focus-visible, pre:focus-visible, summary:focus-visible 
 @media (prefers-reduced-motion: reduce) {
   .flight-sequence button { transition: none; }
 }
+
+/* Keep the landing-page type scale independent of VitePress prose defaults. */
+.aether-home h2 {
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  line-height: 1.12;
+  letter-spacing: -.045em;
+  text-wrap: balance;
+}
+.aether-home .hero-content h1 {
+  font-size: clamp(2.5rem, 5.8vw, 5.5rem);
+  line-height: 1.07;
+  letter-spacing: -.055em;
+  text-wrap: balance;
+}
+.aether-home .hero-description,
+.aether-home .principle-list p,
+.aether-home .example-intro > p:not(.section-kicker),
+.aether-home .ai-section > div > p:not(.section-kicker),
+.aether-home .scope-details p {
+  font-size: 1rem;
+  line-height: 1.65;
+}
+.aether-home .hero-meta { flex-wrap: wrap; font-size: .8125rem; }
+.aether-home .section-kicker,
+.aether-home .eyebrow,
+.aether-home .scene-caption { font-size: .75rem; letter-spacing: .09em; }
+.aether-home .principle-list > a { display: flex; flex-direction: column; }
+.aether-home .principle-list > a > span { margin-top: auto; }
+.aether-home .aether-button,
+.aether-home .download-link,
+.aether-home .text-link,
+.aether-home .closing-links { font-size: .9375rem; }
+.aether-home .flight-sequence > .flight-output {
+  min-height: 4.5em;
+  font-size: .875rem;
+  line-height: 1.4;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.aether-home .flight-sequence button,
+.aether-home .sky-motion-control { font-size: .8125rem; }
+.aether-home .flight-sequence button { min-height: 44px; }
+.aether-home .closing-section h2 { font-size: clamp(2rem, 5vw, 4.5rem); }
+@media (max-width: 760px) {
+  .aether-home .hero-content h1 { font-size: clamp(2.25rem, 8vw, 3.5rem); }
+  .aether-home .section-heading { grid-template-columns: 1fr; gap: 0; }
+  .aether-home h2 br { display: none; }
+  .aether-home .home-section { padding-block: 52px; }
+  .aether-home .flight-sequence { inset-inline: 5%; }
+  .aether-home .docs-parcel { transform: none; padding: 24px; }
+}
