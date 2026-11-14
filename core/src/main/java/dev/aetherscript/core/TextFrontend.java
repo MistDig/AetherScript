@@ -17,6 +17,11 @@ public final class TextFrontend {
     public static final int MAX_STATEMENTS = 256;
     public static final int MAX_DEPTH = 32;
     public static final int MAX_STEPS = 8192;
+    public static final int MAX_CALL_DEPTH = 32;
+    public static final int MAX_FUNCTIONS = 32;
+    // Retain the original reserved identifiers. New statement words are contextual
+    // so an existing `let repeat = 3` remains valid after an engine upgrade.
+    private static final List<String> RESERVED = List.of("true", "false", "text", "let", "send", "if", "else", "arg");
 
     public CompiledFeature parse(byte[] source) {
         if (source.length > FeatureParser.MAX_BYTES) throw new ValidationException("$", "Source exceeds 65536 bytes", 1, 1);
@@ -41,8 +46,17 @@ public final class TextFrontend {
         boolean bool() { return (Boolean) value; }
         String text() { return (String) value; }
     }
-    private record Binding(String name, Type type, Token declaration, int slot) {}
+    private record Binding(String name, Type type, Token declaration, int slot, boolean mutable) {}
     private record Argument(Binding binding, Value defaultValue) {}
+    private static final class Function {
+        final Token name;
+        final List<Binding> parameters;
+        final Type result;
+        List<Statement> body;
+        Function(Token name, List<Binding> parameters, Type result) {
+            this.name = name; this.parameters = List.copyOf(parameters); this.result = result;
+        }
+    }
 
     private static final class Lexer {
         private final String input;
@@ -90,7 +104,7 @@ public final class TextFrontend {
                     String operator = Character.toString(c);
                     if (index + 1 < input.length() && List.of("==", "!=", "<=", ">=", "&&", "||").contains(input.substring(index, index + 2))) {
                         operator = input.substring(index, index + 2); advance();
-                    } else if ("{}():+-*/%<>=!".indexOf(c) < 0) {
+                    } else if ("{}(),:+-*/%<>=!".indexOf(c) < 0) {
                         throw error(startLine, startColumn, "Unexpected character. Use the documented operators and double-quoted text.");
                     }
                     advance(); add(Kind.SYMBOL, operator, startLine, startColumn);
@@ -175,6 +189,26 @@ public final class TextFrontend {
         public int depth() { return operand.depth() + 1; }
         public Value evaluate(Execution execution) { execution.step(); return textValue(operand.evaluate(execution).value().toString(), token); }
     }
+    private record Call(Function function, List<Expression> arguments, Token token) implements Expression {
+        public Type type() { return function.result; }
+        public int depth() { return 1 + arguments.stream().mapToInt(Expression::depth).max().orElse(0); }
+        public Value evaluate(Execution execution) {
+            execution.step(token);
+            List<Value> values = arguments.stream().map(argument -> argument.evaluate(execution)).toList();
+            if (execution.callDepth >= MAX_CALL_DEPTH) throw token.error("Function call depth exceeds 32");
+            Map<Binding, Value> caller = execution.values;
+            execution.values = new HashMap<>(); execution.callDepth++;
+            for (int i = 0; i < values.size(); i++) execution.values.put(function.parameters.get(i), values.get(i));
+            try {
+                for (Statement statement : function.body) statement.prepare(execution);
+                throw token.error("Function did not return a value");
+            } catch (Returned returned) {
+                return returned.value;
+            } catch (ValidationException error) {
+                throw new ValidationException(error.path(), error.reason() + "\n  called " + function.name.text() + " at line " + token.line() + ", column " + token.column(), error.line(), error.column());
+            } finally { execution.values = caller; execution.callDepth--; }
+        }
+    }
     private static Value textValue(String text, Token token) {
         if (text.length() > FeatureParser.MAX_TEXT) throw token.error("Text exceeds 2048 UTF-16 units");
         return new Value(Type.TEXT, text);
@@ -183,6 +217,35 @@ public final class TextFrontend {
     private interface Statement { void prepare(Execution execution); }
     private record Let(Binding binding, Expression initializer) implements Statement {
         public void prepare(Execution execution) { execution.step(); execution.values.put(binding, initializer.evaluate(execution)); }
+    }
+    private record Assign(Binding binding, Expression value, Token token) implements Statement {
+        public void prepare(Execution execution) { execution.step(token); execution.values.put(binding, value.evaluate(execution)); }
+    }
+    private record Loop(Expression condition, List<Statement> body, boolean counted, Token token) implements Statement {
+        public void prepare(Execution execution) {
+            execution.step(token);
+            long remaining = counted ? condition.evaluate(execution).integer() : 0;
+            if (counted && remaining < 0) throw token.error("repeat count must be nonnegative");
+            while (counted ? remaining-- > 0 : condition.evaluate(execution).bool()) {
+                execution.step(token);
+                try { for (Statement statement : body) statement.prepare(execution); }
+                catch (LoopJump jump) { if (!jump.continueLoop) break; }
+            }
+        }
+    }
+    private static final class LoopJump extends RuntimeException {
+        final boolean continueLoop;
+        LoopJump(boolean continueLoop) { super(null, null, false, false); this.continueLoop = continueLoop; }
+    }
+    private record Jump(boolean continueLoop, Token token) implements Statement {
+        public void prepare(Execution execution) { execution.step(token); throw new LoopJump(continueLoop); }
+    }
+    private static final class Returned extends RuntimeException {
+        final Value value;
+        Returned(Value value) { super(null, null, false, false); this.value = value; }
+    }
+    private record Return(Expression value, Token token) implements Statement {
+        public void prepare(Execution execution) { execution.step(token); throw new Returned(value.evaluate(execution)); }
     }
     private record Send(Expression expression, Token token) implements Statement {
         public void prepare(Execution execution) {
@@ -200,16 +263,27 @@ public final class TextFrontend {
         }
     }
     private static final class Execution {
-        final Map<Binding, Value> values = new HashMap<>();
+        Map<Binding, Value> values = new HashMap<>();
         final List<Feature.MessageAction> messages = new ArrayList<>();
-        private int steps;
+        private int steps, callDepth;
         void step() {
-            if (++steps > MAX_STEPS) throw new ValidationException("$", "Execution budget exceeded (8192 steps)", 1, 1);
+            step(null);
+        }
+        void step(Token token) {
+            if (++steps > MAX_STEPS) {
+                if (token != null) throw token.error("Execution budget exceeded (8192 steps)");
+                throw new ValidationException("$", "Execution budget exceeded (8192 steps)", 1, 1);
+            }
         }
     }
 
-    private record RuntimeProgram(List<Argument> arguments, List<Statement> body) implements CompiledFeature.Program {
+    private record RuntimeProgram(List<Argument> arguments, List<Statement> body, String sourceHash) implements CompiledFeature.Program {
         RuntimeProgram { arguments = List.copyOf(arguments); body = List.copyOf(body); }
+        // Recursive call graphs contain function identity references. Equal source
+        // compiled by this frontend is still the same immutable program, including
+        // for unchanged reloads and saved-revision reconstruction.
+        @Override public boolean equals(Object other) { return other instanceof RuntimeProgram program && sourceHash.equals(program.sourceHash); }
+        @Override public int hashCode() { return sourceHash.hashCode(); }
         public List<Feature.MessageAction> evaluate(List<String> rawArguments) {
             List<String> supplied = InvocationArguments.checked(rawArguments);
             if (supplied.size() > arguments.size())
@@ -254,6 +328,7 @@ public final class TextFrontend {
             case Unary unary -> usesName(unary.operand());
             case Binary binary -> usesName(binary.left()) || usesName(binary.right());
             case AsText conversion -> usesName(conversion.operand());
+            case Call ignored -> true;
             default -> false;
         };
     }
@@ -262,6 +337,10 @@ public final class TextFrontend {
             case Let let -> (Object) List.of("let", let.binding().slot(), expressionDescription(let.initializer()));
             case Send send -> (Object) List.of("send", expressionDescription(send.expression()));
             case Condition condition -> (Object) List.of("if", expressionDescription(condition.condition()), statementsDescription(condition.yes()), statementsDescription(condition.no()));
+            case Assign assign -> (Object) List.of("set", assign.binding().slot(), expressionDescription(assign.value()));
+            case Loop loop -> (Object) List.of(loop.counted() ? "repeat" : "while", expressionDescription(loop.condition()), statementsDescription(loop.body()));
+            case Jump jump -> (Object) List.of(jump.continueLoop() ? "continue" : "break");
+            case Return returned -> (Object) List.of("return", expressionDescription(returned.value()));
             default -> throw new AssertionError("Unknown statement");
         }).toList();
     }
@@ -272,6 +351,7 @@ public final class TextFrontend {
             case Unary unary -> List.of("unary", unary.operator().text(), expressionDescription(unary.operand()));
             case Binary binary -> List.of("binary", binary.operator().text(), expressionDescription(binary.left()), expressionDescription(binary.right()));
             case AsText conversion -> List.of("text", expressionDescription(conversion.operand()));
+            case Call call -> List.of("call", call.function().name.text(), call.arguments().stream().map(TextFrontend::expressionDescription).toList());
             default -> throw new AssertionError("Unknown expression");
         };
     }
@@ -280,12 +360,16 @@ public final class TextFrontend {
         private final List<Token> tokens;
         private final Deque<Map<String, Binding>> scopes = new ArrayDeque<>();
         private final List<Argument> arguments = new ArrayList<>();
-        private int index, nodes, statements, blockDepth, expressionDepth, bindings;
+        private final Map<String, Function> functions = new java.util.LinkedHashMap<>();
+        private Function currentFunction;
+        private boolean advanced;
+        private int index, nodes, statements, blockDepth, expressionDepth, bindings, loopDepth;
         Parser(List<Token> tokens) { this.tokens = tokens; }
         CompiledFeature compile(byte[] original) {
             newlines(); expect("feature"); String id = logicalId();
             expect("version"); Token versionToken = require(Kind.STRING, "Feature version must be double-quoted text");
             bounded(versionToken, 64, "Feature version"); lineEnd();
+            while (matches("fn")) { function(); newlines(); }
             expect("command"); Token commandToken = peek(); String name = logicalId();
             expect("permission"); Token permission = require(Kind.STRING, "Permission must be explicit double-quoted text");
             if (permission.text().length() > 128 || !permission.text().matches("[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)+"))
@@ -294,7 +378,7 @@ public final class TextFrontend {
             if (!List.of("any", "player").contains(sender.text())) throw sender.error("Sender must be any or player");
             List<Statement> body = block(); newlines();
             if (peek().kind() != Kind.END) throw peek().error("Expected end of file. This slice supports one command per feature.");
-            if (arguments.isEmpty()) {
+            if (arguments.isEmpty() && !advanced) {
                 Execution execution = new Execution();
                 for (Statement statement : body) statement.prepare(execution);
                 if (execution.messages.isEmpty()) throw commandToken.error("The selected branch must send at least one message");
@@ -302,15 +386,58 @@ public final class TextFrontend {
                 return compiled(feature, original, null, feature);
             }
             int messages = maximumMessages(body);
-            if (messages == 0 || messages > FeatureParser.MAX_ACTIONS)
+            if (!advanced && (messages == 0 || messages > FeatureParser.MAX_ACTIONS))
                 throw commandToken.error("Runtime commands must contain a send and emit at most 32 messages on any branch");
             Feature feature = definition(id, versionToken.text(), name, permission.text(), sender.text(), List.of());
-            RuntimeProgram program = new RuntimeProgram(arguments, body);
-            Object semantic = List.of("aether-runtime-arguments-v1", feature,
+            RuntimeProgram program = new RuntimeProgram(arguments, body, FeatureParser.hash(original));
+            Object semantic = List.of(advanced ? "aether-runtime-control-v1" : "aether-runtime-arguments-v1", feature,
                 arguments.stream().map(argument -> List.of(argument.binding().name(), argument.binding().type().name(),
                     argument.defaultValue() == null ? List.of() : List.of(argument.defaultValue().value()))).toList(),
                 statementsDescription(body));
+            if (advanced) semantic = List.of(semantic, functions.values().stream().map(function -> List.of(function.name.text(), function.result.name(),
+                function.parameters.stream().map(parameter -> List.of(parameter.slot(), parameter.type().name())).toList(), statementsDescription(function.body))).toList());
             return compiled(feature, original, program, semantic);
+        }
+        private void function() {
+            Token start = take(); advanced = true;
+            if (functions.size() >= MAX_FUNCTIONS) throw start.error("A feature supports at most 32 functions");
+            Token name = identifier("Expected a function name");
+            if (functions.containsKey(name.text())) throw name.error("Function is already declared");
+            expect("("); List<Binding> parameters = new ArrayList<>(); Map<String, Binding> parameterScope = new HashMap<>();
+            if (!matches(")")) do {
+                Token parameter = identifier("Expected a parameter name");
+                if (parameterScope.containsKey(parameter.text())) throw parameter.error("Duplicate function parameter");
+                if (parameters.size() >= InvocationArguments.MAX_COUNT) throw parameter.error("A function supports at most 16 parameters");
+                expect(":"); Type type = declaredType();
+                Binding binding = new Binding(parameter.text(), type, parameter, bindings++, false);
+                parameters.add(binding); parameterScope.put(parameter.text(), binding);
+                if (!matches(",")) break;
+                take();
+            } while (true);
+            expect(")"); expect(":"); Type result = declaredType();
+            Function function = new Function(name, parameters, result);
+            functions.put(name.text(), function); currentFunction = function;
+            scopes.push(parameterScope); function.body = block(); scopes.pop(); currentFunction = null;
+            if (!returns(function.body)) throw name.error("Function must return " + result.name().toLowerCase(java.util.Locale.ROOT) + " on every path");
+        }
+        private boolean returns(List<Statement> body) {
+            for (Statement statement : body) {
+                if (statement instanceof Return) return true;
+                if (statement instanceof Condition condition && returns(condition.yes()) && returns(condition.no())) return true;
+            }
+            return false;
+        }
+        private Token identifier(String reason) {
+            Token token = require(Kind.NAME, reason);
+            if (RESERVED.contains(token.text())) throw token.error("This keyword cannot be an identifier");
+            return token;
+        }
+        private Type declaredType() {
+            Token token = require(Kind.NAME, "Expected text, integer or boolean");
+            return switch (token.text()) {
+                case "text" -> Type.TEXT; case "integer" -> Type.INTEGER; case "boolean" -> Type.BOOLEAN;
+                default -> throw token.error("Type must be text, integer or boolean");
+            };
         }
         private Feature definition(String id, String version, String name, String permission, String sender, List<Feature.MessageAction> actions) {
             return new Feature(1, id, version, List.of("runtime.message.send"), new Feature.Command(name, permission, sender, actions));
@@ -328,7 +455,7 @@ public final class TextFrontend {
                 if (peek().kind() == Kind.END) throw peek().error("Unclosed block. Add a closing brace.");
                 if (++statements > MAX_STATEMENTS) throw peek().error("Statement limit exceeded (256)");
                 if (matches("arg")) {
-                    if (blockDepth != 1 || !result.isEmpty()) throw peek().error("Declare arguments at the start of the command block");
+                    if (currentFunction != null || blockDepth != 1 || !result.isEmpty()) throw peek().error("Declare arguments at the start of the command block");
                     argument();
                 } else result.add(statement());
                 newlines();
@@ -339,7 +466,7 @@ public final class TextFrontend {
             Token start = take();
             if (arguments.size() == InvocationArguments.MAX_COUNT) throw start.error("A command supports at most 16 arguments");
             Token name = require(Kind.NAME, "Expected an argument name");
-            if (List.of("true", "false", "text", "let", "send", "if", "else", "arg").contains(name.text()) || scopes.peek().containsKey(name.text()))
+            if (RESERVED.contains(name.text()) || scopes.peek().containsKey(name.text()))
                 throw name.error("Argument names must be unique local identifiers");
             expect(":"); Token declared = require(Kind.NAME, "Expected argument type text, integer or boolean");
             Type type = switch (declared.text()) {
@@ -359,18 +486,40 @@ public final class TextFrontend {
                 throw name.error("Required arguments must precede arguments with defaults");
             }
             lineEnd();
-            Binding binding = new Binding(name.text(), type, name, bindings++);
+            Binding binding = new Binding(name.text(), type, name, bindings++, false);
             scopes.peek().put(name.text(), binding); arguments.add(new Argument(binding, defaultValue));
         }
         private Statement statement() {
             Token start = take();
-            if (start.text().equals("let")) {
+            if (start.text().equals("let") || start.text().equals("var")) {
                 Token name = require(Kind.NAME, "Expected a local variable name after let");
-                if (List.of("true", "false", "text", "let", "send", "if", "else", "arg").contains(name.text())) throw name.error("This keyword cannot be a variable name");
+                if (RESERVED.contains(name.text())) throw name.error("This keyword cannot be a variable name");
                 if (scopes.peek().containsKey(name.text())) throw name.error("Variable is already declared in this block. Use a different name.");
                 expect("="); Expression initializer = expression(); lineEnd();
-                Binding binding = new Binding(name.text(), initializer.type(), name, bindings++); scopes.peek().put(name.text(), binding);
+                boolean mutable = start.text().equals("var"); advanced |= mutable;
+                Binding binding = new Binding(name.text(), initializer.type(), name, bindings++, mutable); scopes.peek().put(name.text(), binding);
                 return new Let(binding, initializer);
+            }
+            if (start.text().equals("set")) {
+                Token name = require(Kind.NAME, "Expected a mutable local name"); Binding binding = lookup(name);
+                if (!binding.mutable()) throw name.error("Cannot assign to an immutable binding. Declare a mutable local with var.");
+                expect("="); Expression value = expression(); requireType(value, binding.type(), name, "Assignment must preserve the variable type");
+                lineEnd(); advanced = true; return new Assign(binding, value, start);
+            }
+            if (start.text().equals("while") || start.text().equals("repeat")) {
+                boolean counted = start.text().equals("repeat"); Expression condition = expression();
+                requireType(condition, counted ? Type.INTEGER : Type.BOOLEAN, start, counted ? "repeat expects an integer count" : "while expects a boolean condition");
+                loopDepth++; List<Statement> body = block(); loopDepth--; advanced = true;
+                return new Loop(condition, body, counted, start);
+            }
+            if (start.text().equals("break") || start.text().equals("continue")) {
+                if (loopDepth == 0) throw start.error("break and continue require an enclosing loop");
+                lineEnd(); return new Jump(start.text().equals("continue"), start);
+            }
+            if (start.text().equals("return")) {
+                if (currentFunction == null) throw start.error("return requires an enclosing function");
+                Expression value = expression(); requireType(value, currentFunction.result, start, "Return value must match the function result type");
+                lineEnd(); return new Return(value, start);
             }
             if (start.text().equals("send")) {
                 Expression value = expression(); requireType(value, Type.TEXT, start, "send expects text; use text(value) for an integer or boolean"); lineEnd();
@@ -382,7 +531,13 @@ public final class TextFrontend {
                 if (matches("else")) { take(); no = block(); }
                 return new Condition(condition, yes, no);
             }
-            throw start.error("Expected let, send or if. Assignment and host calls are unavailable in this preparation-time slice.");
+            throw start.error("Expected let, var, set, send, if, while, repeat, break, continue or return. Host calls require a supported API.");
+        }
+        private Binding lookup(Token token) {
+            for (Map<String, Binding> scope : scopes) {
+                Binding binding = scope.get(token.text()); if (binding != null) return binding;
+            }
+            throw token.error("Unknown variable '" + token.text() + "'. Declare it with let or var before use.");
         }
         private Expression expression() {
             if (++expressionDepth > MAX_DEPTH) throw peek().error("Expression nesting exceeds 32");
@@ -441,11 +596,22 @@ public final class TextFrontend {
                 expect("("); Expression value = expression(); expect(")"); return node(new AsText(value, token), token);
             }
             if (token.kind() == Kind.NAME) {
-                for (Map<String, Binding> scope : scopes) {
-                    Binding binding = scope.get(token.text());
-                    if (binding != null) return node(new Name(binding, token), token);
+                if (matches("(")) {
+                    Function function = functions.get(token.text());
+                    if (function == null) throw token.error("Unknown function '" + token.text() + "'. Declare it before use.");
+                    take(); List<Expression> values = new ArrayList<>();
+                    if (!matches(")")) do {
+                        if (values.size() >= function.parameters.size()) throw token.error("Too many function arguments");
+                        Expression value = expression(); requireType(value, function.parameters.get(values.size()).type(), token, "Function argument has the wrong type");
+                        values.add(value);
+                        if (!matches(",")) break;
+                        take();
+                    } while (true);
+                    expect(")");
+                    if (values.size() != function.parameters.size()) throw token.error("Missing function argument");
+                    return node(new Call(function, List.copyOf(values), token), token);
                 }
-                throw token.error("Unknown variable '" + token.text() + "'. Declare it with let before use.");
+                return node(new Name(lookup(token), token), token);
             }
             throw token.error("Expected an integer, boolean, quoted text, variable or parenthesized expression");
         }

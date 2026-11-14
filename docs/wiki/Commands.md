@@ -1,4 +1,4 @@
-[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.10)
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.11)
 
 ---
 
@@ -20,6 +20,10 @@ Use `/ais` in game, or `ais` in console. Script administration requires **`aethe
 | `/ais history <feature>` | Saved numbers, hashes, timestamps and active marker. |
 | `/ais diff <feature>` | Running saved source versus current edit, even if invalid. |
 | `/ais rollback <feature>` | Select the closest earlier readable, valid saved revision. |
+
+### Direct script commands
+
+An active feature registers its declared command name, such as `/helloai`, with the same permission, sender rule and argument parser as `/ais run`. A foreign command collision rejects activation and preserves the previous command. Renaming or retiring a feature removes its owned old labels. One command per feature is supported; aliases, subcommands and suggestions remain future work. Client command-tree refresh still needs connected-player evidence.
 
 ### One feature or the whole folder?
 
@@ -44,4 +48,4 @@ Replies are bounded. Use per-feature commands or console for shortened lists. Ho
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.10
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.11

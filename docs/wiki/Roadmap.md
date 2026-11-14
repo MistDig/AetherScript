@@ -1,4 +1,4 @@
-[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.10)
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.11)
 
 ---
 
@@ -8,7 +8,7 @@ Published versions start at 0.0.1. The original v0.1–v0.5 roadmap labels descr
 
 ### Available now
 
-Native message commands support typed arguments and invocation-time conditions, plus preparation-time commands without arguments. Live reload, saved revisions, startup recovery, diagnostics, diff, history and rollback are available. Hosted OAuth MCP can read, validate, apply and test native scripts under selected or full native-script grants. Events and the ten-heart block remain planned.
+Native message commands support typed arguments, mutable scalar locals, bounded loops and typed functions at invocation time. Legacy commands without arguments or advanced constructs retain preparation-time evaluation. Real owned command names are registered; connected-player command-tree refresh and suggestions remain unverified. Live reload, saved revisions, startup recovery, diagnostics, diff, history and rollback are available. Hosted OAuth MCP can read, validate, apply and test native scripts under selected or full native-script grants. Events and the ten-heart block remain planned.
 
 ### Next · reusable gameplay primitives
 
@@ -41,4 +41,4 @@ Performance measurements and connected-player checks remain release gates. Purpu
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.10
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.11

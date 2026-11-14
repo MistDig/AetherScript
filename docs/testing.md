@@ -1,10 +1,18 @@
 # Actual test results
 
+## Release 0.0.11 — bounded runtime and owned commands
+
+Java 25 clean check build passed 234 tests. Seven relay tests passed with loopback networking. Packaged MCP/CLI authoring verifies functions/loops with two argument lists and rejects a typed assignment error; seven runnable wiki examples pass.
+
+The final Paper 26.3 build 245 plugin passed 18 runtime/command checks across two boots, then 28 recovery checks across five boots and 100 changed reloads. The fixtures cover real command dispatch, unchanged reload, collision rejection, rename/removal, restart, invalid edits and corrupted storage. The first development server run found a forwarding-map iterator removal failure; the adapter and a matching regression fixture were fixed before these final runs.
+
+Persistent-variable tests cover typed scopes, CAS conflicts/atomic batches, concurrent writes, bounds, corruption, restart and failures around atomic replacement. This core service uses JSON snapshots; script bindings and SQLite remain open. No connected-player command-tree/suggestions, GUI/timer resource stress, client certification, two-PC Feather or performance run is claimed. [Evidence](evidence/0.0.11/)
+
 ## Published release 0.0.9 — website milestone
 
 The recorded 0.0.9 build passed 190 Java tests, packaged MCP and AI-authoring checks, and five runnable wiki examples. Site checks recorded 15 HTML pages, 549 local links/assets/anchors and five search queries. See [0.0.9 evidence](evidence/0.0.9/). Live server and OAuth results below belong to their named releases; this documentation audit does not relabel them as new runs.
 
-## Documentation correction candidate 0.0.10
+## Release 0.0.10 — documentation correction
 
 This batch corrects maintained claims and regenerates the current documentation. Its verification records are stored separately under evidence/0.0.10. Public client UI certification and the owner's two-PC test remain incomplete.
 

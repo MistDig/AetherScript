@@ -1,0 +1,13 @@
+feature countdown version "1.0.0"
+fn label(value: integer): text {
+  return "Count " + text(value)
+}
+command countdown permission "aetherscript.example.countdown" sender any {
+  arg count: integer = 3
+  var remaining = count
+  while remaining > 0 {
+    send label(remaining)
+    set remaining = remaining - 1
+  }
+  send "Done"
+}

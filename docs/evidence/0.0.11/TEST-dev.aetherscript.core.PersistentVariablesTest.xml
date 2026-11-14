@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.aetherscript.core.PersistentVariablesTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-11-14T19:03:07.601Z" hostname="VARUN" time="0.962">
+  <properties/>
+  <testcase name="validChecksumDoesNotPermitCoercedValueTypes()" classname="dev.aetherscript.core.PersistentVariablesTest" time="0.068"/>
+  <testcase name="typedScopesRevisionsAndRestart()" classname="dev.aetherscript.core.PersistentVariablesTest" time="0.07"/>
+  <testcase name="interruptedSaveRetainsCommittedStateAndIgnoresOrphans()" classname="dev.aetherscript.core.PersistentVariablesTest" time="0.025"/>
+  <testcase name="concurrentCompareAndSwapHasOneWinner()" classname="dev.aetherscript.core.PersistentVariablesTest" time="0.021"/>
+  <testcase name="conflictAndInvalidBatchNeverPartiallyCommit()" classname="dev.aetherscript.core.PersistentVariablesTest" time="0.021"/>
+  <testcase name="keyLimitRejectsWholeBatch()" classname="dev.aetherscript.core.PersistentVariablesTest" time="0.697"/>
+  <testcase name="postReplacementFlushFailureKeepsMemoryAndDiskInAgreement()" classname="dev.aetherscript.core.PersistentVariablesTest" time="0.029"/>
+  <testcase name="corruptionFailsClosedAndExclusiveWriterReleasesLock()" classname="dev.aetherscript.core.PersistentVariablesTest" time="0.026"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

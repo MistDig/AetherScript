@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.aetherscript.paper.ConnectionStoreTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-14T19:03:13.149Z" hostname="VARUN" time="0.534">
+  <properties/>
+  <testcase name="pendingReplacementAndExpiryAreDurableWithoutRevokingApprovedApps()" classname="dev.aetherscript.paper.ConnectionStoreTest" time="0.413"/>
+  <testcase name="browserDelegationAlwaysProducesFiniteNonemptyTargets()" classname="dev.aetherscript.paper.ConnectionStoreTest" time="0.028"/>
+  <testcase name="fullAccessIsExplicitImmutableAndBackwardCompatible()" classname="dev.aetherscript.paper.ConnectionStoreTest" time="0.047"/>
+  <testcase name="identityGrantRestrictionsRevocationAndSingleUseSurviveRestart()" classname="dev.aetherscript.paper.ConnectionStoreTest" time="0.043"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

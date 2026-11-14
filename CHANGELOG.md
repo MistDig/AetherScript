@@ -2,6 +2,14 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.11] - 2026-11-15
+
+- Add mutable invocation locals, bounded while/repeat loops, nearest-loop break/continue, typed scalar functions and return values. Calls have isolated frames, source-linked errors, shared execution/output budgets and bounded self-recursion. Legacy static IR hashes remain compatible.
+- Register each active feature's real Paper command name with permissions/sender rules, collision protection, owned cleanup and failed-activation restoration.
+- Add a core-only typed persistent-variable service with revision CAS, atomic batches, checksummed JSON snapshots and interrupted-save tests. SQLite, script bindings and the browser variable editor remain open.
+- Preserve the complete ecosystem brief and track M1–M3 halfway gates without claiming half the concrete capabilities are complete. Update language/AI contracts and runnable examples.
+- Verified 234 Java tests, seven relay tests, packaged CLI/MCP authoring and seven wiki examples. The final Paper JAR passed 18 runtime/command checks across two boots and 28 recovery checks across five boots with 100 changed reloads. Connected-player command-tree/suggestions and broader gameplay remain unverified.
+
 ## [0.0.10] - 2026-11-14
 
 - Put a current AI reference before the complete human-wiki appendix. Corrected hosted/local tool availability, full-access permissions, runtime syntax, limits, validation errors and uncertain-apply recovery.

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.aetherscript.core.RuntimeArgumentsTest" tests="19" skipped="0" failures="0" errors="0" timestamp="2026-11-14T19:03:16.792Z" hostname="VARUN" time="0.178">
+  <properties/>
+  <testcase name="runtimeOutputBoundsAndGlobalArgumentBoundsAreEnforced()" classname="dev.aetherscript.core.RuntimeArgumentsTest" time="0.015"/>
+  <testcase name="legacyHashesAndThreeArgumentCompiledConstructorRemainCompatible()" classname="dev.aetherscript.core.RuntimeArgumentsTest" time="0.01"/>
+  <testcase name="invalidReloadRecoveryAndRollbackRetainRuntimePrograms()" classname="dev.aetherscript.core.RuntimeArgumentsTest" time="0.074"/>
+  <testcase name="permissionRevocationAndRetirementStillGuardEveryEffect()" classname="dev.aetherscript.core.RuntimeArgumentsTest" time="0.004"/>
+  <testcase name="argumentsAndBranchesAreEvaluatedFreshOnEachInvocation()" classname="dev.aetherscript.core.RuntimeArgumentsTest" time="0.004"/>
+  <testcase name="runtimeIrIgnoresCommentsAndPositionsButIncludesBranchesAndDefaults()" classname="dev.aetherscript.core.RuntimeArgumentsTest" time="0.005"/>
+  <testcase name="argumentFailureAndRuntimeArithmeticEmitNoPartialMessages()" classname="dev.aetherscript.core.RuntimeArgumentsTest" time="0.006"/>
+  <testcase name="defaultsAreTypedConstantExpressionsAndMayProduceNoMessagesOnOneBranch()" classname="dev.aetherscript.core.RuntimeArgumentsTest" time="0.004"/>
+  <testcase name="[1] arg name: text = 1&#10;send name" classname="dev.aetherscript.core.RuntimeArgumentsTest" time="0.004"/>
+  <testcase name="[2] arg name text&#10;send name" classname="dev.aetherscript.core.RuntimeArgumentsTest" time="0.004"/>
+  <testcase name="[3] arg value: number&#10;send &quot;x&quot;" classname="dev.aetherscript.core.RuntimeArgumentsTest" time="0.003"/>
+  <testcase name="[4] arg x: text = &quot;x&quot;&#10;arg y: text&#10;send y" classname="dev.aetherscript.core.RuntimeArgumentsTest" time="0.006"/>
+  <testcase name="[5] arg x: text&#10;arg x: text&#10;send x" classname="dev.aetherscript.core.RuntimeArgumentsTest" time="0.004"/>
+  <testcase name="[6] arg x: text&#10;arg y: text = x&#10;send y" classname="dev.aetherscript.core.RuntimeArgumentsTest" time="0.004"/>
+  <testcase name="[7] let x = 1&#10;arg y: integer&#10;send text(y)" classname="dev.aetherscript.core.RuntimeArgumentsTest" time="0.005"/>
+  <testcase name="[8] if true {&#10; arg x: text&#10; send x&#10;}" classname="dev.aetherscript.core.RuntimeArgumentsTest" time="0.004"/>
+  <testcase name="[9] arg text: text&#10;send text" classname="dev.aetherscript.core.RuntimeArgumentsTest" time="0.005"/>
+  <testcase name="[10] arg count: integer&#10;if count &gt; 0 {&#10; send &quot;yes&quot;&#10;} else {&#10; send missing&#10;}" classname="dev.aetherscript.core.RuntimeArgumentsTest" time="0.004"/>
+  <testcase name="[11] arg flag: boolean&#10;if flag {&#10; send 1&#10;} else {&#10; send &quot;ok&quot;&#10;}" classname="dev.aetherscript.core.RuntimeArgumentsTest" time="0.005"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

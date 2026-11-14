@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.aetherscript.paper.GrantLifecycleTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-14T19:03:13.792Z" hostname="VARUN" time="0.164">
+  <properties/>
+  <testcase name="staleWarningsAndTerminalRejectsAreDeduplicatedPerStateAndExpiryPersists()" classname="dev.aetherscript.paper.GrantLifecycleTest" time="0.065"/>
+  <testcase name="freshConnectClearsOldPendingBeforeNetworkAndFullGrantPermitsNewIds()" classname="dev.aetherscript.paper.GrantLifecycleTest" time="0.047"/>
+  <testcase name="unknownOfferRejectNetworkFailuresDoNotProduceRepeatedGrantWarnings()" classname="dev.aetherscript.paper.GrantLifecycleTest" time="0.019"/>
+  <testcase name="strippedRevokedOfferRevokesOriginalGrantAndServiceExactlyOnce()" classname="dev.aetherscript.paper.GrantLifecycleTest" time="0.03"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

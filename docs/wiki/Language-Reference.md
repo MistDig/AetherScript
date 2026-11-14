@@ -1,4 +1,4 @@
-[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.10)
+[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.11)
 
 ---
 
@@ -33,7 +33,7 @@ command helloai permission "aetherscript.example.hello" sender any {
 
 The result is `Hello from AetherScript!`. Values and conditions evaluate during preparation at validation/reload, and their selected messages are stored in the compiled feature. Every invocation then applies the feature's permission, sender and active-generation checks.
 
-The `command` header supplies metadata for the `/ais run <id>` dispatcher. Real command registration, mutable runtime scopes and persistent player values are tracked in the [ecosystem backlog](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/backlog.md).
+The `command` header supplies Paper native command metadata as well as the `/ais run <id>` dispatcher. Native metadata is registered, but client command-tree visibility has not yet been verified. Use `/ais run <id>` as the verified invocation path.
 
 ## Command arguments in 0.0.7
 
@@ -62,7 +62,7 @@ Run `/ais run greet Alex 2 false` to receive `Hello Alex` and `Repeat count: 2`.
 
 Declare arguments before other statements. Required arguments precede defaults. Types are `text`, `integer` and `boolean`. There are at most 16 positional arguments. Missing, extra and mistyped arguments produce an error and usage example before messages are delivered. An unclosed quote reports how to close it.
 
-Argument-dependent calculations and conditions execute per invocation. Both branches are checked on validation. Scripts without arguments preserve their existing preparation behavior and hashes.
+Argument-dependent calculations and conditions execute per invocation. Both branches are checked on validation. Legacy scripts using only `let`, `if` and `send` without arguments preserve their preparation behavior and semantic hashes. A `var`/`set`, loop or function declaration selects invocation-time evaluation even without arguments.
 
 The following deliberately invalid script has a text default for an integer argument.
 
@@ -79,10 +79,12 @@ command bad-default permission "aetherscript.example.bad" sender any {
 | Form | Meaning |
 | --- | --- |
 | `let count = 2 + 3` | An immutable local integer. |
+| `var count = 3` | A mutable local scalar, fresh for each invocation. |
+| `set count = count - 1` | Update the nearest visible mutable binding with a matching type. |
 | `let greeting = "Hello"` | An immutable local text value. |
 | `let ready = count == 5` | An immutable local boolean. |
 | `send greeting + "!"` | Append a plain message to the selected compiled output. |
-| `if ready { ... } else { ... }` | Select a branch during preparation, or per invocation in commands declaring arguments. |
+| `if ready { ... } else { ... }` | Select a branch during preparation, or per invocation in commands declaring arguments or runtime control constructs. |
 | `text(count)` | Explicitly convert an integer, boolean or text value to text. |
 
 Locals are lexically scoped. An inner block may shadow an outer name. Duplicate declarations in the same block fail. An initializer can refer to earlier bindings. Names are ASCII letters/digits/underscores, beginning with a letter or underscore; reserved statement/value keywords cannot be local names.
@@ -107,6 +109,38 @@ Both branch bodies are parsed and type-checked before activation. An undefined n
 Statements end at a newline or at their closing-block boundary. `//` begins a comment. Text uses double quotes and supports escaped quotes, backslashes, newline, carriage return and tab. Emitted message text must satisfy the existing plain-text/control-character rules.
 
 Source is strict UTF-8 with an optional leading BOM. Diagnostics identify the source line and column. The initial limits are 64 KiB source, 8,192 tokens, 2,048 expression nodes, 256 statements, nesting depth 32 and 8,192 preparation steps. The selected program must emit 1–32 nonempty plain messages, each at most 2,048 UTF-16 units.
+
+
+## Mutable locals, loops and typed functions
+
+var count = 3 declares an inferred mutable scalar. set count = count - 1 updates the nearest visible mutable binding with the same type. let, arguments and function parameters remain immutable. Locals support only text, integer and boolean; state is fresh for every invocation and function call.
+
+while condition { ... } requires a boolean. repeat count { ... } evaluates a nonnegative integer count once. break exits the nearest enclosing loop; continue skips to its next iteration. These keywords are valid only inside loops.
+
+Declare fn name(parameter: integer): integer { ... } between the feature header and command. Parameters and results must declare text, integer or boolean types. Call functions in expressions, for example text(double(3)). Every path must return a matching value with return expression. Functions can call earlier declarations or themselves, but cannot call later declarations or capture command locals. Limits are 32 functions, 16 parameters per function and 32 active function calls. Loops, expressions and nested calls share one 8192-step invocation budget and one 32-message output budget.
+
+Save as countdown.aether:
+
+```aether
+feature countdown version "1.0.0"
+fn label(value: integer): text {
+  return "Count " + text(value)
+}
+command countdown permission "aetherscript.example.countdown" sender any {
+  var remaining = 3
+  while remaining > 0 {
+    send label(remaining)
+    set remaining = remaining - 1
+  }
+  send "Done"
+}
+```
+
+This example emits its lines immediately; loops do not delay server ticks. Timed scheduling is a separate milestone.
+
+Test with {"id":"countdown","expectedMessages":["Count 3","Count 2","Count 1","Done"]}. Run /ais run countdown twice; both invocations start at 3.
+
+PersistentVariables is a core host service using bounded JSON snapshots, not SQLite. It has no script-level bindings; var does not persist values or expose player storage. Native metadata registration and this runtime slice do not establish completion of the broader gameplay ecosystem.
 
 ## YAML and JSON
 
@@ -135,7 +169,7 @@ commands:
 | `version` | Required nonempty label up to 64 characters, independent of saved revision numbers. |
 | `requires` | Exactly `[runtime.message.send]`. The text frontend infers this requirement. |
 | `commands` | Exactly one command definition. |
-| `name` | Same character rules as feature ID; unique among active features. Reserved metadata for the dispatcher. |
+| `name` | Same character rules as feature ID; unique among active features. Used by the dispatcher and Paper native command metadata registration; client command-tree visibility remains unverified. |
 | `permission` | Explicit dotted permission node up to 128 characters, with wildcard characters rejected. |
 | `sender` | `any` or `player`. The latter restricts invocation to players. |
 | `actions` | 1–32 message actions. |
@@ -151,8 +185,8 @@ The engine caps active features at 128, tracked histories at 128 and scripts-dir
 
 Copy an example to `scripts/welcome.aether` or `scripts/welcome.yml`. Set both feature ID and command name to `welcome`, choose the explicit permission `aetherscript.example.welcome`, and write your message. Validate, reload and invoke `/ais run welcome`.
 
-[Working examples](https://github.com/MistDig/AetherScript/tree/v0.0.4/examples) · [Structured JSON Schema](https://github.com/MistDig/AetherScript/blob/v0.0.4/schema/feature-v1.schema.json) · [Grammar and architecture decision](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/language-decision.md) · [Capability matrix](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/capabilities.csv)
+[Working examples](https://github.com/MistDig/AetherScript/tree/v0.0.11/examples) · [Structured JSON Schema](https://github.com/MistDig/AetherScript/blob/v0.0.11/schema/feature-v1.schema.json) · [Grammar and architecture decision](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/language-decision.md) · [Capability matrix](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/capabilities.csv)
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.10
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.11

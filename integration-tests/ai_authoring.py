@@ -49,6 +49,21 @@ assert error["column"] >= 1 and error["reason"]
 assert json.loads(run([*cli,"aether"],changed))["irHash"] == second["irHash"]
 cli_error = json.loads(run([*cli,"aether"],broken,expected_exit=1))
 assert all(cli_error[key] == error[key] for key in ["line","column","reason","path"])
+countdown = (repo / 'examples/countdown.aether').read_text(encoding='utf-8')
+runtime_valid = calls([('aether_validate', {'format':'aether','source':countdown})])[0]
+assert runtime_valid['valid']
+runtime_tests = calls([('aether_test', {'format':'aether','source':countdown,
+    'arguments':values,'expectedMessages':expected}) for values, expected in [
+        ([], ['Count 3','Count 2','Count 1','Done']),
+        (['2'], ['Count 2','Count 1','Done'])]])
+assert all(test['matched'] for test in runtime_tests), runtime_tests
+bad_control = countdown.replace('set remaining = remaining - 1', 'set remaining = true')
+assert bad_control != countdown
+bad_result = calls([('aether_validate', {'format':'aether','source':bad_control})])[0]
+assert bad_result['valid'] is False and bad_result['line'] > 0
+assert json.loads(run([*cli,'aether'],countdown))['irHash'] == runtime_valid['irHash']
 print(json.dumps({"result":"pass","version":version,"checks":["discover template","validate template",
     "single-line edit changes behavior","comment preserves behavior","type error identifies line and column",
-    "CLI and MCP agree on valid source","CLI and MCP agree on invalid source"]},indent=2))
+    "CLI and MCP agree on valid source","CLI and MCP agree on invalid source",
+    "loop/function example validates through packaged CLI and MCP",
+    "loop/function example runs with two argument lists", "invalid mutable assignment has source diagnostic"]},indent=2))

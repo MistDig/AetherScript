@@ -9,6 +9,7 @@ parser.add_argument('--java', default='java')
 parser.add_argument('--accept-eula', action='store_true')
 parser.add_argument('--existing-json', action='store_true', help='Seed a JSON example as an upgrade with no revision storage')
 parser.add_argument('--aether', action='store_true', help='Exercise textual source, diagnostics and restart recovery')
+parser.add_argument('--runtime-control', action='store_true', help='Exercise native functions/loops and owned real commands on Paper (requires --aether)')
 parser.add_argument('--pairing', action='store_true', help='Pair the packaged MCP with this disposable server and check live status and revocation')
 parser.add_argument('--relay-config', type=Path, help='Optional path to a private relay.json for a live remote script-management test')
 parser.add_argument('--browser-008', action='store_true', help='Exercise 0.0.8 web OAuth and full versus selected grants')
@@ -16,6 +17,8 @@ parser.add_argument('--browser-only', action='store_true', help='Test a fresh in
 args = parser.parse_args()
 if args.existing_json and args.aether:
     parser.error('Choose --existing-json or --aether')
+if args.runtime_control and not args.aether:
+    parser.error('--runtime-control requires --aether')
 if not args.accept_eula:
     parser.error('Review https://aka.ms/MinecraftEULA and pass --accept-eula')
 repo = Path(__file__).resolve().parents[1]
@@ -116,6 +119,21 @@ def edit(message):
     source.write_text(changed, encoding='utf-8')
 def history():
     return json.loads((data/'storage/manifest.json').read_text())['state']['features']['hello-ai']
+if args.runtime_control:
+    from runtime_workflow import verify
+    try:
+        verify(command, start, stop, source, original, evidence)
+    except Exception as error:
+        evidence.append(dict(test='runtime-smoke', result='fail', detail=str(error)))
+    finally:
+        stop()
+        (server/'smoke-console.log').write_text(redact(''.join(lines)), encoding='utf-8')
+        (server/'smoke-results.json').write_text(json.dumps(evidence, indent=2), encoding='utf-8')
+    if any(item['result'] == 'fail' for item in evidence):
+        print(evidence[-1]['detail'], flush=True)
+        raise SystemExit(1)
+    print(f'PASS: {len(evidence)} runtime/command checks on Paper; two boots', flush=True)
+    raise SystemExit(0)
 if args.browser_only or args.browser_008:
     if args.relay_config:
         parser.error('Browser onboarding must work without relay.json')

@@ -19,6 +19,7 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
     private volatile boolean running, ready;
     private volatile String startupError = "";
     private FeatureManager manager;
+    private FeatureCommands featureCommands;
     private AuditLog audit;
     private PairedStatusBridge bridge;
     private volatile CloudRelayConnector cloud;
@@ -29,6 +30,7 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
 
     @Override public void onEnable() {
         running = true; busy.set(true);
+        featureCommands = new FeatureCommands(getServer().getCommandMap(), registry, () -> ready);
         Objects.requireNonNull(getCommand("ais")).setExecutor(this);
         Objects.requireNonNull(getCommand("ais")).setTabCompleter((s,c,a,args) -> List.of());
         io.execute(() -> {
@@ -79,6 +81,7 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
     }
     @Override public void onDisable() {
         running = false; ready = false;
+        if (featureCommands != null) featureCommands.close();
         connectionServices.values().forEach(RemoteScripts::revoke); connectionServices.clear();
         if (shared != null) { shared.close(); shared = null; }
         revokeRemote();
@@ -282,7 +285,7 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
         Registry.Snapshot activated = onMain(() -> {
             authorized.run();
             if (sender != null && !sender.hasPermission("aetherscript.admin")) throw new SecurityException("PERMISSION_DENIED: permission changed before activation");
-            return registry.replace(before.generation(), change.target());
+            return featureCommands.activate(before.generation(), change.target());
         });
         try {
             authorized.run();
@@ -294,7 +297,7 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
             catch (Exception restoreFailure) { restored = false; getLogger().severe("Storage recovery uncertain; operations quarantined. Restore an owner backup before restarting."); }
             boolean safe = restored;
             onMain(() -> {
-                registry.replace(activated.generation(), safe ? before.features() : Map.of());
+                featureCommands.activate(activated.generation(), safe ? before.features() : Map.of());
                 if (!safe) { ready = false; startupError = "STORAGE_QUARANTINED"; } return null;
             });
             throw new IOException(safe ? "SAVE_FAILED: previous working registry restored as a new generation; editable files untouched" : "STORAGE_QUARANTINED: restore owner backup", failure);

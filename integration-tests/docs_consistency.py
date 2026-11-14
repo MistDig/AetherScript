@@ -1,6 +1,7 @@
 """Catch contradictions between current documentation and shipped capability surfaces."""
 from pathlib import Path
 import re
+import json
 root = Path(__file__).resolve().parents[1]
 current = [root/"README.md", root/"docs/roadmap.md", root/"docs/architecture.md",
            root/"docs/ai-reference.md", *[p for p in (root/"docs/wiki").glob("*.md") if p.name != "Testing-0.0.2.md"]]
@@ -11,6 +12,7 @@ stale = [
  r"This experimental release supports sender-only message actions and preparation-time text-script logic",
  r"For scoped remote authoring, the owner first configures a personal HTTPS relay",
  r"Now [·] 0[.]0[.]2",
+ r"commands[.]name.*reserved metadata",
 ]
 for path in current:
  text=path.read_text(encoding="utf8")
@@ -27,6 +29,13 @@ implementation=(root/"plugin-paper/src/main/java/dev/aetherscript/paper/RemoteSc
 for op in ("scripts.read","scripts.validate","scripts.apply","scripts.test"):
  assert op in implementation
 assert "feature.program().evaluate" in (root/"core/src/main/java/dev/aetherscript/core/Registry.java").read_text()
+guide=json.loads((root/"core/src/main/resources/aetherscript-authoring-v1.json").read_text(encoding="utf8"))
+frontend=(root/"core/src/main/java/dev/aetherscript/core/TextFrontend.java").read_text(encoding="utf8")
+for constant, limit in [("MAX_STEPS", guide["runtimeControl"]["limits"]["sharedExecutionSteps"]),
+                         ("MAX_CALL_DEPTH", guide["runtimeControl"]["limits"]["functionCallDepth"])]:
+ assert re.search(rf"{constant}\s*=\s*{limit}\s*;",frontend), f"{constant} docs/code drift"
+for statement in ("var name = expression", "while booleanExpression { ... }", "return expression"):
+ assert statement in guide["statements"]
 full=(root/"site/public/llms-full.txt").read_text(encoding="utf8")
 assert reference.strip() in full
 assert full.index(reference.strip()) < full.index("# Human wiki appendix")

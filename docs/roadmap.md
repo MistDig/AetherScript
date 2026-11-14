@@ -1,5 +1,9 @@
 # Roadmap and exit gates
 
+## Current M1–M3 goal
+
+The owner’s current halfway target is M1–M3 from the [complete ecosystem brief](ecosystem/implementation-brief.md). See the [acceptance checkpoint](ecosystem/halfway-milestone.md) for concrete gates. The 0.0.11 slice adds bounded scalar functions/control flow, owned real command names and a core-only versioned JSON state service. Collections, broader value/callable semantics, gameplay events/scheduling/APIs, script persistence and the M3 UI/editor remain open. The milestone phases are not release numbers or percentages of capability parity.
+
 ## Release 0.0.7 — browser pairing and command inputs
 
 Shared browser pairing removes personal relay configuration from the normal installation. Native text commands gain typed positional arguments and invocation-time conditions. The human wiki and full AI text use one maintained source. Functions, gameplay events, persistent player values, ten-heart blocks and addon adapters remain tracked in the capability matrix.

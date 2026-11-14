@@ -30,7 +30,7 @@ See `docs/wiki/Revisions-and-Recovery.md` for operator behavior and `docs/roadma
 
 ## Native script preparation
 
-The text frontend checks local bindings and both branches of a conditional during preparation. It evaluates the selected branch and emits the same immutable sender-message actions used by structured features. The Paper invocation path checks the command permission and sender restriction. Offline validation uses the same compiler through the CLI and MCP. The packaged JSON authoring contract supplies the template for the website and both tools.
+The text frontend checks local bindings and both branches of a conditional during preparation. Legacy static scripts evaluate the selected branch during preparation. Programs using arguments, mutable locals, loops or functions evaluate per invocation and buffer the same immutable sender-message actions used by structured features. The Paper invocation path checks the command permission and sender restriction. Offline validation uses the same compiler through the CLI and MCP. The packaged JSON authoring contract supplies the template for the website and both tools.
 
 ## Scoped relay authoring
 
@@ -46,4 +46,6 @@ Live tests schedule actual Registry invocation on the platform thread with a syn
 
 A new plugin installation persists a random server UUID and credential. Console `ais connect` creates a one-use browser delegation. OAuth approval selects a finite feature list, which Paper saves as an immutable local grant before acknowledging the connection. Requests carry a connection ID and are checked against that grant on Paper. Normal restarts restore approved grants. Disconnect blocks immediately and persists revocation before confirming.
 
-Commands that declare typed arguments compile to a bounded runtime program. Invocations bind fresh immutable values, resolve the message list, and only then emit messages after permission and retirement checks. Legacy source without argument declarations preserves preparation-time lowering.
+Arguments, mutable locals, loops or function declarations select a bounded runtime program. Each invocation owns its local bindings; function calls use isolated frames and a shared step/output budget. Messages are buffered before permission and retirement checks emit them. Legacy source without these constructs preserves preparation-time lowering.
+
+Owned Paper commands are replaced at the same activation boundary as the registry. Foreign labels reject activation, and failed registration restores prior bindings. The new persistent-variable host service uses revision-checked atomic JSON snapshots on a worker thread; it has no script bindings and does not satisfy the SQLite milestone.

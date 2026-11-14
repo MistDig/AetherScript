@@ -71,7 +71,7 @@ class TextFrontendTest {
         "let value = 1\nvalue = 2\nsend text(value)", "send 4", "send true", "send \"x\" + 1", "send text(1 == true)",
         "send text(true + false)", "send text(\"x\" < \"y\")", "if 1 {\n send \"yes\"\n}",
         "send \"x\" send \"y\"", "send \"\"", "send \"unsafe\\nmessage\"", "send \"unsafe§message\"",
-        "send \"bad\\u0041\"", "while true {\n send \"x\"\n}", "import java.lang.System"
+        "send \"bad\\u0041\"", "while 1 {\n send \"x\"\n}", "import java.lang.System"
     }) void unsupportedOrInvalidProgramsHaveLocations(String body) {
         var error = assertThrows(ValidationException.class, () -> compile(body));
         assertTrue(error.line() >= 3); assertTrue(error.column() >= 1); assertFalse(error.reason().isBlank());

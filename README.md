@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/assets/aetherscript-banner.png" alt="AetherScript — little scripts, big possibilities" width="1200"></p>
 
-<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.10"><b>Download 0.0.10</b></a> · <a href="https://mistdig.github.io/AetherScript/">Explore the docs</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
+<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.11"><b>Download 0.0.11</b></a> · <a href="https://mistdig.github.io/AetherScript/">Explore the docs</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
 
 [![Build](https://github.com/MistDig/AetherScript/actions/workflows/ci.yml/badge.svg)](https://github.com/MistDig/AetherScript/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/MistDig/AetherScript)](https://github.com/MistDig/AetherScript/releases)
@@ -22,9 +22,15 @@ Declare `arg name: text` at the beginning of a native command, then use that val
 
 The documentation site includes Copy docs link for AI and Download docs. The full text contains every wiki guide and the machine-readable language contract for that release.
 
+## Runtime foundations in 0.0.11
+
+Use `var` and `set` for mutable invocation locals, `while` or `repeat` for bounded iteration, and typed `fn` helpers for reusable logic. [countdown.aether](examples/countdown.aether) demonstrates functions and loops; its messages are immediate, with timed scheduling still planned. Each feature registers its real command name with collision protection and owned removal.
+
+The [M1–M3 checkpoint](docs/ecosystem/halfway-milestone.md) records the ongoing halfway goal. This release is a tested foundation slice, not completion of those phases.
+
 ## Native script language
 
-The first `.aether` frontend supports immutable local values, checked integer arithmetic, text and boolean expressions, `if`/`else`, explicit `text(...)` conversion and source-located diagnostics. Scripts without argument declarations evaluate expressions during validation/reload and prepare message actions. Commands declaring typed arguments compile a bounded program that binds fresh values and evaluates expressions and conditions on each invocation. Both modes check types before activation and permissions before sending messages.
+The `.aether` frontend supports immutable `let` and mutable `var` locals, typed scalar expressions, `if`/`else`, bounded `while`/`repeat`, `break`/`continue`, and typed reusable functions with `return`. Legacy scripts without arguments or advanced constructs retain preparation-time evaluation. Arguments, mutable locals, loops or function declarations select invocation-time evaluation with fresh local values. All paths type-check before activation; loops and calls share an 8192-step budget and 32-message output cap.
 
 ```text
 feature hello-ai version "1.0.0"
@@ -41,7 +47,7 @@ command helloai permission "aetherscript.example.hello" sender any {
 
 Save this as `scripts/hello-ai.aether`, using one source file for that feature ID. Validate, reload and run it with the existing `/ais` commands. The [language guide](https://mistdig.github.io/AetherScript/guide/language.html) covers types, scope, operators and preparation limits.
 
-The [documentation website](https://mistdig.github.io/AetherScript/) includes local search, sidebar guides, dark mode and mobile navigation. The [ecosystem inventory](docs/ecosystem/README.md) tracks the brief's concrete capabilities, evidence and dependency order. Full runtime variables, functions, loops, real command registration, persistent gameplay state and addon APIs remain staged work in that inventory.
+The [documentation website](https://mistdig.github.io/AetherScript/) includes local search, sidebar guides, dark mode and mobile navigation. The [ecosystem inventory](docs/ecosystem/README.md) tracks the brief's concrete capabilities, evidence and dependency order. The [halfway milestone](docs/ecosystem/halfway-milestone.md) tracks M1–M3. Scalar runtime locals, loops, functions and owned direct commands are implemented foundations. Collections, events, gameplay bindings, script persistence, menus and the addon SDK remain open.
 
 ## What the engine does
 
@@ -51,17 +57,17 @@ The [documentation website](https://mistdig.github.io/AetherScript/) includes lo
 - Clear editable-file versus running-version status, field/line/column errors, history and bounded diffs.
 - A separate MCP gateway with offline validation/exact message tests, opt-in loopback status and scoped remote `.aether` authoring.
 
-This experimental release supports sender-only message actions with preparation-time logic for commands without arguments and invocation-time logic for commands declaring typed arguments. Events, block health, mutable runtime state, persistent gameplay variables and UI are recorded in the [dependency backlog](docs/ecosystem/backlog.md). Published versions begin at 0.0.1; milestone labels describe engineering phases.
+This experimental release supports sender-only message effects with both preparation-time legacy logic and invocation-time argument/control-flow programs. A typed, versioned persistent-variable service exists in core, with atomic JSON storage; script bindings and SQLite are not implemented. Events, block health, gameplay APIs and UI remain in the [dependency backlog](docs/ecosystem/backlog.md). Published versions begin at 0.0.1; milestone labels describe engineering phases.
 
 ## Get started
 
-1. Stop Paper, back up existing AetherScript data, and install **AetherScript-0.0.10.jar** from the release. Keep only one plugin JAR installed.
+1. Stop Paper, back up existing AetherScript data, and install **AetherScript-0.0.11.jar** from the release. Keep only one plugin JAR installed.
 2. Start with Java 25 and wait for `Ready. Restored ...`. A new install creates and activates `plugins/AetherScript/scripts/hello-ai.yml`.
 3. Run `/ais run hello-ai`. Players need `aetherscript.example.hello` (operators by default).
 4. Edit its quoted `text`, save, then `/ais validate hello-ai` and `/ais reload hello-ai`.
 5. Run it again: the new message is live without restarting Paper.
 
-Console commands omit `/`. Administration requires `aetherscript.admin`. There is no automatic file watcher or `/helloai` alias; `commands.name` is reserved metadata.
+Console commands omit `/`. Administration requires `aetherscript.admin`. Each active feature also registers its declared command name, such as `/helloai`. Foreign command collisions reject activation; renamed and retired commands are removed. There is no automatic file watcher. Client command-tree refresh and suggestions remain unverified.
 
 ```text
 /ais status [feature]
@@ -91,10 +97,10 @@ python integration-tests/mcp_stdio.py
 
 Linux/macOS: `./gradlew clean check build`. Gradle 9.1.0 wrapper, dependency locks and checksums are committed. First build needs network access.
 
-- `plugin-paper/build/libs/plugin-paper-0.0.10.jar`: standalone plugin; do not install the thin JAR.
-- `gateway-mcp/build/libs/gateway-mcp-0.0.10.jar`: separate executable MCP process.
+- `plugin-paper/build/libs/plugin-paper-0.0.11.jar`: standalone plugin; do not install the thin JAR.
+- `gateway-mcp/build/libs/gateway-mcp-0.0.11.jar`: separate executable MCP process.
 
-Published 0.0.9 evidence records **190 Java tests**, packaged MCP/authoring checks, runnable wiki examples, and a documentation build with 15 pages, 549 local targets and five search queries. Those records are in [0.0.9 evidence](docs/evidence/0.0.9). The live OAuth/Paper checks belong to [0.0.8](docs/evidence/0.0.8); the five-boot, 100-reload recovery run belongs to [0.0.7](docs/evidence/0.0.7). They were not repeated as live-server checks for 0.0.9. [Test notes](docs/testing.md) identify current-release checks and historical runs. Interactive client certification, the owner's two-PC Feather setup, Purpur and quantitative performance measurements remain incomplete.
+The 0.0.11 clean build passed **234 Java tests** and seven relay tests. The final JAR passed 18 Paper runtime/command checks over two boots and 28 recovery checks over five boots with 100 changed reloads. Packaged CLI/MCP authoring, seven wiki examples and documentation checks also pass. [0.0.11 evidence](docs/evidence/0.0.11) records exact scope. Historical OAuth/client results keep their original version in [test notes](docs/testing.md). Connected-player command-tree/suggestion behavior, interactive client certification, the owner's two-PC Feather setup, Purpur and quantitative performance measurements remain incomplete.
 
 ## MCP connection
 

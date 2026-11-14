@@ -29,6 +29,6 @@
 
 ---
 
-[↓ Download 0.0.10](https://github.com/MistDig/AetherScript/releases/tag/v0.0.10)
+[↓ Download 0.0.11](https://github.com/MistDig/AetherScript/releases/tag/v0.0.11)
 
-[Copy this complete guide link for your AI](https://mistdig.github.io/AetherScript/releases/0.0.10/llms-full.txt)
+[Copy this complete guide link for your AI](https://mistdig.github.io/AetherScript/releases/0.0.11/llms-full.txt)

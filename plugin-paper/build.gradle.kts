@@ -1,5 +1,5 @@
 plugins { java; id("com.gradleup.shadow") }
-dependencies { implementation(project(":core")); compileOnly("io.papermc.paper:paper-api:26.3.build.245-stable") }
+dependencies { implementation(project(":core")); compileOnly("io.papermc.paper:paper-api:26.3.build.245-stable"); testImplementation("io.papermc.paper:paper-api:26.3.build.245-stable") }
 tasks.shadowJar {
     // Stable dependency ordering even when Gradle resolves lockfile metadata in a different order.
     val runtime = project.configurations.named("runtimeClasspath")

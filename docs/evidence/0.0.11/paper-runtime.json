@@ -1,0 +1,92 @@
+[
+  {
+    "test": "legacy-real-command",
+    "result": "pass",
+    "detail": "[00:34:20 INFO]: Hello from AetherScript!"
+  },
+  {
+    "test": "activate-runtime",
+    "result": "pass",
+    "detail": "[00:34:21 INFO]: ACTIVE generation=2 features=1; saved successfully"
+  },
+  {
+    "test": "direct-command-MistDig",
+    "result": "pass",
+    "detail": "[00:34:21 INFO]: Hello MistDig! total=6"
+  },
+  {
+    "test": "same-revision-Alex",
+    "result": "pass",
+    "detail": "[00:34:21 INFO]: Hello Alex! total=3"
+  },
+  {
+    "test": "unchanged-functions-retain-generation",
+    "result": "pass",
+    "detail": "[00:34:21 INFO]: UNCHANGED: no new revision; generation=2"
+  },
+  {
+    "test": "quoted-name-and-default",
+    "result": "pass",
+    "detail": "[00:34:22 INFO]: Hello Alex Smith! total=6"
+  },
+  {
+    "test": "invalid-loop-preserves-active",
+    "result": "pass",
+    "detail": "[00:34:22 INFO]: Rejected; active generation unchanged. Last working scripts remain active."
+  },
+  {
+    "test": "previous-command-still-runs",
+    "result": "pass",
+    "detail": "[00:34:22 INFO]: Hello Alex! total=3"
+  },
+  {
+    "test": "foreign-stop-collision",
+    "result": "pass",
+    "detail": "[00:34:22 INFO]: VALIDATION_FAILED $.command.name: command already registered: stop"
+  },
+  {
+    "test": "collision-retains-old-command",
+    "result": "pass",
+    "detail": "[00:34:23 INFO]: Hello MistDig! total=6"
+  },
+  {
+    "test": "rename-registers-new-command",
+    "result": "pass",
+    "detail": "[00:34:23 INFO]: ACTIVE generation=3 features=1; saved successfully"
+  },
+  {
+    "test": "renamed-command-runs",
+    "result": "pass",
+    "detail": "[00:34:23 INFO]: Hello Alex! total=3"
+  },
+  {
+    "test": "renamed-old-command-removed",
+    "result": "pass",
+    "detail": "[00:34:23 INFO]: System chat: \u001b[91mUnknown or incomplete command. See below for error"
+  },
+  {
+    "test": "restart-restores-command-and-program",
+    "result": "pass",
+    "detail": "[00:34:35 INFO]: Hello MistDig! total=10"
+  },
+  {
+    "test": "full-reload-retires-feature",
+    "result": "pass",
+    "detail": "[00:34:35 INFO]: ACTIVE generation=2 features=0; saved successfully"
+  },
+  {
+    "test": "retired-command-removed",
+    "result": "pass",
+    "detail": "[00:34:36 INFO]: System chat: \u001b[91mUnknown or incomplete command. See below for error"
+  },
+  {
+    "test": "restore-legacy-source",
+    "result": "pass",
+    "detail": "[00:34:36 INFO]: ACTIVE generation=3 features=1; saved successfully"
+  },
+  {
+    "test": "legacy-command-works-after-replacement",
+    "result": "pass",
+    "detail": "[00:34:36 INFO]: Hello from AetherScript!"
+  }
+]

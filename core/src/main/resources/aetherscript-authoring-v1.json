@@ -4,7 +4,7 @@
   "fileExtension": ".aether",
   "exampleFile": "cloud-note.aether",
   "template": "feature cloud-note version \"1.0.0\"\ncommand cloud-note permission \"aetherscript.example.cloud\" sender any {\n  let message = \"Welcome to the clouds.\"\n  let stars = 2 + 1\n  if stars >= 3 {\n    send message\n  } else {\n    send \"Keep exploring.\"\n  }\n}\n",
-  "evaluation": "Scripts without arg declarations retain preparation-time expression evaluation. Declared arguments create a bounded typed program evaluated for each invocation with fresh immutable bindings. All branch names and types are validated before activation.",
+  "evaluation": "Commands with arg declarations, var/set, loops or function declarations evaluate per invocation with fresh typed local state. Legacy scripts using only let, if and send without arguments retain preparation-time evaluation and semantic hashes. All names and types are validated before activation.",
   "entryPoint": "/ais run <feature-id> [arguments...]",
   "capabilities": [
     "runtime.message.send"
@@ -14,8 +14,9 @@
     "Keep the command name unique among active features.",
     "Write each statement on its own line and delimit blocks with braces.",
     "Keep permission nodes explicit and preserve them when editing message text.",
-    "Use quoted text, integer literals or booleans. Local types are inferred and bindings are immutable.",
+    "Use text, integer or boolean scalars. let and parameters are immutable; var creates a mutable local and set updates its nearest visible mutable binding without changing type.",
     "Check both branches for type errors. Use text(value) for explicit conversion.",
+    "Declare functions after the feature header and before the command, before use. Functions have typed parameters and results, no captures, and must return a matching value on every path.",
     "Validate the complete edited source before requesting a local reload."
   ],
   "valueTypes": [
@@ -27,7 +28,15 @@
     "arg name: text | integer | boolean [= constantExpression]",
     "let name = expression",
     "send textExpression",
-    "if booleanExpression { ... } else { ... }"
+    "if booleanExpression { ... } else { ... }",
+    "var name = expression",
+    "set name = expression",
+    "while booleanExpression { ... }",
+    "repeat integerExpression { ... }",
+    "break",
+    "continue",
+    "fn name(parameter: type): type { ... }",
+    "return expression"
   ],
   "operations": [
     {
@@ -40,7 +49,7 @@
       "executionContext": "Paper main thread",
       "permissions": "declared command permission on invocation and before each action",
       "owner": "active feature revision",
-      "errors": "Static scripts validate emitted text during preparation. Runtime argument programs validate argument values and prepare all messages before emitting them.",
+      "errors": "Static scripts validate emitted text during preparation. Runtime programs validate arguments and evaluate all messages before emitting any; arithmetic, budget and output errors abort the invocation.",
       "example": "send \"Welcome!\"",
       "platform": "Paper 26.3 build 245"
     }
@@ -92,5 +101,18 @@
       ]
     },
     "failure": "Missing, extra or invalid arguments reject invocation before any message is emitted. Arithmetic and output errors include source locations."
+  },
+  "runtimeControl": {
+    "exampleFile": "countdown.aether",
+    "localState": "Fresh per invocation and function call. Only text, integer and boolean scalars; no persistent script bindings.",
+    "loops": "while checks its boolean condition each iteration; repeat evaluates a nonnegative integer count once. break and continue target the nearest enclosing loop.",
+    "functions": "At most 32 feature-level functions and 16 typed parameters per function. Declare before use; direct self-recursion is allowed, forward calls and captures are rejected. Every path must return a value matching the declared scalar result.",
+    "limits": {
+      "sharedExecutionSteps": 8192,
+      "functionCallDepth": 32
+    },
+    "budget": "The entire invocation, including loops and nested function calls, shares one execution-step and 32-message budget.",
+    "nativeCommands": "Paper registers real command names. Server-console dispatch, replacement, removal and restart are tested; connected-player command-tree visibility and suggestions remain unverified.",
+    "persistence": "PersistentVariables is a core host service backed by bounded JSON snapshots. It is not SQLite and has no script-level bindings."
   }
 }
