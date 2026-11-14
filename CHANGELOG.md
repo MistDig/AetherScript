@@ -4,7 +4,7 @@ Every published change batch receives a new version and GitHub release. Dates us
 
 ## [0.0.15] - 2026-11-15
 
-- Animate the homepage cloudscape with an aurora, orbital trails, comets, and an illustrative prompt-to-game sequence. Add a pause control and honor reduced-motion preferences.
+- Animate the homepage cloudscape with an aurora, orbital trails, comets, pointer parallax, staggered scroll reveals, and an illustrative prompt-to-game sequence. Add a pause control and honor reduced-motion preferences.
 
 ## [0.0.14] - 2026-11-15
 

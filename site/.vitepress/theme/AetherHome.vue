@@ -13,6 +13,17 @@ const stages = [
 const imageFailed = ref(false)
 const example = authoring.template
 let observer
+function moveSky(event) {
+  if (motionPaused.value || event.pointerType === "touch" || !window.matchMedia("(prefers-reduced-motion: no-preference)").matches) return
+  const scene = event.currentTarget
+  const bounds = scene.getBoundingClientRect()
+  scene.style.setProperty("--sky-x", ((event.clientX - bounds.left) / bounds.width - .5) * 34 + "px")
+  scene.style.setProperty("--sky-y", ((event.clientY - bounds.top) / bounds.height - .5) * 26 + "px")
+}
+function resetSky(event) {
+  event.currentTarget.style.removeProperty("--sky-x")
+  event.currentTarget.style.removeProperty("--sky-y")
+}
 async function copyExample() {
   try { await navigator.clipboard.writeText(example); copyState.value = 'Copied. Save as cloud-note.aether.' }
   catch { copyState.value = 'Copy unavailable. Select the example text to copy it.' }
@@ -46,7 +57,7 @@ const principles = [
       </div>
       <p class="hero-meta">Paper 26.3 <span>·</span> Java 25 <span>·</span> Open source</p>
     </div>
-    <div class="cloud-scene" :class="{ 'motion-paused': motionPaused }">
+    <div class="cloud-scene" :class="{ 'motion-paused': motionPaused }" @pointermove="moveSky" @pointerleave="resetSky">
       <div class="aurora" aria-hidden="true"></div>
       <div class="flight-orbits" aria-hidden="true"><i></i><i></i><i></i></div>
       <div class="sky-comets" aria-hidden="true"><i></i><i></i></div>
