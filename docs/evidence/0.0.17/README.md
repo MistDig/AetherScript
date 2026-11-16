@@ -9,3 +9,5 @@ The live Worker version is recorded in relay-deploy.txt. Pairing codes and OAuth
 Old connections retain their existing message-only authority. Fresh approval binds native capability snapshots and an optional real test actor. Explicit local policy overrides remain in force; accepted state writes and completed effects are not rolled back. Test capture is bounded with explicit truncation flags. No arbitrary commands or Java access are exposed.
 
 Audit completion failure handling was reviewed in code, not fault-injected in the live fixture. Individual JSON capture budgets have focused unit tests; the live fixture uses small messages.
+
+After the workflow test, a metadata-only deployment corrected the hosted serverInfo/package version from0.0.8 to0.0.17. Native handlers were unchanged and all nine relay tests passed again; relay-final-deploy.txt records the final Worker version.

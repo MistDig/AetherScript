@@ -143,7 +143,7 @@ async function handleMcp(req,env,parts,origin){
   if(!grant.active)return output({error:'temporarily_unavailable',error_description:'Paper has not acknowledged this connection yet. Retry shortly.'},503,{'retry-after':'2'});
  }
  const respond=result=>output({jsonrpc:'2.0',id:rpc.id,result});const error=(code,message)=>output({jsonrpc:'2.0',id:rpc.id,error:{code,message}});
- if(rpc.method==='initialize')return respond({protocolVersion:'2025-03-26',capabilities:{tools:{listChanged:false}},serverInfo:{name:'aetherscript-hosted',version:'0.0.8'}});
+ if(rpc.method==='initialize')return respond({protocolVersion:'2025-03-26',capabilities:{tools:{listChanged:false}},serverInfo:{name:'aetherscript-hosted',version:'0.0.17'}});
  if(rpc.method==='ping')return respond({});
  if(rpc.method==='tools/list'){
   const fields={id:{type:'string',pattern:ID.source,maxLength:64},source:{type:'string',maxLength:16000},expectedHash:{type:'string'},testId:{type:'string',pattern:CANONICAL_UUID.source,maxLength:36},expectedMessages:{type:'array',items:{type:'string'},maxItems:128},arguments:{type:'array',items:{type:'string',maxLength:2048},maxItems:16}};
