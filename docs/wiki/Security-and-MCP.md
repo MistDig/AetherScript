@@ -1,10 +1,10 @@
-[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.15)
+[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.16)
 
 ---
 
 ## Connect your AI
 
-Install AetherScript 0.0.15 in the Minecraft server's plugins folder and start the server. Java 25 is required. Keep one plugin JAR installed.
+Install AetherScript 0.0.16 in the Minecraft server's plugins folder and start the server. Java 25 is required. Keep one plugin JAR installed.
 
 ### On the Minecraft computer
 
@@ -29,7 +29,7 @@ codex mcp login aetherscript
 
 If AetherScript is already configured, run the login command. Complete authorization in the browser with the enrollment page and use `/mcp` in Codex to check the connection.
 
-For ChatGPT, add the displayed hosted MCP address in your app's custom connector settings and begin authorization. Availability depends on your account and workspace settings. For Cursor use the installation link. Claude Code and Cline can use the hosted OAuth address if the installed client supports it. Their actual client verification is recorded in the [matrix](https://github.com/MistDig/AetherScript/blob/v0.0.15/docs/mcp-clients.md).
+For ChatGPT, add the displayed hosted MCP address in your app's custom connector settings and begin authorization. Availability depends on your account and workspace settings. For Cursor use the installation link. Claude Code and Cline can use the hosted OAuth address if the installed client supports it. Their actual client verification is recorded in the [matrix](https://github.com/MistDig/AetherScript/blob/v0.0.16/docs/mcp-clients.md).
 
 ### Approve and check
 
@@ -46,6 +46,10 @@ In the server console, `ais connections` lists each connection ID, name and full
 Use `ais disconnect <connection-id>` for one app or `ais disconnect` for all apps. Access blocks immediately. Wait for the console's saved-revocation confirmation before restarting.
 
 Connections expire after 30 days. Run `ais connect` again to authorize a fresh connection. Local scripts continue working during a relay outage.
+
+## Local execution permissions
+
+Browser approvals authorize the listed remote script operations and IDs; all existing remote grants remain message-only. A full native-script grant cannot apply, activate or synthetically test a script requiring player location, state, delay or teleport operations. The actual server console separately controls local native execution with `ais capabilities`, `ais permit` and `ais restrict`. Neither a browser approval nor an MCP request can increase that ceiling. Follow the [homes guide](https://github.com/MistDig/AetherScript/wiki/Language-Reference#owner-approved-homes-commands-current-implementation) to install a locally approved player command.
 
 ## Privacy and limits
 

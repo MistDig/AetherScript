@@ -2,6 +2,16 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.16] - 2026-11-17
+
+- Add closed typed UUID/location/unit/optional values, a typed host-call catalog and a bounded command invocation context with source-linked errors and revision/session ownership.
+- Add the locally installed homes example: read the invoking player's location, persist feature/player-owned locations in SQLite, wait bounded server ticks and teleport the invoking player. Host effects run in order and are not transactional rollbacks.
+- Add console-only per-feature capability approval, inspection and restriction. Revalidate preparation/startup/rollback against that policy; existing MCP grants remain message-only even with all-script access.
+- Retire pending invocations on feature replacement, capability restriction, disconnect and shutdown; recheck command permission before platform effects. Accepted state commits may finish after cancellation.
+- Expand the future BetterModel integration plan and registration inventory, keeping supplied upstream identifiers distinct from implemented AetherScript syntax. Document original implementation and dependency-license requirements.
+- Update human/AI language and security guides, generated exports and callable discovery. Add contract/permission/isolation regression tests and a translated-client gameplay fixture.
+- Verified 274 Java tests with no failures/errors/skips, eight relay regressions, packaged CLI/MCP authoring, both SQLite packages/licenses, nine wiki examples and seven published 0.0.11 semantic hashes. Paper 26.3 build 245 passed 23 homes checks across two boots with two translated protocol clients, including same-UUID reconnect cancellation and restart persistence. Website production build and link/search checks pass. Native-client UI, two-PC and performance verification remain open. See versioned evidence.
+
 ## [0.0.15] - 2026-11-15
 
 - Animate the homepage cloudscape with an aurora, orbital trails, comets, pointer parallax, staggered scroll reveals, and an illustrative prompt-to-game sequence. Add a pause control and honor reduced-motion preferences.

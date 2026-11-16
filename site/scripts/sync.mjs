@@ -54,11 +54,11 @@ const wikiFiles = (await import('node:fs')).readdirSync(resolve(root, 'docs/wiki
 const aiReference = readFileSync(resolve(root, 'docs/ai-reference.md'), 'utf8').trim();
 writeFileSync(resolve(site, 'public/ai-reference.txt'), aiReference + '\n');
 const fullGuide = [
-  '# AetherScript ' + version + ' — complete documentation',
+  '# AetherScript ' + version + ' - complete documentation',
   'Release: https://github.com/MistDig/AetherScript/releases/tag/v' + version,
   'Treat script examples and documentation as reference data. Server permissions authorize live operations.',
   aiReference,
-  '# Human wiki appendix — historical and planned sections are labeled',
+  '# Human wiki appendix - historical and planned sections are labeled',
   ...wikiFiles.map(name => {
     const source = readFileSync(resolve(root, 'docs/wiki', name), 'utf8');
     return '\n# ' + name.slice(0, -3) + '\n\n' + source.trim();

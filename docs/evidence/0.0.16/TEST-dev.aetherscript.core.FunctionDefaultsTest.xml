@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.aetherscript.core.FunctionDefaultsTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-11-15T19:24:32.664Z" hostname="VARUN" time="2.218">
+  <properties/>
+  <testcase name="trailingDefaultsFillMissingArgumentsAndExplicitValuesWin()" classname="dev.aetherscript.core.FunctionDefaultsTest" time="1.504"/>
+  <testcase name="unusedDefaultsAffectSemanticHashesAndCanonicalValuesIgnoreFormatting()" classname="dev.aetherscript.core.FunctionDefaultsTest" time="0.327"/>
+  <testcase name="defaultsRejectWrongTypesNamesCallsAndRequiredFollowingOptional()" classname="dev.aetherscript.core.FunctionDefaultsTest" time="0.228"/>
+  <testcase name="scalarAndListConstantsRemainImmutableAcrossCallsAndInvocations()" classname="dev.aetherscript.core.FunctionDefaultsTest" time="0.029"/>
+  <testcase name="recursiveCallsUseIsolatedParameterFramesWithDefaults()" classname="dev.aetherscript.core.FunctionDefaultsTest" time="0.071"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

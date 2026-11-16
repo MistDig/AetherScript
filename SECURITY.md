@@ -49,6 +49,14 @@ Synthetic tests run the actual Registry with a non-player capability and capture
 
 The relay caps JSON envelopes at 64 KiB including quoting/metadata, with one pending operation and 1000 operations/session. Scripts must fit within that envelope. Five failed pairing claims lock a session. Abandoned work expires after two minutes; gateway waits are separately bounded. Server polling normally occurs every five seconds. Hosting quotas are account-wide and finite; availability and public request-quota exhaustion protection are not guaranteed. Local `/ais` operation is independent of relay availability. See [the operator guide](docs/wiki/Security-and-MCP.md) and [relay setup/limits](relay/README.md).
 
+## Local host execution ceiling (current 0.0.16 implementation)
+
+The fixed native callable surface permits invoking-player location reads, own-feature/player location persistence, bounded server-tick delay and self teleport. Actual server-console `ais permit`, `ais capabilities` and `ais restrict` manage the feature ceiling persisted in `script-capabilities.json`. Permit replaces the set and retains message send; restrict restores message-only execution. Corrupt policy storage falls back to message-only pending owner repair. Approval is separate from source activation and command permission.
+
+Existing remote grants, including full native-script access, remain message-only: remote validation/apply/activation/tests reject host requirements independently of any local ceiling. Browser approval cannot raise local execution authority. Synthetic tests never impersonate a connected player. No general platform-object, reflection, command, filesystem or network access is exposed to scripts.
+
+Host command work is bounded and rechecks the active source identity, session, capabilities and command permission at effect boundaries. Disconnect, shutdown, source replacement/retirement and capability removal retire affected continuations. Already completed effects are not rolled back. Location state is scoped by feature ID, player UUID and validated name, stored on a bounded worker in `player-state/variables.sqlite`, with revision-conflict detection. Script revision recovery does not restore player state; back up both policy and player-state data. General gameplay authority remains planned and needs its own authorization and bypass gates.
+
 ## Reporting
 
 Report security issues privately to the repository owner through an agreed private channel. A dedicated reporting contact is still pending. Keep real codes, profiles, tokens and private logs out of public issues. Local audit files need owner-controlled OS access and disk monitoring. Audit rotation and remote audit integrity remain tracked operational work. [Repository](https://github.com/MistDig/AetherScript)

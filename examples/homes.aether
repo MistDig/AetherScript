@@ -1,0 +1,26 @@
+feature homes version "1.0.0"
+fn travel(destination: location): unit {
+  send "Teleporting in one second..."
+  delay(20)
+  teleport_self(destination)
+  send "Home reached."
+}
+command home permission "aetherscript.example.home" sender player {
+  arg action: text = "go"
+  arg name: text = "main"
+  if action == "set" {
+    state_put_location(name, player_location())
+    send "Home saved."
+  } else {
+    if action == "go" {
+      let saved = state_get_location(name)
+      if is_some(saved) {
+        travel(unwrap(saved))
+      } else {
+        send "No home saved with that name."
+      }
+    } else {
+      send "Use /home set [name] or /home go [name]."
+    }
+  }
+}

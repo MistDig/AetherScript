@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.aetherscript.core.TextCollectionTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-11-15T19:26:41.431Z" hostname="VARUN" time="0.388">
+  <properties/>
+  <testcase name="loopsSnapshotTheirCollectionAndJumpsTargetNearestLoop()" classname="dev.aetherscript.core.TextCollectionTest" time="0.006"/>
+  <testcase name="collectionNamesRemainValidScalarIdentifiersAndFunctionNames()" classname="dev.aetherscript.core.TextCollectionTest" time="0.018"/>
+  <testcase name="indexesUseSigned64BitBoundsAndFailAtTheirSource()" classname="dev.aetherscript.core.TextCollectionTest" time="0.01"/>
+  <testcase name="listsAreImmutableAndInvocationsAreFresh()" classname="dev.aetherscript.core.TextCollectionTest" time="0.014"/>
+  <testcase name="collectionBoundsAndSharedExecutionBudgetAreEnforced()" classname="dev.aetherscript.core.TextCollectionTest" time="0.1"/>
+  <testcase name="allPathsAreTypedAndDiagnosticsHaveLocations()" classname="dev.aetherscript.core.TextCollectionTest" time="0.004"/>
+  <testcase name="nestedStructuralEqualityUsesTheSharedBudget()" classname="dev.aetherscript.core.TextCollectionTest" time="0.101"/>
+  <testcase name="typedEmptyListsAndFunctionParametersAndResultsWork()" classname="dev.aetherscript.core.TextCollectionTest" time="0.019"/>
+  <testcase name="semanticHashesDescribeCollectionsAndIgnoreComments()" classname="dev.aetherscript.core.TextCollectionTest" time="0.1"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

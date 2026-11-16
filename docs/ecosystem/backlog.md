@@ -24,6 +24,10 @@ Milestone identifiers follow the implementation brief. Published release numbers
 
 Dependency edges may move a small primitive earlier when a working example requires it. Each change must retain the existing permission, generation, validation and thread-context guarantees.
 
+## BetterModel planning update - 15 November 2026
+
+The latest handoff adds detailed SkBetterModels/BetterModel requirements to EXT-10. The [integration plan](model-integration-plan.md) tracks 124 supplied registration entries, typed provider handles, synchronous combat callbacks, animation markers, rendering/rigs, paths, spawn rules and lifecycle gates. M1-M3 remains the current halfway target; provider implementation is optional M4-M5 work, with its reusable runtime/event prerequisites planned earlier. No BetterModel implementation or Paper 26.3 compatibility is claimed.
+
 ## Flagship acceptance map
 
 | Flagship | Public capabilities required | Required failure and lifecycle evidence | Current checkpoint |

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.aetherscript.paper.FeatureCommandsTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-11-15T19:28:47.055Z" hostname="VARUN" time="0.551">
+  <properties/>
+  <testcase name="staleGenerationLeavesSnapshotAndCommandBindingsUntouched()" classname="dev.aetherscript.paper.FeatureCommandsTest" time="0.031"/>
+  <testcase name="partialRegistrationFailureRestoresOldGenerationAndNames()" classname="dev.aetherscript.paper.FeatureCommandsTest" time="0.006"/>
+  <testcase name="foreignCollisionPreservesExactSnapshotAndBindings()" classname="dev.aetherscript.paper.FeatureCommandsTest" time="0.006"/>
+  <testcase name="replacementRetiresNamesAndClosePreservesForeignBindings()" classname="dev.aetherscript.paper.FeatureCommandsTest" time="0.008"/>
+  <testcase name="registryValidationFailureRestoresOldGenerationAndNames()" classname="dev.aetherscript.paper.FeatureCommandsTest" time="0.005"/>
+  <testcase name="commandForwardsArgumentsAndEnforcesPermissionAndPlayerConstraint()" classname="dev.aetherscript.paper.FeatureCommandsTest" time="0.481"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

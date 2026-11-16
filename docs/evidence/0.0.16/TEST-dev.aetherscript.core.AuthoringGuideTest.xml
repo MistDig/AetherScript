@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.aetherscript.core.AuthoringGuideTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-11-15T19:23:44.444Z" hostname="VARUN" time="0.499">
+  <properties/>
+  <testcase name="exportedHostContractUsesTheExecutableCatalogAndCannotMutateIt()" classname="dev.aetherscript.core.AuthoringGuideTest" time="0.499"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

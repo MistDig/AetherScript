@@ -8,3 +8,5 @@ Run `python integration-tests/wiki_examples.py`, `python integration-tests/docs_
 
 Published `docs/ai-releases/` snapshots, historical changelog sections and recorded evidence retain their original version and limitations. Update only the current unpublished export. Follow `docs/releasing.md` to publish corrections as a new patch release.
 
+
+The maintained optional-model scope is `docs/ecosystem/model-integration-plan.md`. Its source handoff snapshot and registration CSV preserve supplied upstream research separately from implementation evidence. Keep future capabilities labeled planned in the wiki/AI export; do not present upstream Skript patterns as supported Aether syntax.

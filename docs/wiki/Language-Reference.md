@@ -1,10 +1,10 @@
-[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.15)
+[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.16)
 
 ---
 
 ## Text scripts and structured definitions
 
-AetherScript accepts **`.aether`, YAML and JSON** sources. They share the immutable message model, permission checks, validation, saved revisions and recovery behavior.
+AetherScript accepts **`.aether`, YAML and JSON** sources. They share permission checks, validation, saved revisions and recovery behavior. YAML/JSON retain the message-only model; native `.aether` scripts can also use the owner-approved command operations below.
 
 Save one file per feature as `scripts/<id>.aether`, `.yml`, `.yaml` or `.json`. Its filename and feature ID must match. Remove the other example format before installing a different one for the same ID.
 
@@ -108,7 +108,7 @@ Both branch bodies are parsed and type-checked before activation. An undefined n
 
 Statements end at a newline or at their closing-block boundary. `//` begins a comment. Text uses double quotes and supports escaped quotes, backslashes, newline, carriage return and tab. Emitted message text must satisfy the existing plain-text/control-character rules.
 
-Source is strict UTF-8 with an optional leading BOM. Diagnostics identify the source line and column. The initial limits are 64 KiB source, 8,192 tokens, 2,048 expression nodes, 256 statements, nesting depth 32 and 8,192 preparation steps. The selected program must emit 1–32 nonempty plain messages, each at most 2,048 UTF-16 units.
+Source is strict UTF-8 with an optional leading BOM. Diagnostics identify the source line and column. The initial limits are 64 KiB source, 8,192 tokens, 2,048 expression nodes, 256 statements, nesting depth 32 and 8,192 preparation steps. Message-only prepared output must emit 1–32 nonempty plain messages, each at most 2,048 UTF-16 units. Host-backed commands may perform operations without emitting a message; emitted messages retain the output bounds.
 
 
 ## Mutable locals, loops and typed functions
@@ -117,7 +117,7 @@ var count = 3 declares an inferred mutable local. set count = count - 1 updates 
 
 while condition { ... } requires a boolean. repeat count { ... } evaluates a nonnegative integer count once. break exits the nearest enclosing loop; continue skips to its next iteration. These keywords are valid only inside loops.
 
-Declare fn name(parameter: integer): integer { ... } between the feature header and command. Parameters and results must declare text, integer, boolean or `list<elementType>` types. Call functions in expressions, for example text(double(3)). Every path must return a matching value with return expression. Functions can call earlier declarations or themselves, but cannot call later declarations or capture command locals. Trailing parameters may declare typed constant defaults, for example fn double(value: integer = 2): integer { return value * 2 }. Required parameters precede defaults. Defaults cannot reference names or call user functions; immutable scalar/list constants are shared safely across fresh frames. Limits are 32 functions, 16 parameters per function and 32 active function calls. Loops, expressions and nested calls share one 8192-step invocation budget and one 32-message output budget.
+Declare fn name(parameter: integer): integer { ... } between the feature header and command. Parameters and results declare types explicitly: text, integer, boolean, `list<elementType>`, or the host-bound types described below. Call functions in expressions, for example text(double(3)). Every path of a non-unit function must return a matching value with `return expression`. Functions can call earlier declarations or themselves, but cannot call later declarations or capture command locals. Trailing parameters may declare typed constant defaults, for example fn double(value: integer = 2): integer { return value * 2 }. Required parameters precede defaults. Defaults cannot reference names or call user functions; immutable scalar/list constants are shared safely across fresh frames. Limits are 32 functions, 16 parameters per function and 32 active function calls. Loops, expressions and nested calls share one 8192-step invocation budget and one 32-message output budget.
 
 Save as countdown.aether:
 
@@ -136,11 +136,11 @@ command countdown permission "aetherscript.example.countdown" sender any {
 }
 ```
 
-This example emits its lines immediately; loops do not delay server ticks. Timed scheduling is a separate milestone.
+This example emits its lines immediately; loops do not delay server ticks. The owner-approved `delay` operation below provides bounded command continuations.
 
 Test with {"id":"countdown","expectedMessages":["Count 3","Count 2","Count 1","Done"]}. Run /ais run countdown twice; both invocations start at 3.
 
-PersistentVariables provides the JSON host backend; SQLiteVariables provides a separate transactional SQLite backend. Both are core Java services without script-level bindings; var does not persist values or expose player storage. Hosts must select a backend and run storage calls on bounded workers; no automatic migration is performed. Native metadata registration and this runtime slice do not establish completion of the broader gameplay ecosystem.
+PersistentVariables provides the JSON host backend; SQLiteVariables provides a separate transactional SQLite backend. Both remain core Java services. The Paper command runtime now binds the narrow location-storage operations below to SQLite; `var` itself remains invocation-local. Other hosts must select a backend and run storage calls on bounded workers; no automatic migration is performed. Native metadata registration and this runtime slice do not establish completion of the broader gameplay ecosystem.
 
 ## Immutable lists
 
@@ -173,6 +173,39 @@ command scores permission "aetherscript.example.scores" sender any {
 ```
 
 Test with `{"id":"scores","expectedMessages":["6"]}`. Each invocation emits `6` and starts with fresh local state.
+
+## Owner-approved homes commands (current implementation)
+
+This narrow native-script runtime supports player commands, persistent location snapshots and bounded waits. It does not complete the planned event, entity, model or general gameplay ecosystem. Existing remote MCP grants remain message-only, including grants for all native script IDs. Install and approve this example locally.
+
+Copy [`examples/homes.aether`](https://github.com/MistDig/AetherScript/blob/main/examples/homes.aether) to `plugins/AetherScript/scripts/homes.aether`. From the actual server console, run:
+
+```text
+ais permit homes player.location.read,state.own,scheduler.delay,player.teleport.self
+ais capabilities homes
+ais validate homes
+ais reload homes
+```
+
+Wait for `CAPABILITIES_SAVED` before validating/reloading. Give the player `aetherscript.example.home` through your permission manager. In game, use `/home set main` to save the current location, then `/home go main` (or `/home`) to return after 20 server ticks. Tick duration depends on server progress. Names must match `[a-z][a-z0-9_]{0,63}`. Each feature/player UUID/name has separate storage; another player cannot read your home through these operations.
+
+| Native call | Result and required capability |
+| --- | --- |
+| `player_location()` | Immutable `location` snapshot; `player.location.read`. |
+| `state_get_location(name)` | `optional<location>`; `state.own`. |
+| `state_put_location(name, destination)` | Durable write, returning `unit`; `state.own`. |
+| `delay(ticks)` | Resume after 0–1200 server ticks, returning `unit`; `scheduler.delay`. |
+| `teleport_self(destination)` | Teleport the invoking player only, returning `unit`; `player.teleport.self`. |
+
+Requirements are inferred from host calls. Function signatures also accept `uuid`, `location`, `unit` and `optional<T>` in addition to existing types. These are immutable values, not live Bukkit objects. A location contains a world UUID, finite coordinates, yaw and pitch. There is no arbitrary platform-object access. A `unit` function can finish without a value. `is_some(saved)` tests an optional; `unwrap(saved)` returns its contained value and fails with `OPTIONAL_EMPTY` when empty. Check presence before unwrapping. Command arguments remain text, integer or boolean; no location command argument or general record constructor is supplied.
+
+The homes example's `travel(destination: location): unit` helper sends a message, waits with `delay(20)`, teleports and sends confirmation. Player effects re-enter Paper's main thread, storage uses the bounded I/O worker, and waiting does not block Paper's tick thread. This is command execution only: there are no event handlers or independently persistent scheduled jobs. Host-backed sends stream as execution reaches them; a later failure does not undo earlier messages or completed writes/teleports.
+
+Invocations are bounded to 120 seconds, 32 active globally, four per player and eight per feature, in addition to interpreter budgets. Disconnect, shutdown, replacement/retirement of the active source revision, or removal of required execution capabilities retires pending work. Reconnecting does not resume it. Effects recheck the current revision, player session, capability ceiling and command permission. Teleport loads the target chunk asynchronously, then checks again before teleporting; missing worlds, invalid locations and cancelled teleports fail. Work already completed is not rolled back by cancellation.
+
+Homes are stored in `plugins/AetherScript/player-state/variables.sqlite` and survive normal restarts and source revisions under the same feature ID. There is no automatic migration from the JSON backend or a script deletion API in this slice. Concurrent changes after an invocation reads a key can produce `STATE_CONFLICT`; inspect state before retrying. Storage failures are reported instead of silently losing a home. Back up the player-state directory with the server stopped; keep it separate from script revision backups.
+
+`ais permit` replaces the feature's approved set (and always includes `runtime.message.send`); it is not additive. `ais restrict homes` restores message-only execution, retires incompatible active commands and cancels affected work. Approving capabilities does not activate source: reload explicitly. Policy lives in `plugins/AetherScript/script-capabilities.json` and survives restart. If policy storage is corrupt, execution falls back to a message-only ceiling until the owner repairs it. Browser approval and MCP cannot raise this local ceiling or execute/test these player operations.
 
 ## YAML and JSON
 
@@ -217,8 +250,10 @@ The engine caps active features at 128, tracked histories at 128 and scripts-dir
 
 Copy an example to `scripts/welcome.aether` or `scripts/welcome.yml`. Set both feature ID and command name to `welcome`, choose the explicit permission `aetherscript.example.welcome`, and write your message. Validate, reload and invoke `/ais run welcome`.
 
-[Working examples](https://github.com/MistDig/AetherScript/tree/v0.0.15/examples) · [Structured JSON Schema](https://github.com/MistDig/AetherScript/blob/v0.0.15/schema/feature-v1.schema.json) · [Grammar and architecture decision](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/language-decision.md) · [Capability matrix](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/capabilities.csv)
+[Working examples](https://github.com/MistDig/AetherScript/tree/v0.0.16/examples) · [Structured JSON Schema](https://github.com/MistDig/AetherScript/blob/v0.0.16/schema/feature-v1.schema.json) · [Grammar and architecture decision](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/language-decision.md) · [Capability matrix](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/capabilities.csv)
+
+State writes have an acceptance check immediately before commit. Cancellation rejects work not yet accepted; an accepted write may finish after logout, revocation, timeout or shutdown. Accepted and completed writes are not rolled back.
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.15
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.16

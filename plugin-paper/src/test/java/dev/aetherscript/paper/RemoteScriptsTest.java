@@ -18,6 +18,27 @@ class RemoteScriptsTest {
             authorized.run(); registry.replace(before.generation(), change.target()); manager.store().commit(change.durable());
         });
     }
+    @Test void allScriptsAndOwnerApprovedCapabilitiesNeverExpandRemoteMessageOnlyGrant() throws Exception {
+        Path scripts = Files.createDirectory(root.resolve("scripts"));
+        var policy = new ScriptCapabilityPolicy(root.resolve("policy.json"), Set.of(ScriptCapabilityPolicy.MESSAGE, "player.location.read", "state.own", "scheduler.delay", "player.teleport.self"));
+        policy.grant("hello-ai", Set.of(ScriptCapabilityPolicy.MESSAGE, "player.location.read", "state.own", "scheduler.delay", "player.teleport.self"));
+        var manager = new FeatureManager(new ScriptStore(scripts), new RevisionStore(root.resolve("storage"), 5), policy::validate);
+        var registry = new Registry();
+        var service = new RemoteScripts(manager, registry, Set.of(), true, new RemoteScripts.Main() {
+            public <T> T call(Callable<T> action) throws Exception { return action.call(); }
+        }, (before, change, authorized) -> { fail("Remote native source must never reach activation"); });
+        for (String body : List.of("let home = player_location()", "delay(20)", "let home = player_location()\n state_put_location(\"home\", home)", "let home = player_location()\n teleport_self(home)")) {
+            String nativeSource = "feature hello-ai version \"1.0.0\"\ncommand helloai permission \"test.hello\" sender player {\n" + body + "\n}\n";
+            assertTrue(manager.validateText("hello-ai", nativeSource, registry.snapshot()).definition().requires().size() > 1);
+            assertThrows(SecurityException.class, () -> service.execute("scripts.validate", Map.of("id", "hello-ai", "source", nativeSource)));
+            assertThrows(SecurityException.class, () -> service.execute("scripts.apply", Map.of("id", "hello-ai", "source", nativeSource, "expectedHash", "ABSENT")));
+            assertFalse(Files.exists(scripts.resolve("hello-ai.aether"))); assertEquals(0, manager.store().state().sequence());
+        }
+        String nativeSource = "feature hello-ai version \"1.0.0\"\ncommand helloai permission \"test.hello\" sender player { let home = player_location() }\n";
+        registry.replace(0, Map.of("hello-ai", manager.validateText("hello-ai", nativeSource, registry.snapshot())));
+        assertThrows(SecurityException.class, () -> service.execute("scripts.test", Map.of("id", "hello-ai", "expectedMessages", List.of())));
+        assertThrows(IllegalArgumentException.class, () -> service.execute("scripts.test", Map.of("id", "hello-ai", "expectedMessages", List.of(), "sender", "player")));
+    }
     @Test void liveSyntheticTestsBindRuntimeArgumentsBeforeEvaluatingBranches() throws Exception {
         var manager = new FeatureManager(new ScriptStore(Files.createDirectory(root.resolve("scripts"))), new RevisionStore(root.resolve("storage"), 5));
         var registry = new Registry(); var service = service(manager, registry);

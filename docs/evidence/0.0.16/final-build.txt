@@ -1,0 +1,54 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.io.tmpdir=C:\Users\surya\Documents\Codex\2026-11-09\read-aetherscript-codex-handoff-md-completely\work
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.1.0/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :check UP-TO-DATE
+> Task :core:compileJava UP-TO-DATE
+> Task :core:processResources UP-TO-DATE
+> Task :core:classes UP-TO-DATE
+> Task :core:jar UP-TO-DATE
+> Task :core:compileTestJava UP-TO-DATE
+> Task :core:processTestResources NO-SOURCE
+> Task :core:testClasses UP-TO-DATE
+> Task :core:test UP-TO-DATE
+> Task :core:check UP-TO-DATE
+> Task :gateway-mcp:compileJava UP-TO-DATE
+> Task :gateway-mcp:processResources NO-SOURCE
+> Task :gateway-mcp:classes UP-TO-DATE
+> Task :gateway-mcp:jar UP-TO-DATE
+> Task :gateway-mcp:shadowJar UP-TO-DATE
+> Task :gateway-mcp:compileTestJava UP-TO-DATE
+> Task :gateway-mcp:processTestResources NO-SOURCE
+> Task :gateway-mcp:testClasses UP-TO-DATE
+> Task :gateway-mcp:test UP-TO-DATE
+> Task :gateway-mcp:check UP-TO-DATE
+> Task :plugin-paper:compileJava UP-TO-DATE
+> Task :plugin-paper:processResources UP-TO-DATE
+> Task :plugin-paper:classes UP-TO-DATE
+> Task :plugin-paper:jar UP-TO-DATE
+> Task :plugin-paper:shadowJar UP-TO-DATE
+> Task :plugin-paper:compileTestJava UP-TO-DATE
+> Task :plugin-paper:processTestResources NO-SOURCE
+> Task :plugin-paper:testClasses UP-TO-DATE
+
+> Task :plugin-paper:test
+Picked up JAVA_TOOL_OPTIONS: -Djava.io.tmpdir=C:\Users\surya\Documents\Codex\2026-11-09\read-aetherscript-codex-handoff-md-completely\work
+
+> Task :plugin-paper:check
+> Task :assemble UP-TO-DATE
+> Task :build UP-TO-DATE
+> Task :core:assemble UP-TO-DATE
+> Task :core:build UP-TO-DATE
+> Task :gateway-mcp:startScripts UP-TO-DATE
+> Task :gateway-mcp:distTar UP-TO-DATE
+> Task :gateway-mcp:distZip UP-TO-DATE
+> Task :gateway-mcp:startShadowScripts UP-TO-DATE
+> Task :gateway-mcp:shadowDistTar UP-TO-DATE
+> Task :gateway-mcp:shadowDistZip UP-TO-DATE
+> Task :gateway-mcp:assemble UP-TO-DATE
+> Task :gateway-mcp:build UP-TO-DATE
+> Task :plugin-paper:assemble UP-TO-DATE
+> Task :plugin-paper:build
+
+BUILD SUCCESSFUL in 1m 45s
+22 actionable tasks: 1 executed, 21 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.1.0/userguide/configuration_cache_enabling.html

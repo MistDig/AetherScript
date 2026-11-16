@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.aetherscript.paper.SharedRelayConnectorTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-11-15T19:28:53.728Z" hostname="VARUN" time="0.262">
+  <properties/>
+  <testcase name="localMirrorPrecedesAckReconnectsAndCannotExpandTargets()" classname="dev.aetherscript.paper.SharedRelayConnectorTest" time="0.104"/>
+  <testcase name="bareConnectNeedsNoRelayConfigAndDisconnectPersistsBeforeRelayNotification()" classname="dev.aetherscript.paper.SharedRelayConnectorTest" time="0.109"/>
+  <testcase name="validationRepliesPreserveTheSourceLocationForTheAuthorizedClient()" classname="dev.aetherscript.paper.SharedRelayConnectorTest" time="0.046"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

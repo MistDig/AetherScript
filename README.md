@@ -1,12 +1,16 @@
 <p align="center"><img src="docs/assets/aetherscript-banner.png" alt="AetherScript — little scripts, big possibilities" width="1200"></p>
 
-<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.15"><b>Download 0.0.15</b></a> · <a href="https://mistdig.github.io/AetherScript/">Explore the docs</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
+<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.16"><b>Download 0.0.16</b></a> · <a href="https://mistdig.github.io/AetherScript/">Explore the docs</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
 
 [![Build](https://github.com/MistDig/AetherScript/actions/workflows/ci.yml/badge.svg)](https://github.com/MistDig/AetherScript/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/MistDig/AetherScript)](https://github.com/MistDig/AetherScript/releases)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
 An open-source Minecraft scripting engine with **live hot reloading**, saved working revisions and a path toward secure, vendor-neutral AI tooling. Target: **Paper 26.3 build 245 · Java 25**.
+
+## Local homes foundation in the current 0.0.16 implementation
+
+Native player commands can read immutable locations, persist homes, wait a bounded number of server ticks and teleport the invoking player. Install [homes.aether](examples/homes.aether) locally and approve its execution capabilities in the actual server console; see the [homes guide](https://mistdig.github.io/AetherScript/guide/language.html#owner-approved-homes-commands-current-implementation). Existing MCP grants remain message-only, including full native-script access. This command-only slice does not complete the planned event, UI, general gameplay or optional model ecosystem. Verification claims below retain their original versions.
 
 ## Browser pairing in 0.0.8
 
@@ -26,11 +30,11 @@ The documentation site includes Copy docs link for AI and Download docs. The ful
 
 Use typed immutable lists, indexing, `length`, `append`, and `for` iteration to process data. Function parameters can have trailing constant defaults. [scores.aether](examples/scores.aether) totals a typed list through reusable functions.
 
-The core Java API now offers a separate SQLite variable backend with transaction/CAS tests and a pinned JDBC provider. Storage is not yet exposed to scripts or automatically activated on Paper; script persistence remains an M2 task.
+The core Java API now offers a separate SQLite variable backend with transaction/CAS tests and a pinned JDBC provider. At that release storage was not exposed to scripts. The current homes slice binds own-location storage on Paper; general script persistence remains an M2 task.
 
 ## Runtime foundations in 0.0.11
 
-Use `var` and `set` for mutable invocation locals, `while` or `repeat` for bounded iteration, and typed `fn` helpers for reusable logic. [countdown.aether](examples/countdown.aether) demonstrates functions and loops; its messages are immediate, with timed scheduling still planned. Each feature registers its real command name with collision protection and owned removal.
+Use `var` and `set` for mutable invocation locals, `while` or `repeat` for bounded iteration, and typed `fn` helpers for reusable logic. [countdown.aether](examples/countdown.aether) demonstrates functions and loops; its messages are immediate. The current homes slice separately supplies bounded command delays. Each feature registers its real command name with collision protection and owned removal.
 
 The [M1–M3 checkpoint](docs/ecosystem/halfway-milestone.md) records the ongoing halfway goal. This release is a tested foundation slice, not completion of those phases.
 
@@ -53,21 +57,21 @@ command helloai permission "aetherscript.example.hello" sender any {
 
 Save this as `scripts/hello-ai.aether`, using one source file for that feature ID. Validate, reload and run it with the existing `/ais` commands. The [language guide](https://mistdig.github.io/AetherScript/guide/language.html) covers types, scope, operators and preparation limits.
 
-The [documentation website](https://mistdig.github.io/AetherScript/) includes local search, sidebar guides, dark mode and mobile navigation. The [ecosystem inventory](docs/ecosystem/README.md) tracks the brief's concrete capabilities, evidence and dependency order. The [halfway milestone](docs/ecosystem/halfway-milestone.md) tracks M1–M3. Scalar runtime locals, loops, functions and owned direct commands are implemented foundations. Lists are available; maps/sets/records, events, gameplay bindings, script persistence, menus and the addon SDK remain open.
+The [documentation website](https://mistdig.github.io/AetherScript/) includes local search, sidebar guides, dark mode and mobile navigation. The [ecosystem inventory](docs/ecosystem/README.md) tracks the brief's concrete capabilities, evidence and dependency order. The [halfway milestone](docs/ecosystem/halfway-milestone.md) tracks M1–M3. Scalar runtime locals, loops, functions and owned direct commands are implemented foundations. Lists and the narrow location/state/delay/self-teleport bindings are available; maps/sets/records, events, broader gameplay and persistence, menus and the addon SDK remain open.
 
 ## What the engine does
 
-- YAML, JSON and `.aether` sources compile to the shared immutable message model.
+- YAML/JSON retain the immutable message model; native `.aether` also supports locally approved host command operations.
 - Live reload with invalid edits preserving the running script.
 - Saved successful revisions, startup recovery and local rollback; five versions per feature by default.
 - Clear editable-file versus running-version status, field/line/column errors, history and bounded diffs.
 - A separate MCP gateway with offline validation/exact message tests, opt-in loopback status and scoped remote `.aether` authoring.
 
-This experimental release supports sender-only message effects with both preparation-time legacy logic and invocation-time argument/control-flow programs. A typed, versioned persistent-variable service exists in core, with atomic JSON and a separate SQLite backend; script bindings are not implemented. Events, block health, gameplay APIs and UI remain in the [dependency backlog](docs/ecosystem/backlog.md). Published versions begin at 0.0.1; milestone labels describe engineering phases.
+This experimental implementation supports sender messages, preparation-time legacy logic, invocation-time control flow and a locally approved player-command host slice. A typed, versioned persistent-variable service exists in core, with atomic JSON and a separate SQLite backend; Paper binds own-location storage for homes. Events, block health, gameplay APIs and UI remain in the [dependency backlog](docs/ecosystem/backlog.md). Published versions begin at 0.0.1; milestone labels describe engineering phases.
 
 ## Get started
 
-1. Stop Paper, back up existing AetherScript data, and install **AetherScript-0.0.15.jar** from the release. Keep only one plugin JAR installed.
+1. Stop Paper, back up existing AetherScript data, and install **AetherScript-0.0.16.jar** from the release. Keep only one plugin JAR installed.
 2. Start with Java 25 and wait for `Ready. Restored ...`. A new install creates and activates `plugins/AetherScript/scripts/hello-ai.yml`.
 3. Run `/ais run hello-ai`. Players need `aetherscript.example.hello` (operators by default).
 4. Edit its quoted `text`, save, then `/ais validate hello-ai` and `/ais reload hello-ai`.
@@ -103,10 +107,14 @@ python integration-tests/mcp_stdio.py
 
 Linux/macOS: `./gradlew clean check build`. Gradle 9.1.0 wrapper, dependency locks and checksums are committed. First build needs network access.
 
-- `plugin-paper/build/libs/plugin-paper-0.0.15.jar`: standalone plugin; do not install the thin JAR.
-- `gateway-mcp/build/libs/gateway-mcp-0.0.15.jar`: separate executable MCP process.
+- `plugin-paper/build/libs/plugin-paper-0.0.16.jar`: standalone plugin; do not install the thin JAR.
+- `gateway-mcp/build/libs/gateway-mcp-0.0.16.jar`: separate executable MCP process.
 
-The 0.0.12 clean build passed **254 Java tests**. Both packaged JARs passed native SQLite storage/license checks; the CLI/MCP, nine wiki examples and seven published 0.0.11 semantic-hash compatibility cases pass. Paper passed 19 runtime/command checks over two boots. [0.0.12 evidence](docs/evidence/0.0.12) records exact scope. The five-boot/100-reload recovery run and seven relay tests remain attributed to 0.0.11 in [test notes](docs/testing.md). Connected-player command-tree/suggestions, client certification, the owner's two-PC Feather setup, Purpur and quantitative performance measurements remain incomplete.
+The 0.0.16 implementation passed **274 Java tests** with no failures, eight relay regressions, packaged CLI/MCP authoring, both SQLite packaging/license checks, nine wiki examples and seven published 0.0.11 semantic-hash comparisons. The documentation production build and link/search checks passed. [0.0.16 evidence](docs/evidence/0.0.16/) separates real-server checks and remaining limits.
+
+Paper 26.3 build 245 passed 23 homes checks across two boots with two synthetic 26.1 clients translated through ViaProxy 3.4.14. The fixture verifies per-player persistence, delayed teleport, replacement/permission/capability/disconnect cancellation and restart. This is not native 26.3 UI or two-PC verification.
+
+Historical baseline: The 0.0.12 clean build passed **254 Java tests**. Both packaged JARs passed native SQLite storage/license checks; the CLI/MCP, nine wiki examples and seven published 0.0.11 semantic-hash compatibility cases pass. Paper passed 19 runtime/command checks over two boots. [0.0.12 evidence](docs/evidence/0.0.12) records exact scope. The five-boot/100-reload recovery run and seven relay tests remain attributed to 0.0.11 in [test notes](docs/testing.md). Connected-player command-tree/suggestions, client certification, the owner's two-PC Feather setup, Purpur and quantitative performance measurements remain incomplete.
 
 ## MCP connection
 

@@ -13,10 +13,16 @@ final class FeatureCommands implements AutoCloseable {
     private final CommandMap commands;
     private final Registry registry;
     private final BooleanSupplier ready;
+    interface Invoke { boolean run(String id, List<String> arguments, CommandSender sender); }
+    private final Invoke invoke;
     private Map<String, OwnedCommand> owned = Map.of();
 
     FeatureCommands(CommandMap commands, Registry registry, BooleanSupplier ready) {
-        this.commands = commands; this.registry = registry; this.ready = ready;
+        this(commands, registry, ready, (id, arguments, sender) -> registry.run(id, arguments, sender instanceof Player,
+            sender::hasPermission, text -> sender.sendMessage(Component.text(text))));
+    }
+    FeatureCommands(CommandMap commands, Registry registry, BooleanSupplier ready, Invoke invoke) {
+        this.commands = commands; this.registry = registry; this.ready = ready; this.invoke = invoke;
     }
 
     Registry.Snapshot activate(long expected, Map<String, CompiledFeature> target) {
@@ -82,8 +88,7 @@ final class FeatureCommands implements AutoCloseable {
         }
         @Override public boolean execute(CommandSender sender, String label, String[] arguments) {
             try {
-                if (!ready.getAsBoolean() || !registry.run(featureId, InvocationArguments.fromCommandTokens(arguments),
-                    sender instanceof Player, sender::hasPermission, text -> sender.sendMessage(Component.text(text))))
+                if (!ready.getAsBoolean() || !invoke.run(featureId, InvocationArguments.fromCommandTokens(arguments), sender))
                     sender.sendMessage(Component.text("Feature unavailable or permission denied."));
             } catch (ValidationException failure) {
                 sender.sendMessage(Component.text(FeatureManager.display(failure.getMessage())));

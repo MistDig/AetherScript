@@ -9,5 +9,9 @@ public record CompiledFeature(Feature definition, String sourceHash, String irHa
     }
     public interface Program {
         List<Feature.MessageAction> evaluate(List<String> arguments);
+        /** Host-aware invocation; legacy programs retain their buffered message behavior. */
+        default List<Feature.MessageAction> evaluate(List<String> arguments, InvocationContext context) {
+            return evaluate(arguments);
+        }
     }
 }

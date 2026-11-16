@@ -25,6 +25,10 @@ public final class TextFrontend {
     // so an existing `let repeat = 3` remains valid after an engine upgrade.
     private static final List<String> RESERVED = List.of("true", "false", "text", "let", "send", "if", "else", "arg");
 
+    private final CallableRegistry callables;
+    public TextFrontend() { this(StandardCallables.create()); }
+    public TextFrontend(CallableRegistry callables) { this.callables = java.util.Objects.requireNonNull(callables); }
+
     public CompiledFeature parse(byte[] source) {
         if (source.length > FeatureParser.MAX_BYTES) throw new ValidationException("$", "Source exceeds 65536 bytes", 1, 1);
         String text;
@@ -35,37 +39,22 @@ public final class TextFrontend {
             throw new ValidationException("$", "Invalid UTF-8 encoding. Save the source as UTF-8.", 1, 1);
         }
         if (text.startsWith("\uFEFF")) text = text.substring(1);
-        return new Parser(new Lexer(text).scan()).compile(source);
+        return new Parser(new Lexer(text).scan(), callables).compile(source);
     }
 
     private enum Kind { NAME, NUMBER, STRING, SYMBOL, NEWLINE, END }
-    private record Type(String name, Type element) {
-        static final Type INTEGER = new Type("INTEGER", null), TEXT = new Type("TEXT", null), BOOLEAN = new Type("BOOLEAN", null);
-        static Type list(Type element, Token token) {
-            int depth = 1;
-            for (Type type = element; type.element != null; type = type.element) depth++;
-            if (depth > MAX_COLLECTION_DEPTH) throw token.error("Collection nesting exceeds 8");
-            return new Type("LIST<" + element.name + ">", element);
-        }
-    }
     private record Token(Kind kind, String text, int line, int column) {
         ValidationException error(String reason) { return new ValidationException("$", reason, line, column); }
     }
-    private record Value(Type type, Object value) {
-        long integer() { return (Long) value; }
-        boolean bool() { return (Boolean) value; }
-        String text() { return (String) value; }
-        @SuppressWarnings("unchecked") List<Value> list() { return (List<Value>) value; }
-    }
-    private record Binding(String name, Type type, Token declaration, int slot, boolean mutable) {}
-    private record Argument(Binding binding, Value defaultValue) {}
+    private record Binding(String name, ScriptType type, Token declaration, int slot, boolean mutable) {}
+    private record Argument(Binding binding, ScriptValue defaultValue) {}
     private static final class Function {
         final Token name;
         final List<Binding> parameters;
-        final Type result;
-        final Map<Integer, Value> defaults;
+        final ScriptType result;
+        final Map<Integer, ScriptValue> defaults;
         List<Statement> body;
-        Function(Token name, List<Binding> parameters, Type result, Map<Integer, Value> defaults) {
+        Function(Token name, List<Binding> parameters, ScriptType result, Map<Integer, ScriptValue> defaults) {
             this.name = name; this.parameters = List.copyOf(parameters); this.result = result; this.defaults = Map.copyOf(defaults);
         }
     }
@@ -139,129 +128,150 @@ public final class TextFrontend {
     }
 
     private interface Expression {
-        Type type();
+        ScriptType type();
         int depth();
-        Value evaluate(Execution execution);
+        ScriptValue evaluate(Execution execution);
     }
-    private record Literal(Value value) implements Expression {
-        public Type type() { return value.type(); }
+    private record Literal(ScriptValue value) implements Expression {
+        public ScriptType type() { return value.type(); }
         public int depth() { return 1; }
-        public Value evaluate(Execution execution) { execution.step(); return value; }
+        public ScriptValue evaluate(Execution execution) { execution.step(); return value; }
     }
     private record Name(Binding binding, Token token) implements Expression {
-        public Type type() { return binding.type(); }
+        public ScriptType type() { return binding.type(); }
         public int depth() { return 1; }
-        public Value evaluate(Execution execution) { execution.step(); return execution.values.get(binding); }
+        public ScriptValue evaluate(Execution execution) { execution.step(); return execution.values.get(binding); }
     }
-    private record Unary(Token operator, Expression operand, Type type) implements Expression {
+    private record Unary(Token operator, Expression operand, ScriptType type) implements Expression {
         public int depth() { return operand.depth() + 1; }
-        public Value evaluate(Execution execution) {
-            execution.step(); Value value = operand.evaluate(execution);
-            if (operator.text().equals("!")) return new Value(Type.BOOLEAN, !value.bool());
-            try { return new Value(Type.INTEGER, Math.negateExact(value.integer())); }
+        public ScriptValue evaluate(Execution execution) {
+            execution.step(); ScriptValue value = operand.evaluate(execution);
+            if (operator.text().equals("!")) return new ScriptValue(ScriptType.BOOLEAN, !value.bool());
+            try { return new ScriptValue(ScriptType.INTEGER, Math.negateExact(value.integer())); }
             catch (ArithmeticException error) { throw operator.error("Integer overflow. Keep arithmetic within signed 64-bit bounds."); }
         }
     }
-    private record Binary(Expression left, Token operator, Expression right, Type type) implements Expression {
+    private record Binary(Expression left, Token operator, Expression right, ScriptType type) implements Expression {
         public int depth() { return Math.max(left.depth(), right.depth()) + 1; }
-        public Value evaluate(Execution execution) {
-            execution.step(); Value a = left.evaluate(execution);
-            if (operator.text().equals("&&") && !a.bool()) return new Value(Type.BOOLEAN, false);
-            if (operator.text().equals("||") && a.bool()) return new Value(Type.BOOLEAN, true);
-            Value b = right.evaluate(execution);
+        public ScriptValue evaluate(Execution execution) {
+            execution.step(); ScriptValue a = left.evaluate(execution);
+            if (operator.text().equals("&&") && !a.bool()) return new ScriptValue(ScriptType.BOOLEAN, false);
+            if (operator.text().equals("||") && a.bool()) return new ScriptValue(ScriptType.BOOLEAN, true);
+            ScriptValue b = right.evaluate(execution);
             try {
                 return switch (operator.text()) {
-                    case "+" -> type == Type.TEXT ? textValue(a.text() + b.text(), operator) : new Value(type, Math.addExact(a.integer(), b.integer()));
-                    case "-" -> new Value(type, Math.subtractExact(a.integer(), b.integer()));
-                    case "*" -> new Value(type, Math.multiplyExact(a.integer(), b.integer()));
+                    case "+" -> type == ScriptType.TEXT ? textValue(a.text() + b.text(), operator) : new ScriptValue(type, Math.addExact(a.integer(), b.integer()));
+                    case "-" -> new ScriptValue(type, Math.subtractExact(a.integer(), b.integer()));
+                    case "*" -> new ScriptValue(type, Math.multiplyExact(a.integer(), b.integer()));
                     case "/" -> {
                         if (b.integer() == 0) throw operator.error("Division by zero. Use a nonzero divisor.");
                         if (a.integer() == Long.MIN_VALUE && b.integer() == -1) throw new ArithmeticException();
-                        yield new Value(type, a.integer() / b.integer());
+                        yield new ScriptValue(type, a.integer() / b.integer());
                     }
                     case "%" -> {
                         if (b.integer() == 0) throw operator.error("Remainder by zero. Use a nonzero divisor.");
-                        yield new Value(type, a.integer() % b.integer());
+                        yield new ScriptValue(type, a.integer() % b.integer());
                     }
-                    case "<" -> new Value(type, a.integer() < b.integer());
-                    case "<=" -> new Value(type, a.integer() <= b.integer());
-                    case ">" -> new Value(type, a.integer() > b.integer());
-                    case ">=" -> new Value(type, a.integer() >= b.integer());
-                    case "==" -> new Value(type, valuesEqual(a, b, execution, operator));
-                    case "!=" -> new Value(type, !valuesEqual(a, b, execution, operator));
-                    case "&&" -> new Value(type, a.bool() && b.bool());
-                    case "||" -> new Value(type, a.bool() || b.bool());
+                    case "<" -> new ScriptValue(type, a.integer() < b.integer());
+                    case "<=" -> new ScriptValue(type, a.integer() <= b.integer());
+                    case ">" -> new ScriptValue(type, a.integer() > b.integer());
+                    case ">=" -> new ScriptValue(type, a.integer() >= b.integer());
+                    case "==" -> new ScriptValue(type, valuesEqual(a, b, execution, operator));
+                    case "!=" -> new ScriptValue(type, !valuesEqual(a, b, execution, operator));
+                    case "&&" -> new ScriptValue(type, a.bool() && b.bool());
+                    case "||" -> new ScriptValue(type, a.bool() || b.bool());
                     default -> throw new AssertionError(operator.text());
                 };
             } catch (ArithmeticException error) { throw operator.error("Integer overflow. Keep arithmetic within signed 64-bit bounds."); }
         }
     }
-    private static boolean valuesEqual(Value left, Value right, Execution execution, Token token) {
-        if (left.type().element() == null) return left.value().equals(right.value());
+    private static boolean valuesEqual(ScriptValue left, ScriptValue right, Execution execution, Token token) {
+        if (!left.type().isList()) return left.value().equals(right.value());
         execution.step(token);
         if (left == right) return true;
-        List<Value> a = left.list(), b = right.list();
+        List<ScriptValue> a = left.list(), b = right.list();
         if (a.size() != b.size()) return false;
         for (int i = 0; i < a.size(); i++) if (!valuesEqual(a.get(i), b.get(i), execution, token)) return false;
         return true;
     }
     private record AsText(Expression operand, Token token) implements Expression {
-        public Type type() { return Type.TEXT; }
+        public ScriptType type() { return ScriptType.TEXT; }
         public int depth() { return operand.depth() + 1; }
-        public Value evaluate(Execution execution) { execution.step(); return textValue(operand.evaluate(execution).value().toString(), token); }
+        public ScriptValue evaluate(Execution execution) { execution.step(); return textValue(operand.evaluate(execution).value().toString(), token); }
     }
-    private record ListValue(Type type, List<Expression> elements) implements Expression {
+    private record ListValue(ScriptType type, List<Expression> elements) implements Expression {
         public int depth() { return 1 + elements.stream().mapToInt(Expression::depth).max().orElse(0); }
-        public Value evaluate(Execution execution) {
+        public ScriptValue evaluate(Execution execution) {
             execution.step();
-            return new Value(type, elements.stream().map(element -> element.evaluate(execution)).toList());
+            return new ScriptValue(type, elements.stream().map(element -> element.evaluate(execution)).toList());
         }
     }
     private record Index(Expression collection, Expression index, Token token) implements Expression {
-        public Type type() { return collection.type().element(); }
+        public ScriptType type() { return collection.type().element(); }
         public int depth() { return 1 + Math.max(collection.depth(), index.depth()); }
-        public Value evaluate(Execution execution) {
-            execution.step(token); List<Value> values = collection.evaluate(execution).list();
+        public ScriptValue evaluate(Execution execution) {
+            execution.step(token); List<ScriptValue> values = collection.evaluate(execution).list();
             long offset = index.evaluate(execution).integer();
             if (offset < 0 || offset >= values.size()) throw token.error("List index out of bounds");
             return values.get((int) offset);
         }
     }
     private record ListOperation(Expression collection, Expression value, Token token) implements Expression {
-        public Type type() { return value == null ? Type.INTEGER : collection.type(); }
+        public ScriptType type() { return value == null ? ScriptType.INTEGER : collection.type(); }
         public int depth() { return 1 + Math.max(collection.depth(), value == null ? 0 : value.depth()); }
-        public Value evaluate(Execution execution) {
-            execution.step(token); List<Value> values = collection.evaluate(execution).list();
-            if (value == null) return new Value(Type.INTEGER, (long) values.size());
+        public ScriptValue evaluate(Execution execution) {
+            execution.step(token); List<ScriptValue> values = collection.evaluate(execution).list();
+            if (value == null) return new ScriptValue(ScriptType.INTEGER, (long) values.size());
             if (values.size() >= MAX_COLLECTION) throw token.error("List exceeds 256 elements");
-            Value added = value.evaluate(execution);
-            List<Value> result = new ArrayList<>(values.size() + 1); result.addAll(values); result.add(added);
-            return new Value(type(), List.copyOf(result));
+            ScriptValue added = value.evaluate(execution);
+            List<ScriptValue> result = new ArrayList<>(values.size() + 1); result.addAll(values); result.add(added);
+            return new ScriptValue(type(), List.copyOf(result));
         }
     }
-    private record Call(Function function, List<Expression> arguments, Token token) implements Expression {
-        public Type type() { return function.result; }
+    private record NativeCall(CallableRegistry registry, CallableRegistry.Descriptor descriptor, List<Expression> arguments, Token token) implements Expression {
+        public ScriptType type() { return descriptor.result(); }
         public int depth() { return 1 + arguments.stream().mapToInt(Expression::depth).max().orElse(0); }
-        public Value evaluate(Execution execution) {
+        public ScriptValue evaluate(Execution execution) {
             execution.step(token);
-            List<Value> values = arguments.stream().map(argument -> argument.evaluate(execution)).toList();
+            if (execution.context == null) throw token.error("HOST_CONTEXT_REQUIRED: Native call requires an invocation context");
+            return registry.invoke(descriptor.dslName(), arguments.stream().map(value -> value.evaluate(execution)).toList(), execution.context, location(token));
+        }
+    }
+    private record OptionalOperation(Expression operand, boolean unwrap, Token token) implements Expression {
+        public ScriptType type() { return unwrap ? operand.type().element() : ScriptType.BOOLEAN; }
+        public int depth() { return operand.depth() + 1; }
+        public ScriptValue evaluate(Execution execution) {
+            execution.step(token); var value = operand.evaluate(execution).optional();
+            return unwrap ? value.orElseThrow(() -> token.error("OPTIONAL_EMPTY: Cannot unwrap an empty optional")) : new ScriptValue(ScriptType.BOOLEAN, value.isPresent());
+        }
+    }
+    private static SourceLocation location(Token token) { return token == null ? SourceLocation.UNKNOWN : new SourceLocation("$", token.line(), token.column()); }
+    private record UnitCall(Expression expression) implements Statement { public void prepare(Execution execution) { expression.evaluate(execution); } }
+    private record Call(Function function, List<Expression> arguments, Token token) implements Expression {
+        public ScriptType type() { return function.result; }
+        public int depth() { return 1 + arguments.stream().mapToInt(Expression::depth).max().orElse(0); }
+        public ScriptValue evaluate(Execution execution) {
+            execution.step(token);
+            List<ScriptValue> values = arguments.stream().map(argument -> argument.evaluate(execution)).toList();
             if (execution.callDepth >= MAX_CALL_DEPTH) throw token.error("Function call depth exceeds 32");
-            Map<Binding, Value> caller = execution.values;
+            Map<Binding, ScriptValue> caller = execution.values;
             execution.values = new HashMap<>(); execution.callDepth++;
             for (int i = 0; i < function.parameters.size(); i++) execution.values.put(function.parameters.get(i), i < values.size() ? values.get(i) : function.defaults.get(i));
+            ExecutionBudget.Scope scope = execution.context == null ? null : execution.context.budget().enter(location(token));
             try {
                 for (Statement statement : function.body) statement.prepare(execution);
+                if (function.result == ScriptType.UNIT) return new ScriptValue(ScriptType.UNIT, ScriptValue.Unit.INSTANCE);
                 throw token.error("Function did not return a value");
             } catch (Returned returned) {
                 return returned.value;
             } catch (ValidationException error) {
                 throw new ValidationException(error.path(), error.reason() + "\n  called " + function.name.text() + " at line " + token.line() + ", column " + token.column(), error.line(), error.column());
-            } finally { execution.values = caller; execution.callDepth--; }
+            } finally { if (scope != null) scope.close(); execution.values = caller; execution.callDepth--; }
         }
     }
-    private static Value textValue(String text, Token token) {
+    private static ScriptValue textValue(String text, Token token) {
         if (text.length() > FeatureParser.MAX_TEXT) throw token.error("Text exceeds 2048 UTF-16 units");
-        return new Value(Type.TEXT, text);
+        return new ScriptValue(ScriptType.TEXT, text);
     }
 
     private interface Statement { void prepare(Execution execution); }
@@ -286,7 +296,7 @@ public final class TextFrontend {
     private record For(Binding binding, Expression collection, List<Statement> body, Token token) implements Statement {
         public void prepare(Execution execution) {
             execution.step(token);
-            for (Value value : collection.evaluate(execution).list()) {
+            for (ScriptValue value : collection.evaluate(execution).list()) {
                 execution.step(token); execution.values.put(binding, value);
                 try { for (Statement statement : body) statement.prepare(execution); }
                 catch (LoopJump jump) { if (!jump.continueLoop) break; }
@@ -301,8 +311,8 @@ public final class TextFrontend {
         public void prepare(Execution execution) { execution.step(token); throw new LoopJump(continueLoop); }
     }
     private static final class Returned extends RuntimeException {
-        final Value value;
-        Returned(Value value) { super(null, null, false, false); this.value = value; }
+        final ScriptValue value;
+        Returned(ScriptValue value) { super(null, null, false, false); this.value = value; }
     }
     private record Return(Expression value, Token token) implements Statement {
         public void prepare(Execution execution) { execution.step(token); throw new Returned(value.evaluate(execution)); }
@@ -313,6 +323,7 @@ public final class TextFrontend {
             if (text.isEmpty() || text.codePoints().anyMatch(c -> Character.isISOControl(c) || c == 0xA7))
                 throw token.error("send requires nonempty plain text without controls or legacy formatting");
             if (execution.messages.size() >= FeatureParser.MAX_ACTIONS) throw token.error("A feature may emit at most 32 messages");
+            if (execution.context != null) execution.context.send(text, location(token));
             execution.messages.add(new Feature.MessageAction(text));
         }
     }
@@ -323,13 +334,17 @@ public final class TextFrontend {
         }
     }
     private static final class Execution {
-        Map<Binding, Value> values = new HashMap<>();
+        Map<Binding, ScriptValue> values = new HashMap<>();
         final List<Feature.MessageAction> messages = new ArrayList<>();
+        final InvocationContext context;
+        Execution() { this(null); }
+        Execution(InvocationContext context) { this.context = context; }
         private int steps, callDepth;
         void step() {
             step(null);
         }
         void step(Token token) {
+            if (context != null) { context.checkActive(location(token)); context.budget().step(location(token)); }
             if (++steps > MAX_STEPS) {
                 if (token != null) throw token.error("Execution budget exceeded (8192 steps)");
                 throw new ValidationException("$", "Execution budget exceeded (8192 steps)", 1, 1);
@@ -337,7 +352,7 @@ public final class TextFrontend {
         }
     }
 
-    private record RuntimeProgram(List<Argument> arguments, List<Statement> body, String sourceHash) implements CompiledFeature.Program {
+    private record RuntimeProgram(List<Argument> arguments, List<Statement> body, String sourceHash, boolean hostRequired) implements CompiledFeature.Program {
         RuntimeProgram { arguments = List.copyOf(arguments); body = List.copyOf(body); }
         // Recursive call graphs contain function identity references. Equal source
         // compiled by this frontend is still the same immutable program, including
@@ -345,13 +360,17 @@ public final class TextFrontend {
         @Override public boolean equals(Object other) { return other instanceof RuntimeProgram program && sourceHash.equals(program.sourceHash); }
         @Override public int hashCode() { return sourceHash.hashCode(); }
         public List<Feature.MessageAction> evaluate(List<String> rawArguments) {
+            return evaluate(rawArguments, null);
+        }
+        @Override public List<Feature.MessageAction> evaluate(List<String> rawArguments, InvocationContext context) {
+            if (hostRequired && context == null) throw new ValidationException("$", "HOST_CONTEXT_REQUIRED: Native calls require an invocation context", 1, 1);
             List<String> supplied = InvocationArguments.checked(rawArguments);
             if (supplied.size() > arguments.size())
                 throw new ValidationException("$.arguments", "Too many arguments. This command accepts at most " + arguments.size());
-            Execution execution = new Execution();
+            Execution execution = new Execution(context);
             for (int index = 0; index < arguments.size(); index++) {
                 Argument argument = arguments.get(index);
-                Value value = argument.defaultValue();
+                ScriptValue value = argument.defaultValue();
                 if (index < supplied.size()) value = parseArgument(argument, supplied.get(index), index);
                 if (value == null) throw argumentError(argument, index, "Missing required argument '" + argument.binding().name() + "'");
                 execution.values.put(argument.binding(), value);
@@ -359,12 +378,12 @@ public final class TextFrontend {
             for (Statement statement : body) statement.prepare(execution);
             return List.copyOf(execution.messages);
         }
-        private Value parseArgument(Argument argument, String raw, int index) {
-            Type type = argument.binding().type();
-            if (type == Type.TEXT) return new Value(type, raw);
-            if (type == Type.BOOLEAN && (raw.equals("true") || raw.equals("false"))) return new Value(type, Boolean.parseBoolean(raw));
-            if (type == Type.INTEGER && raw.matches("[+-]?[0-9]+")) {
-                try { return new Value(type, Long.parseLong(raw)); }
+        private ScriptValue parseArgument(Argument argument, String raw, int index) {
+            ScriptType type = argument.binding().type();
+            if (type == ScriptType.TEXT) return new ScriptValue(type, raw);
+            if (type == ScriptType.BOOLEAN && (raw.equals("true") || raw.equals("false"))) return new ScriptValue(type, Boolean.parseBoolean(raw));
+            if (type == ScriptType.INTEGER && raw.matches("[+-]?[0-9]+")) {
+                try { return new ScriptValue(type, Long.parseLong(raw)); }
                 catch (NumberFormatException ignored) { }
             }
             throw argumentError(argument, index, "Argument '" + argument.binding().name() + "' requires " + type.name().toLowerCase(java.util.Locale.ROOT));
@@ -392,12 +411,14 @@ public final class TextFrontend {
             case Index item -> usesName(item.collection()) || usesName(item.index());
             case ListOperation operation -> usesName(operation.collection()) || operation.value() != null && usesName(operation.value());
             case Call ignored -> true;
+            case NativeCall ignored -> true;
+            case OptionalOperation operation -> usesName(operation.operand());
             default -> false;
         };
     }
-    private static Object constantDescription(Value value, Execution budget, Token token) {
+    private static Object constantDescription(ScriptValue value, Execution budget, Token token) {
         budget.step(token);
-        Object content = value.type().element() == null ? value.value()
+        Object content = !value.type().isList() ? value.value()
             : value.list().stream().map(element -> constantDescription(element, budget, token)).toList();
         return List.of(value.type().name(), content);
     }
@@ -407,13 +428,14 @@ public final class TextFrontend {
         if (function.defaults.isEmpty()) return original;
         Execution budget = new Execution(); List<Object> defaults = new ArrayList<>();
         for (int i = 0; i < function.parameters.size(); i++) {
-            Value value = function.defaults.get(i);
+            ScriptValue value = function.defaults.get(i);
             defaults.add(value == null ? List.of() : constantDescription(value, budget, function.parameters.get(i).declaration()));
         }
         return List.of(original, "parameter-defaults-v1", defaults);
     }
     private static List<Object> statementsDescription(List<Statement> statements) {
         return statements.stream().map(statement -> switch (statement) {
+            case UnitCall call -> (Object) List.of("unit-call", expressionDescription(call.expression()));
             case Let let -> (Object) List.of("let", let.binding().slot(), expressionDescription(let.initializer()));
             case Send send -> (Object) List.of("send", expressionDescription(send.expression()));
             case Condition condition -> (Object) List.of("if", expressionDescription(condition.condition()), statementsDescription(condition.yes()), statementsDescription(condition.no()));
@@ -435,6 +457,8 @@ public final class TextFrontend {
             case ListValue list -> List.of("list", list.type().name(), list.elements().stream().map(TextFrontend::expressionDescription).toList());
             case Index item -> List.of("index", expressionDescription(item.collection()), expressionDescription(item.index()));
             case ListOperation operation -> List.of(operation.value() == null ? "length" : "append", expressionDescription(operation.collection()), operation.value() == null ? List.of() : expressionDescription(operation.value()));
+            case NativeCall call -> List.of("native-call", call.descriptor().id(), call.type().name(), call.arguments().stream().map(TextFrontend::expressionDescription).toList());
+            case OptionalOperation operation -> List.of(operation.unwrap() ? "unwrap" : "is_some", expressionDescription(operation.operand()));
             case Call call -> List.of("call", call.function().name.text(), call.arguments().stream().map(TextFrontend::expressionDescription).toList());
             default -> throw new AssertionError("Unknown expression");
         };
@@ -446,9 +470,11 @@ public final class TextFrontend {
         private final List<Argument> arguments = new ArrayList<>();
         private final Map<String, Function> functions = new java.util.LinkedHashMap<>();
         private Function currentFunction;
-        private boolean advanced;
+        private final CallableRegistry callables;
+        private final java.util.Set<String> capabilities = new java.util.TreeSet<>(List.of("runtime.message.send"));
+        private boolean advanced, hostRequired;
         private int index, nodes, statements, blockDepth, expressionDepth, bindings, loopDepth;
-        Parser(List<Token> tokens) { this.tokens = tokens; }
+        Parser(List<Token> tokens, CallableRegistry callables) { this.tokens = tokens; this.callables = callables; }
         CompiledFeature compile(byte[] original) {
             newlines(); expect("feature"); String id = logicalId();
             expect("version"); Token versionToken = require(Kind.STRING, "Feature version must be double-quoted text");
@@ -473,7 +499,7 @@ public final class TextFrontend {
             if (!advanced && (messages == 0 || messages > FeatureParser.MAX_ACTIONS))
                 throw commandToken.error("Runtime commands must contain a send and emit at most 32 messages on any branch");
             Feature feature = definition(id, versionToken.text(), name, permission.text(), sender.text(), List.of());
-            RuntimeProgram program = new RuntimeProgram(arguments, body, FeatureParser.hash(original));
+            RuntimeProgram program = new RuntimeProgram(arguments, body, FeatureParser.hash(original), hostRequired);
             Object semantic = List.of(advanced ? "aether-runtime-control-v1" : "aether-runtime-arguments-v1", feature,
                 arguments.stream().map(argument -> List.of(argument.binding().name(), argument.binding().type().name(),
                     argument.defaultValue() == null ? List.of() : List.of(argument.defaultValue().value()))).toList(),
@@ -487,12 +513,12 @@ public final class TextFrontend {
             Token name = identifier("Expected a function name");
             if (functions.containsKey(name.text())) throw name.error("Function is already declared");
             expect("("); List<Binding> parameters = new ArrayList<>(); Map<String, Binding> parameterScope = new HashMap<>();
-            Map<Integer, Value> defaults = new HashMap<>(); Execution defaultBudget = new Execution();
+            Map<Integer, ScriptValue> defaults = new HashMap<>(); Execution defaultBudget = new Execution();
             if (!matches(")")) do {
                 Token parameter = identifier("Expected a parameter name");
                 if (parameterScope.containsKey(parameter.text())) throw parameter.error("Duplicate function parameter");
                 if (parameters.size() >= InvocationArguments.MAX_COUNT) throw parameter.error("A function supports at most 16 parameters");
-                expect(":"); Type type = declaredType();
+                expect(":"); ScriptType type = declaredType();
                 if (matches("=")) {
                     take(); Expression value = expression();
                     requireType(value, type, parameter, "Parameter default must match its declared type");
@@ -504,11 +530,11 @@ public final class TextFrontend {
                 if (!matches(",")) break;
                 take();
             } while (true);
-            expect(")"); expect(":"); Type result = declaredType();
+            expect(")"); expect(":"); ScriptType result = declaredType();
             Function function = new Function(name, parameters, result, defaults);
             functions.put(name.text(), function); currentFunction = function;
             scopes.push(parameterScope); function.body = block(); scopes.pop(); currentFunction = null;
-            if (!returns(function.body)) throw name.error("Function must return " + result.name().toLowerCase(java.util.Locale.ROOT) + " on every path");
+            if (result != ScriptType.UNIT && !returns(function.body)) throw name.error("Function must return " + result.name().toLowerCase(java.util.Locale.ROOT) + " on every path");
         }
         private boolean returns(List<Statement> body) {
             for (Statement statement : body) {
@@ -522,20 +548,29 @@ public final class TextFrontend {
             if (RESERVED.contains(token.text())) throw token.error("This keyword cannot be an identifier");
             return token;
         }
-        private Type declaredType() {
+        private ScriptType listType(ScriptType element, Token token) {
+            try { return ScriptType.list(element); } catch (IllegalArgumentException error) { throw token.error(error.getMessage()); }
+        }
+        private ScriptType declaredType() {
             Token token = require(Kind.NAME, "Expected text, integer, boolean or list<type>");
-            if (token.text().equals("list")) {
+            if (token.text().equals("optional")) {
                 if (++expressionDepth > MAX_DEPTH) throw token.error("Type nesting exceeds 32");
-                expect("<"); Type element = declaredType(); expect(">"); expressionDepth--;
-                advanced = true; return Type.list(element, token);
+                expect("<"); ScriptType element = declaredType(); expect(">"); expressionDepth--;
+                try { return ScriptType.optional(element); } catch (IllegalArgumentException error) { throw token.error(error.getMessage()); }
+            }
+            if (token.text().equals("list")) {
+                if (++expressionDepth > MAX_DEPTH) throw token.error("ScriptType nesting exceeds 32");
+                expect("<"); ScriptType element = declaredType(); expect(">"); expressionDepth--;
+                advanced = true; return listType(element, token);
             }
             return switch (token.text()) {
-                case "text" -> Type.TEXT; case "integer" -> Type.INTEGER; case "boolean" -> Type.BOOLEAN;
-                default -> throw token.error("Type must be text, integer or boolean");
+                case "text" -> ScriptType.TEXT; case "integer" -> ScriptType.INTEGER; case "boolean" -> ScriptType.BOOLEAN;
+                case "uuid" -> ScriptType.UUID; case "location" -> ScriptType.LOCATION; case "unit" -> ScriptType.UNIT;
+                default -> throw token.error("ScriptType must be text, integer or boolean");
             };
         }
         private Feature definition(String id, String version, String name, String permission, String sender, List<Feature.MessageAction> actions) {
-            return new Feature(1, id, version, List.of("runtime.message.send"), new Feature.Command(name, permission, sender, actions));
+            return new Feature(1, id, version, List.copyOf(capabilities), new Feature.Command(name, permission, sender, actions));
         }
         private CompiledFeature compiled(Feature feature, byte[] original, CompiledFeature.Program program, Object semantic) {
             try { return new CompiledFeature(feature, FeatureParser.hash(original), FeatureParser.hash(FeatureParser.JSON.writeValueAsBytes(semantic)), program); }
@@ -564,13 +599,13 @@ public final class TextFrontend {
             if (RESERVED.contains(name.text()) || scopes.peek().containsKey(name.text()))
                 throw name.error("Argument names must be unique local identifiers");
             expect(":"); Token declared = require(Kind.NAME, "Expected argument type text, integer or boolean");
-            Type type = switch (declared.text()) {
-                case "text" -> Type.TEXT;
-                case "integer" -> Type.INTEGER;
-                case "boolean" -> Type.BOOLEAN;
+            ScriptType type = switch (declared.text()) {
+                case "text" -> ScriptType.TEXT;
+                case "integer" -> ScriptType.INTEGER;
+                case "boolean" -> ScriptType.BOOLEAN;
                 default -> throw declared.error("Argument type must be text, integer or boolean");
             };
-            Value defaultValue = null;
+            ScriptValue defaultValue = null;
             if (matches("=")) {
                 take(); Expression value = expression();
                 requireType(value, type, declared, "Argument default must match its declared type");
@@ -611,7 +646,7 @@ public final class TextFrontend {
             }
             if (start.text().equals("while") || start.text().equals("repeat")) {
                 boolean counted = start.text().equals("repeat"); Expression condition = expression();
-                requireType(condition, counted ? Type.INTEGER : Type.BOOLEAN, start, counted ? "repeat expects an integer count" : "while expects a boolean condition");
+                requireType(condition, counted ? ScriptType.INTEGER : ScriptType.BOOLEAN, start, counted ? "repeat expects an integer count" : "while expects a boolean condition");
                 loopDepth++; List<Statement> body = block(); loopDepth--; advanced = true;
                 return new Loop(condition, body, counted, start);
             }
@@ -621,18 +656,21 @@ public final class TextFrontend {
             }
             if (start.text().equals("return")) {
                 if (currentFunction == null) throw start.error("return requires an enclosing function");
-                Expression value = expression(); requireType(value, currentFunction.result, start, "Return value must match the function result type");
+                Expression value = currentFunction.result == ScriptType.UNIT && (peek().kind() == Kind.NEWLINE || matches("}")) ? new Literal(new ScriptValue(ScriptType.UNIT, ScriptValue.Unit.INSTANCE)) : expression(); requireType(value, currentFunction.result, start, "Return value must match the function result type");
                 lineEnd(); return new Return(value, start);
             }
             if (start.text().equals("send")) {
-                Expression value = expression(); requireType(value, Type.TEXT, start, "send expects text; use text(value) for an integer or boolean"); lineEnd();
+                Expression value = expression(); requireType(value, ScriptType.TEXT, start, "send expects text; use text(value) for an integer or boolean"); lineEnd();
                 return new Send(value, start);
             }
             if (start.text().equals("if")) {
-                Expression condition = expression(); requireType(condition, Type.BOOLEAN, start, "if expects a boolean condition");
+                Expression condition = expression(); requireType(condition, ScriptType.BOOLEAN, start, "if expects a boolean condition");
                 List<Statement> yes = block(); newlines(); List<Statement> no = List.of();
                 if (matches("else")) { take(); no = block(); }
                 return new Condition(condition, yes, no);
+            }
+            if (start.kind() == Kind.NAME && matches("(")) {
+                index--; Expression call = expression(); requireType(call, ScriptType.UNIT, start, "Standalone calls must return unit"); lineEnd(); return new UnitCall(call);
             }
             throw start.error("Expected let, var, set, send, if, while, repeat, break, continue or return. Host calls require a supported API.");
         }
@@ -650,23 +688,23 @@ public final class TextFrontend {
             Expression left = unary();
             while (precedence(peek().text()) >= minimum) {
                 Token operator = take(); int priority = precedence(operator.text());
-                Expression right = binary(priority + 1); Type type;
+                Expression right = binary(priority + 1); ScriptType type;
                 switch (operator.text()) {
                     case "&&", "||" -> {
-                        requireType(left, Type.BOOLEAN, operator, "Boolean operators require booleans");
-                        requireType(right, Type.BOOLEAN, operator, "Boolean operators require booleans"); type = Type.BOOLEAN;
+                        requireType(left, ScriptType.BOOLEAN, operator, "Boolean operators require booleans");
+                        requireType(right, ScriptType.BOOLEAN, operator, "Boolean operators require booleans"); type = ScriptType.BOOLEAN;
                     }
                     case "==", "!=" -> {
-                        if (!left.type().equals(right.type())) throw operator.error("Equality requires values of the same type"); type = Type.BOOLEAN;
+                        if (!left.type().equals(right.type())) throw operator.error("Equality requires values of the same type"); type = ScriptType.BOOLEAN;
                     }
                     case "+" -> {
-                        if (!left.type().equals(right.type()) || left.type() != Type.INTEGER && left.type() != Type.TEXT) throw operator.error("+ requires two integers or two text values. Use text(value) explicitly.");
+                        if (!left.type().equals(right.type()) || left.type() != ScriptType.INTEGER && left.type() != ScriptType.TEXT) throw operator.error("+ requires two integers or two text values. Use text(value) explicitly.");
                         type = left.type();
                     }
                     default -> {
-                        requireType(left, Type.INTEGER, operator, "This operator requires integers");
-                        requireType(right, Type.INTEGER, operator, "This operator requires integers");
-                        type = List.of("<", "<=", ">", ">=").contains(operator.text()) ? Type.BOOLEAN : Type.INTEGER;
+                        requireType(left, ScriptType.INTEGER, operator, "This operator requires integers");
+                        requireType(right, ScriptType.INTEGER, operator, "This operator requires integers");
+                        type = List.of("<", "<=", ">", ">=").contains(operator.text()) ? ScriptType.BOOLEAN : ScriptType.INTEGER;
                     }
                 }
                 left = node(new Binary(left, operator, right, type), operator);
@@ -678,31 +716,31 @@ public final class TextFrontend {
                 Token operator = take();
                 if (operator.text().equals("-") && peek().kind() == Kind.NUMBER) {
                     Token number = take();
-                    try { return node(new Literal(new Value(Type.INTEGER, Long.parseLong("-" + number.text()))), number); }
+                    try { return node(new Literal(new ScriptValue(ScriptType.INTEGER, Long.parseLong("-" + number.text()))), number); }
                     catch (NumberFormatException error) { throw number.error("Integer literal exceeds signed 64-bit bounds"); }
                 }
                 if (++expressionDepth > MAX_DEPTH) throw operator.error("Expression nesting exceeds 32");
                 Expression operand = unary(); expressionDepth--;
-                Type type = operator.text().equals("!") ? Type.BOOLEAN : Type.INTEGER;
+                ScriptType type = operator.text().equals("!") ? ScriptType.BOOLEAN : ScriptType.INTEGER;
                 requireType(operand, type, operator, "Unary operator has the wrong operand type");
                 return node(new Unary(operator, operand, type), operator);
             }
             Expression value = primary();
             while (matches("[")) {
                 Token token = take(); requireList(value, token); Expression index = expression(); expect("]");
-                requireType(index, Type.INTEGER, token, "List index must be an integer");
+                requireType(index, ScriptType.INTEGER, token, "List index must be an integer");
                 value = node(new Index(value, index, token), token); advanced = true;
             }
             return value;
         }
         private void requireList(Expression value, Token token) {
-            if (value.type().element() == null) throw token.error("Expected a list value");
+            if (!value.type().isList()) throw token.error("Expected a list value");
         }
         private Expression primary() {
             Token token = take();
             if (token.text().equals("[")) {
                 if (matches("]")) throw token.error("Empty lists require list<type>()");
-                List<Expression> elements = new ArrayList<>(); Type element = null;
+                List<Expression> elements = new ArrayList<>(); ScriptType element = null;
                 do {
                     if (elements.size() >= MAX_COLLECTION) throw token.error("List exceeds 256 elements");
                     Expression value = expression();
@@ -711,11 +749,11 @@ public final class TextFrontend {
                     if (!matches(",")) break; take();
                 } while (true);
                 expect("]"); advanced = true;
-                return node(new ListValue(Type.list(element, token), List.copyOf(elements)), token);
+                return node(new ListValue(listType(element, token), List.copyOf(elements)), token);
             }
             if (token.text().equals("list") && matches("<") && scopes.stream().noneMatch(scope -> scope.containsKey("list"))) {
-                expect("<"); Type element = declaredType(); expect(">"); expect("("); expect(")"); advanced = true;
-                return node(new ListValue(Type.list(element, token), List.of()), token);
+                expect("<"); ScriptType element = declaredType(); expect(">"); expect("("); expect(")"); advanced = true;
+                return node(new ListValue(listType(element, token), List.of()), token);
             }
             if ((token.text().equals("length") || token.text().equals("append")) && matches("(") && !functions.containsKey(token.text())) {
                 take(); Expression collection = expression(); requireList(collection, token); Expression value = null;
@@ -724,19 +762,35 @@ public final class TextFrontend {
                 }
                 expect(")"); advanced = true; return node(new ListOperation(collection, value, token), token);
             }
-            if (token.kind() == Kind.STRING) return node(new Literal(new Value(Type.TEXT, token.text())), token);
+            if ((token.text().equals("is_some") || token.text().equals("unwrap")) && matches("(")) {
+                take(); Expression operand = expression(); expect(")");
+                if (operand.type().kind() != ScriptType.Kind.OPTIONAL) throw token.error("Expected an optional value");
+                advanced = true; return node(new OptionalOperation(operand, token.text().equals("unwrap"), token), token);
+            }
+            if (token.kind() == Kind.STRING) return node(new Literal(new ScriptValue(ScriptType.TEXT, token.text())), token);
             if (token.kind() == Kind.NUMBER) {
-                try { return node(new Literal(new Value(Type.INTEGER, Long.parseLong(token.text()))), token); }
+                try { return node(new Literal(new ScriptValue(ScriptType.INTEGER, Long.parseLong(token.text()))), token); }
                 catch (NumberFormatException error) { throw token.error("Integer literal exceeds signed 64-bit bounds"); }
             }
-            if (token.text().equals("true") || token.text().equals("false")) return node(new Literal(new Value(Type.BOOLEAN, Boolean.parseBoolean(token.text()))), token);
+            if (token.text().equals("true") || token.text().equals("false")) return node(new Literal(new ScriptValue(ScriptType.BOOLEAN, Boolean.parseBoolean(token.text()))), token);
             if (token.text().equals("(")) { Expression result = expression(); expect(")"); return result; }
             if (token.text().equals("text")) {
-                expect("("); Expression value = expression(); expect(")"); if (value.type().element() != null) throw token.error("text expects an integer, boolean or text value"); return node(new AsText(value, token), token);
+                expect("("); Expression value = expression(); expect(")"); if (!List.of(ScriptType.INTEGER, ScriptType.BOOLEAN, ScriptType.TEXT).contains(value.type())) throw token.error("text expects an integer, boolean or text value"); return node(new AsText(value, token), token);
             }
             if (token.kind() == Kind.NAME) {
                 if (matches("(")) {
                     Function function = functions.get(token.text());
+                    if (function == null && callables.descriptor(token.text()) != null) {
+                        var descriptor = callables.descriptor(token.text()); take(); List<Expression> values = new ArrayList<>();
+                        if (!matches(")")) do {
+                            if (values.size() >= descriptor.parameters().size()) throw token.error("Too many native call arguments");
+                            Expression value = expression(); requireType(value, descriptor.parameters().get(values.size()), token, "Native call argument has the wrong type"); values.add(value);
+                            if (!matches(",")) break; take();
+                        } while (true);
+                        expect(")"); if (values.size() != descriptor.parameters().size()) throw token.error("Missing native call argument");
+                        capabilities.addAll(descriptor.requiredCapabilities()); advanced = true; hostRequired = true;
+                        return node(new NativeCall(callables, descriptor, List.copyOf(values), token), token);
+                    }
                     if (function == null) throw token.error("Unknown function '" + token.text() + "'. Declare it before use.");
                     take(); List<Expression> values = new ArrayList<>();
                     if (!matches(")")) do {
@@ -782,7 +836,7 @@ public final class TextFrontend {
         private void bounded(Token token, int max, String field) {
             if (token.text().isEmpty() || token.text().length() > max) throw token.error(field + " must contain 1.." + max + " characters");
         }
-        private void requireType(Expression value, Type type, Token token, String reason) { if (!value.type().equals(type)) throw token.error(reason); }
+        private void requireType(Expression value, ScriptType type, Token token, String reason) { if (!value.type().equals(type)) throw token.error(reason); }
         private void lineEnd() {
             if (peek().kind() == Kind.NEWLINE) { newlines(); return; }
             if (matches("}") || peek().kind() == Kind.END) return;

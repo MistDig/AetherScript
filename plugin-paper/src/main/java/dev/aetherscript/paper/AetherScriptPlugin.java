@@ -20,6 +20,8 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
     private volatile String startupError = "";
     private FeatureManager manager;
     private FeatureCommands featureCommands;
+    private volatile ScriptCapabilityPolicy scriptPolicy = ScriptCapabilityPolicy.messageOnly();
+    private volatile GameplayRuntime gameplay;
     private AuditLog audit;
     private PairedStatusBridge bridge;
     private volatile CloudRelayConnector cloud;
@@ -30,7 +32,7 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
 
     @Override public void onEnable() {
         running = true; busy.set(true);
-        featureCommands = new FeatureCommands(getServer().getCommandMap(), registry, () -> ready);
+        featureCommands = new FeatureCommands(getServer().getCommandMap(), registry, () -> ready, this::runFeature);
         Objects.requireNonNull(getCommand("ais")).setExecutor(this);
         Objects.requireNonNull(getCommand("ais")).setTabCompleter((s,c,a,args) -> List.of());
         io.execute(() -> {
@@ -51,7 +53,12 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
                     copyDefault("hello-ai.yml", data.resolve("scripts/hello-ai.yml"));
                 EngineSettings settings = EngineSettings.load(data.resolve("config.yml"));
                 audit = new AuditLog(data.resolve("audit/local.jsonl"));
-                manager = new FeatureManager(new ScriptStore(data.resolve("scripts")), new RevisionStore(data.resolve("storage"), settings.retainVersions()));
+                try { scriptPolicy = new ScriptCapabilityPolicy(data.resolve("script-capabilities.json"), executionCapabilities()); }
+                catch (IOException failure) { getLogger().warning("Gameplay capability policy unavailable; message-only scripts remain enabled. Repair script-capabilities.json from an owner backup."); }
+                gameplay = onMain(() -> new GameplayRuntime(this, registry, io, new RemoteScripts.Main() {
+                    public <T> T call(Callable<T> action) throws Exception { return onMain(action); }
+                }, () -> scriptPolicy, () -> ready, data.resolve("player-state")));
+                manager = new FeatureManager(new ScriptStore(data.resolve("scripts")), new RevisionStore(data.resolve("storage"), settings.retainVersions()), feature -> scriptPolicy.validate(feature));
                 var startup = manager.startup();
                 apply(null, "server", "startup", UUID.randomUUID().toString(), registry.snapshot(), startup);
                 onMain(() -> {
@@ -81,12 +88,14 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
     }
     @Override public void onDisable() {
         running = false; ready = false;
+        if (gameplay != null) gameplay.close();
         if (featureCommands != null) featureCommands.close();
         connectionServices.values().forEach(RemoteScripts::revoke); connectionServices.clear();
         if (shared != null) { shared.close(); shared = null; }
         revokeRemote();
         if (bridge != null) { bridge.close(); bridge = null; }
         getServer().getScheduler().cancelTasks(this); io.shutdownNow();
+        if (gameplay != null) gameplay.closeStorageAfterShutdown();
         registry.replace(registry.snapshot().generation(), Map.of());
     }
     /** The worker waits for a main-thread boundary; the main thread never waits for disk I/O. */
@@ -112,11 +121,66 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
         });
     }
     private String principal(CommandSender sender) { return sender instanceof Player p ? "player:" + p.getUniqueId() : "local:" + sender.getName(); }
+    private static Set<String> executionCapabilities() {
+        Set<String> capabilities = new TreeSet<>(Set.of(ScriptCapabilityPolicy.MESSAGE));
+        StandardCallables.create().descriptors().forEach(call -> capabilities.addAll(call.requiredCapabilities()));
+        return Set.copyOf(capabilities);
+    }
+    private boolean runFeature(String id, List<String> arguments, CommandSender sender) {
+        if (!ready) return false;
+        CompiledFeature feature = registry.snapshot().features().get(id);
+        if (feature == null) return false;
+        Feature.Command command = feature.definition().command();
+        if (!sender.hasPermission(command.permission()) || command.sender().equals("player") && !(sender instanceof Player)) return false;
+        scriptPolicy.validate(feature);
+        if (feature.definition().requires().stream().anyMatch(capability -> !capability.equals(ScriptCapabilityPolicy.MESSAGE))) {
+            if (!(sender instanceof Player player)) throw new ValidationException("$", "PLAYER_REQUIRED: this gameplay program needs the invoking player");
+            if (busy.get()) throw new ValidationException("$", "RUNTIME_BUSY: wait for the pending reload or inspection");
+            if (gameplay == null) throw new ValidationException("$", "GAMEPLAY_NOT_READY");
+            gameplay.start(feature, player, arguments); return true;
+        }
+        return registry.run(id, arguments, sender instanceof Player, sender::hasPermission, text -> say(sender, text));
+    }
     @Override public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length < 1) { say(sender, "/ais <operation> [feature]; /ais run <feature> [arguments...]"); return true; }
         String op = args[0].toLowerCase(Locale.ROOT), selected = args.length >= 2 ? args[1] : null;
-        if ((!op.equals("run") && args.length > 2) || (op.equals("run") && args.length > InvocationArguments.MAX_COMMAND_LENGTH + 2)) {
-            say(sender, "Use /ais run <feature> with at most 16 arguments; other operations accept at most one value."); return true;
+        if ((!op.equals("run") && args.length > (op.equals("permit") ? 3 : 2)) || (op.equals("run") && args.length > InvocationArguments.MAX_COMMAND_LENGTH + 2)) {
+            say(sender, "Use /ais run <feature> [arguments], ais permit <feature> <comma-separated-capabilities>; other operations accept at most one value."); return true;
+        }
+        if (Set.of("permit", "restrict", "capabilities").contains(op)) {
+            if (sender != getServer().getConsoleSender()) { say(sender, "CAPABILITIES_CONSOLE_ONLY"); return true; }
+            if (!ready || selected == null) { say(sender, "Use ais capabilities <feature>, ais permit <feature> <comma-separated-capabilities>, or ais restrict <feature> after startup"); return true; }
+            try { FeatureParser.requireId(selected); }
+            catch (ValidationException failure) { say(sender, safeError(failure)); return true; }
+            if (op.equals("capabilities")) {
+                say(sender, selected + " allowed execution capabilities: " + new TreeSet<>(scriptPolicy.allowed(selected))); return true;
+            }
+            Set<String> approved = new TreeSet<>(Set.of(ScriptCapabilityPolicy.MESSAGE));
+            if (op.equals("permit")) {
+                if (args.length != 3) { say(sender, "Use ais permit <feature> <comma-separated-capabilities>; known: " + new TreeSet<>(executionCapabilities())); return true; }
+                approved.addAll(Arrays.asList(args[2].split(",", -1)));
+                if (!executionCapabilities().containsAll(approved)) { say(sender, "Unknown capability; known: " + new TreeSet<>(executionCapabilities())); return true; }
+            }
+            if (!busy.compareAndSet(false, true)) { say(sender, "BUSY"); return true; }
+            String id = selected;
+            try { io.execute(() -> {
+                try {
+                    scriptPolicy.grant(id, approved);
+                    try { audit.append(UUID.randomUUID().toString(), "local:console", "capabilities", "SAVED", registry.snapshot().generation(), Map.of()); }
+                    catch (IOException failure) { getLogger().warning("Capability grant saved; audit append unavailable."); }
+                    onMain(() -> {
+                        var before = registry.snapshot(); Map<String, CompiledFeature> permitted = new TreeMap<>(before.features());
+                        permitted.entrySet().removeIf(entry -> !scriptPolicy.allowed(entry.getKey()).containsAll(entry.getValue().definition().requires()));
+                        if (!permitted.equals(before.features())) featureCommands.activate(before.generation(), permitted);
+                        if (gameplay != null) gameplay.reconcile();
+                        say(sender, "CAPABILITIES_SAVED " + id + ": " + approved + "; run ais reload " + id + " to activate an approved edit"); return null;
+                    });
+                } catch (Exception failure) {
+                    try { reply(sender, List.of("CAPABILITY_UPDATE_FAILED: inspect ais capabilities " + id + " and owner storage before retrying")); }
+                    catch (Exception ignored) { }
+                } finally { busy.set(false); }
+            }); } catch (RejectedExecutionException failure) { busy.set(false); say(sender, "BUSY"); }
+            return true;
         }
         if (Set.of("connect", "connections", "disconnect").contains(op)) {
             if (sender != getServer().getConsoleSender()) { say(sender, "CONNECTIONS_CONSOLE_ONLY"); return true; }
@@ -216,7 +280,7 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
         if (op.equals("run")) {
             try {
                 List<String> invocation = InvocationArguments.fromCommandTokens(Arrays.copyOfRange(args, Math.min(2, args.length), args.length));
-                if (!ready || selected == null || !registry.run(selected, invocation, sender instanceof Player, sender::hasPermission, text -> say(sender, text)))
+                if (!ready || selected == null || !runFeature(selected, invocation, sender))
                     say(sender, "Feature unavailable or permission denied.");
             } catch (ValidationException error) { say(sender, safeError(error)); }
             return true;
@@ -285,7 +349,8 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
         Registry.Snapshot activated = onMain(() -> {
             authorized.run();
             if (sender != null && !sender.hasPermission("aetherscript.admin")) throw new SecurityException("PERMISSION_DENIED: permission changed before activation");
-            return featureCommands.activate(before.generation(), change.target());
+            Registry.Snapshot replacement = featureCommands.activate(before.generation(), change.target());
+            if (gameplay != null) gameplay.reconcile(); return replacement;
         });
         try {
             authorized.run();
@@ -298,6 +363,7 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
             boolean safe = restored;
             onMain(() -> {
                 featureCommands.activate(activated.generation(), safe ? before.features() : Map.of());
+                if (gameplay != null) gameplay.reconcile();
                 if (!safe) { ready = false; startupError = "STORAGE_QUARANTINED"; } return null;
             });
             throw new IOException(safe ? "SAVE_FAILED: previous working registry restored as a new generation; editable files untouched" : "STORAGE_QUARANTINED: restore owner backup", failure);

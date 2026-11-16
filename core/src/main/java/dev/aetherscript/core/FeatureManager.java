@@ -15,9 +15,13 @@ public final class FeatureManager {
     }
     private final ScriptStore scripts;
     private final RevisionStore store;
-    public FeatureManager(ScriptStore scripts, RevisionStore store) { this.scripts = scripts; this.store = store; }
+    private final java.util.function.Consumer<CompiledFeature> policy;
+    public FeatureManager(ScriptStore scripts, RevisionStore store) { this(scripts, store, feature -> {}); }
+    public FeatureManager(ScriptStore scripts, RevisionStore store, java.util.function.Consumer<CompiledFeature> policy) { this.scripts = scripts; this.store = store; this.policy = Objects.requireNonNull(policy); }
     public RevisionStore store() { return store; }
     public ScriptStore scripts() { return scripts; }
+    /** Recheck an active program against the current owner policy before synthetic execution. */
+    public void authorize(CompiledFeature feature) { policy.accept(feature); }
     public Change prepareText(String id, String text, Registry.Snapshot current) throws IOException {
         CompiledFeature compiled = validateText(id, text, current);
         var source = new SourceFile(id + ".aether", "aether", text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
@@ -43,18 +47,23 @@ public final class FeatureManager {
         List<String> messages = new ArrayList<>();
         Set<String> ids = new TreeSet<>(files.keySet()); ids.addAll(store.state().features().keySet());
         Map<String, Integer> names = new HashMap<>();
-        files.values().stream().filter(ScriptStore.Inspection::valid).forEach(f -> names.merge(f.compiled().definition().command().name(), 1, Integer::sum));
+        Map<String, ValidationException> unauthorized = new HashMap<>();
+        files.values().stream().filter(ScriptStore.Inspection::valid).forEach(file -> {
+            try { policy.accept(file.compiled()); names.merge(file.compiled().definition().command().name(), 1, Integer::sum); }
+            catch (ValidationException denied) { unauthorized.put(file.id(), denied); }
+        });
         for (String id : ids) {
             var file = files.get(id); var history = store.state().features().get(id);
             boolean held = history != null && history.rollbackHeld() && history.active() != 0;
-            if (file != null && file.valid() && !held && names.get(file.compiled().definition().command().name()) == 1) {
+            if (file != null && file.valid() && !held && !unauthorized.containsKey(id) && names.get(file.compiled().definition().command().name()) == 1) {
                 Map<String, CompiledFeature> candidate = new TreeMap<>(target); candidate.put(id, file.compiled());
                 try { validateTarget(candidate); target.put(id, file.compiled()); updates.put(id, file.source()); continue; }
-                catch (ValidationException e) { messages.add(id + ": editable command collides with an already restored feature"); }
-            } else if (file != null && !file.valid()) messages.addAll(diagnostic(file));
+                catch (ValidationException e) { messages.add(id + ": editable file rejected: " + display(e.reason()) + "; edit scripts/" + file.fileName()); }
+            } else if (unauthorized.containsKey(id)) messages.add(id + ": editable file rejected: " + display(unauthorized.get(id).reason()) + "; edit scripts/" + file.fileName());
+            else if (file != null && !file.valid()) messages.addAll(diagnostic(file));
             else if (file != null && file.valid() && !held) messages.add(id + ": duplicate command name in editable files; trying saved version");
             try {
-                RevisionStore.Saved saved = store.recover(id);
+                RevisionStore.Saved saved = recoverAuthorized(id);
                 if (saved != null) {
                     Map<String, CompiledFeature> candidate = new TreeMap<>(target); candidate.put(id, saved.compiled()); validateTarget(candidate);
                     target.put(id, saved.compiled()); recovered.put(id, saved.revision().number());
@@ -97,7 +106,17 @@ public final class FeatureManager {
         Map<String, CompiledFeature> target = new TreeMap<>(selected == null ? Map.of() : current.features());
         files.forEach((id, file) -> target.put(id, file.compiled())); validateTarget(target); return target;
     }
-    private static void validateTarget(Map<String, CompiledFeature> target) { new Registry().replace(0, target); }
+    private void validateTarget(Map<String, CompiledFeature> target) { target.values().forEach(policy); new Registry().replace(0, target); }
+    private RevisionStore.Saved recoverAuthorized(String id) throws IOException {
+        FeatureParser.requireId(id); var history = store.state().features().get(id);
+        if (history == null || history.active() == 0) return null;
+        var revisions = history.revisions().stream().filter(r -> r.number() <= history.active()).sorted(Comparator.comparingLong(RevisionStore.Revision::number).reversed()).toList();
+        for (var revision : revisions) {
+            try { var saved = store.load(id, revision); policy.accept(saved.compiled()); return saved; }
+            catch (IOException | ValidationException ignored) { }
+        }
+        throw new IOException("No authorized saved revision for " + id);
+    }
     public static List<String> diagnostic(ScriptStore.Inspection file) {
         var e = file.error();
         return List.of("Edit scripts/" + display(file.fileName()) + ": " + (e.line() > 0 ? "line " + e.line() + ", column " + e.column() : "location unavailable") + "; " + display(e.path()),

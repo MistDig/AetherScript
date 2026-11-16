@@ -41,12 +41,14 @@ final class RemoteScripts {
             case "scripts.read" -> { exact(args, Set.of("id")); return read(id); }
             case "scripts.validate" -> {
                 exact(args, Set.of("id", "source")); var compiled = manager.validateText(id, string(args, "source"), registry.snapshot());
+                messageOnly(compiled);
                 return Map.of("valid", true, "hash", compiled.sourceHash());
             }
             case "scripts.apply" -> {
                 exact(args, Set.of("id", "source", "expectedHash"));
                 var before = registry.snapshot(); String source = string(args, "source"), expectedHash = string(args, "expectedHash");
                 var candidate = manager.validateText(id, source, before);
+                messageOnly(candidate);
                 var previous = textSource(id);
                 if (!Objects.equals(expectedHash, previous == null ? "ABSENT" : previous.hash())) throw new java.io.IOException("STALE_SOURCE");
                 authorized(); FeatureManager.Change change = manager.prepareText(id, source, before);
@@ -74,7 +76,10 @@ final class RemoteScripts {
                 if (!(args.get("expectedMessages") instanceof List<?> expected) || expected.size() > 128 || expected.stream().anyMatch(v -> !(v instanceof String)))
                     throw new IllegalArgumentException("INVALID_EXPECTED_MESSAGES");
                 return main.call(() -> {
-                    authorized(); List<String> actual = new ArrayList<>();
+                    authorized();
+                    var active = registry.snapshot().features().get(id);
+                    if (active != null) { messageOnly(active); manager.authorize(active); }
+                    List<String> actual = new ArrayList<>();
                     // This synthetic capability can exercise only non-player message actions.
                     boolean invoked = registry.run(id, invocation, false, permission -> !revoked, actual::add);
                     return Map.of("invoked", invoked, "actualMessages", List.copyOf(actual), "matched", invoked && actual.equals(expected), "sender", "synthetic-agent", "generation", registry.snapshot().generation());
@@ -82,6 +87,10 @@ final class RemoteScripts {
             }
             default -> throw new SecurityException("OPERATION_DENIED");
         }
+    }
+    private static void messageOnly(CompiledFeature compiled) {
+        if (compiled.definition().requires().stream().anyMatch(capability -> !capability.equals(ScriptCapabilityPolicy.MESSAGE)))
+            throw new SecurityException("REMOTE_CAPABILITY_DENIED: remote grants permit message-only scripts");
     }
     private Map<String, Object> read(String id) throws Exception {
         authorized(); var source = textSource(id); var snapshot = registry.snapshot(); var active = snapshot.features().get(id);

@@ -1,8 +1,12 @@
 # Roadmap and exit gates
 
+## BetterModel planning update - 15 November 2026
+
+The latest handoff adds detailed SkBetterModels/BetterModel requirements to EXT-10. The [integration plan](ecosystem/model-integration-plan.md) tracks 124 supplied registration entries, typed provider handles, synchronous combat callbacks, animation markers, rendering/rigs, paths, spawn rules and lifecycle gates. M1-M3 remains the current halfway target; provider implementation is optional M4-M5 work, with its reusable runtime/event prerequisites planned earlier. No BetterModel implementation or Paper 26.3 compatibility is claimed.
+
 ## Current M1–M3 goal
 
-The owner’s current halfway target is M1–M3 from the [complete ecosystem brief](ecosystem/implementation-brief.md). See the [acceptance checkpoint](ecosystem/halfway-milestone.md) for concrete gates. The 0.0.11 slice adds bounded scalar functions/control flow, owned real command names and a core-only versioned JSON state service. Collections, broader value/callable semantics, gameplay events/scheduling/APIs, script persistence and the M3 UI/editor remain open. The milestone phases are not release numbers or percentages of capability parity.
+The owner’s current halfway target is M1–M3 from the [complete ecosystem brief](ecosystem/implementation-brief.md). See the [acceptance checkpoint](ecosystem/halfway-milestone.md) for concrete gates. The 0.0.11 slice adds bounded scalar functions/control flow, owned real command names and a core-only versioned JSON state service. Subsequent foundations add homogeneous lists and, in the current 0.0.16 implementation, immutable host values, a fixed capability-aware callable registry, bounded command continuations, own-location SQLite persistence and self teleport. General collections/value semantics, events, independently scheduled jobs, broader gameplay and persistence, and the M3 UI/editor remain open. Existing remote grants remain message-only; the narrow host slice requires local console approval. The milestone phases are not release numbers or percentages of capability parity.
 
 ## Release 0.0.7 — browser pairing and command inputs
 
@@ -11,7 +15,7 @@ Shared browser pairing removes personal relay configuration from the normal inst
 
 ## Release 0.0.4 — native authoring
 
-The first language slice prepares checked expressions, local bindings and conditional sender messages. The CLI, Paper and MCP gateway share a compiler. That release prepared expressions on reload. Release 0.0.7 subsequently added typed arguments and invocation-time conditions. Functions, events and persistent player state remain planned. Follow the [dependency backlog](ecosystem/backlog.md) and [capability matrix](ecosystem/capabilities.csv) for the scope and acceptance criteria of each feature.
+The first language slice prepares checked expressions, local bindings and conditional sender messages. The CLI, Paper and MCP gateway share a compiler. That release prepared expressions on reload. Release 0.0.7 subsequently added typed arguments and invocation-time conditions. At the 0.0.4 release, functions, events and persistent player state remained planned; the current foundation status is recorded above. Follow the [dependency backlog](ecosystem/backlog.md) and [capability matrix](ecosystem/capabilities.csv) for the scope and acceptance criteria of each feature.
 
 ## Release 0.0.2 — recovery and diagnostics
 

@@ -36,7 +36,17 @@ for constant, limit in [("MAX_STEPS", guide["runtimeControl"]["limits"]["sharedE
  assert re.search(rf"{constant}\s*=\s*{limit}\s*;",frontend), f"{constant} docs/code drift"
 for statement in ("var name = expression", "while booleanExpression { ... }", "return expression"):
  assert statement in guide["statements"]
+# Every executable host-call name must be discoverable in both maintained references.
+catalog=(root/"core/src/main/java/dev/aetherscript/core/StandardCallables.java").read_text(encoding="utf8")
+language=(root/"docs/wiki/Language-Reference.md").read_text(encoding="utf8")
+for name in re.findall(r'add\(registry, "[^"]+", "([^"]+)"',catalog):
+ assert name in reference and name in language, f"Missing documented host callable {name}"
+for name in ("uuid","location","unit","optional<elementType>"):
+ assert name in guide["valueTypes"], f"Missing type contract {name}"
+for text in (reference, commands, (root/"docs/wiki/MCP-Reference.md").read_text(encoding="utf8")):
+ assert "message-only" in text.lower(), "Remote native capability ceiling must be explicit"
 full=(root/"site/public/llms-full.txt").read_text(encoding="utf8")
+assert "\ufffd" not in full, "Current AI documentation contains decoding replacement characters"
 assert reference.strip() in full
 assert full.index(reference.strip()) < full.index("# Human wiki appendix")
 for path in (root/"docs/evidence/0.0.9").glob("TEST-*.xml"):

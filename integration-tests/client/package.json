@@ -1,0 +1,17 @@
+{
+  "name": "aetherscript-gameplay-test-client",
+  "version": "1.0.0",
+  "description": "Loopback-only gameplay test clients; not plugin runtime",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "Apache-2.0",
+  "type": "commonjs",
+  "dependencies": {
+    "minecraft-protocol": "1.68.0"
+  },
+  "private": true
+}

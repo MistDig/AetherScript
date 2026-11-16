@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.aetherscript.core.FeatureManagerPolicyTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-11-15T19:24:19.224Z" hostname="VARUN" time="13.31">
+  <properties/>
+  <testcase name="unauthorizedEditableAndNewestSavedRevisionFallBackToEarlierAuthorizedSource()" classname="dev.aetherscript.core.FeatureManagerPolicyTest" time="4.491"/>
+  <testcase name="everyPreparationChecksPolicyBeforeCreatingDurableChange()" classname="dev.aetherscript.core.FeatureManagerPolicyTest" time="7.988"/>
+  <testcase name="unauthorizedCollidingFileDoesNotDisableAnAuthorizedFirstInstall()" classname="dev.aetherscript.core.FeatureManagerPolicyTest" time="0.827"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

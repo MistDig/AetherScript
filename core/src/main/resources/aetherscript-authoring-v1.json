@@ -4,7 +4,7 @@
   "fileExtension": ".aether",
   "exampleFile": "cloud-note.aether",
   "template": "feature cloud-note version \"1.0.0\"\ncommand cloud-note permission \"aetherscript.example.cloud\" sender any {\n  let message = \"Welcome to the clouds.\"\n  let stars = 2 + 1\n  if stars >= 3 {\n    send message\n  } else {\n    send \"Keep exploring.\"\n  }\n}\n",
-  "evaluation": "Commands with arg declarations, var/set, loops or function declarations evaluate per invocation with fresh typed local state. Legacy scripts using only let, if and send without arguments retain preparation-time evaluation and semantic hashes. All names and types are validated before activation.",
+  "evaluation": "Commands with arguments, mutable locals, loops, functions or host calls evaluate per invocation with fresh typed state. Legacy let/if/send-only scripts retain preparation-time evaluation and semantic hashes. All branches and callable signatures are type-checked before activation.",
   "entryPoint": "/ais run <feature-id> [arguments...]",
   "capabilities": [
     "runtime.message.send"
@@ -14,16 +14,20 @@
     "Keep the command name unique among active features.",
     "Write each statement on its own line and delimit blocks with braces.",
     "Keep permission nodes explicit and preserve them when editing message text.",
-    "Use text, integer, boolean or homogeneous immutable lists. let and parameters are immutable; var creates a mutable local and set replaces its nearest visible mutable binding without changing type.",
+    "Use text, integer, boolean, homogeneous immutable lists and host-provided uuid/location/optional values. let and parameters are immutable; var/set preserve type. Command arguments remain text/integer/boolean.",
     "Check both branches for type errors. Use text(value) only for scalar conversion; text(listValue) is rejected.",
-    "Declare functions after the feature header and before the command, before use. Functions have typed parameters and results, no captures, and must return a matching value on every path.",
+    "Declare typed functions after the feature header and before use. Functions have no captures; non-unit functions must return a matching value on every path. Unit functions support bare return or implicit completion.",
     "Validate the complete edited source before requesting a local reload."
   ],
   "valueTypes": [
     "text",
     "integer",
     "boolean",
-    "list<elementType>"
+    "list<elementType>",
+    "uuid",
+    "location",
+    "unit",
+    "optional<elementType>"
   ],
   "statements": [
     "arg name: text | integer | boolean [= constantExpression]",
@@ -38,7 +42,9 @@
     "break",
     "continue",
     "fn name(parameter: type [= constantExpression]): type { ... }",
-    "return expression"
+    "return expression",
+    "host_callable(arguments...)",
+    "return (bare return in unit functions)"
   ],
   "operations": [
     {
@@ -51,7 +57,7 @@
       "executionContext": "Paper main thread",
       "permissions": "declared command permission on invocation and before each action",
       "owner": "active feature revision",
-      "errors": "Static scripts validate emitted text during preparation. Runtime programs validate arguments and evaluate all messages before emitting any; arithmetic, budget and output errors abort the invocation.",
+      "errors": "Message-only runtime programs evaluate all messages before emitting any. Host programs emit effects in source order; later failures do not roll back completed effects. Arguments, arithmetic, budgets and output remain bounded.",
       "example": "send \"Welcome!\"",
       "platform": "Paper 26.3 build 245"
     }
@@ -144,5 +150,25 @@
         "6"
       ]
     }
+  },
+  "optionalOperations": {
+    "is_some(optionalValue)": "boolean; true when a value is present",
+    "unwrap(optionalValue)": "contained value; fails at runtime if absent"
+  },
+  "capabilityPolicy": {
+    "default": [
+      "runtime.message.send"
+    ],
+    "localOwnerApproval": [
+      "player.location.read",
+      "state.own",
+      "scheduler.delay",
+      "player.teleport.self"
+    ],
+    "remoteExecutionCeiling": [
+      "runtime.message.send"
+    ],
+    "hostCatalogDiscovery": "CLI --language and local aether_capabilities.authoring.hostCallables export the executable StandardCallables catalog. Hosted connections do not expose aether_capabilities.",
+    "approvalWindow": "actual Minecraft server console: ais permit <feature-id> <comma-separated-capabilities>"
   }
 }

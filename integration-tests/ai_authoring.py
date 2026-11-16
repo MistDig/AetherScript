@@ -77,10 +77,23 @@ command default-demo permission "example.defaults" sender any {
 }
 '''
 assert calls([('aether_test', {'format':'aether','source':defaults,'expectedMessages':['6','12']})])[0]['matched']
+homes = (repo/'examples/homes.aether').read_text(encoding='utf-8')
+home_valid, home_invalid, home_offline = calls([
+    ('aether_validate', {'format':'aether','source':homes}),
+    ('aether_validate', {'format':'aether','source':homes.replace('delay(20)', 'delay(true)')}),
+    ('aether_test', {'format':'aether','source':homes.replace('sender player', 'sender any'), 'expectedMessages':[]})])
+assert home_valid['valid'] and set(home_valid['requiredCapabilities']) == {
+    'runtime.message.send','player.location.read','state.own','scheduler.delay','player.teleport.self'}, home_valid
+assert not home_invalid['valid'] and home_invalid['line'] > 0, home_invalid
+assert not home_offline['valid'] and 'HOST_CONTEXT_REQUIRED' in home_offline['message'], home_offline
+assert {c['name'] for c in guide['hostCallables']} == {
+    'player_location','state_get_location','state_put_location','delay','teleport_self'}
 print(json.dumps({"result":"pass","version":version,"checks":["discover template","validate template",
     "single-line edit changes behavior","comment preserves behavior","type error identifies line and column",
     "CLI and MCP agree on valid source","CLI and MCP agree on invalid source",
     "loop/function example validates through packaged CLI and MCP",
     "loop/function example runs with two argument lists", "invalid mutable assignment has source diagnostic",
     "list iteration example emits expected total", "mixed append rejects with source diagnostic",
-    "function defaults and explicit overrides run through packaged MCP"]},indent=2))
+    "function defaults and explicit overrides run through packaged MCP",
+    "homes validates with inferred capabilities", "host argument types reject with location",
+    "offline native execution requires host context", "host discovery exports executable callable catalog"]},indent=2))

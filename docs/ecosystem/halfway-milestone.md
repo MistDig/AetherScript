@@ -1,10 +1,20 @@
 # Halfway milestone: M1–M3 acceptance checkpoint
 
-Recorded 14 November 2026 against the inspected 0.0.10 source baseline. This is the current checkpoint for the owner's next goal: complete the first three implementation phases in the [exact supplied brief](implementation-brief.md). M0 is the audit prerequisite; M4–M6 remain later work. “Halfway” means three of the six dependency phases M1–M6 have passed their gates. It does **not** mean 50% of capabilities, engineering effort, risk, addon parity, or production readiness. Phases differ substantially in size. No halfway completion is claimed here.
+Baseline recorded 14 November 2026 against inspected 0.0.10 source; subsequent progress is recorded below. This is the checkpoint for the owner's next goal: complete the first three implementation phases in the [exact supplied brief](implementation-brief.md). M0 is the audit prerequisite; M4–M6 remain later work. “Halfway” means three of the six dependency phases M1–M6 have passed their gates. It does **not** mean 50% of capabilities, engineering effort, risk, addon parity, or production readiness. Phases differ substantially in size. No halfway completion is claimed here.
 
 The existing [capability CSV](capabilities.csv), [gap report](gap-report.md), [language decision](language-decision.md), and [backlog](backlog.md) are dated inventories. Their historical statuses and evidence remain intact. This checkpoint adds current acceptance criteria rather than marking those rows verified in bulk. Status words follow brief section 14. Evidence below is inspected source or previously recorded execution; this documentation change ran no Java or live-server tests.
 
-## Current evidence and limits
+## BetterModel planning update - 15 November 2026
+
+The latest handoff adds detailed SkBetterModels/BetterModel requirements to EXT-10. The [integration plan](model-integration-plan.md) tracks 124 supplied registration entries, typed provider handles, synchronous combat callbacks, animation markers, rendering/rigs, paths, spawn rules and lifecycle gates. M1-M3 remains the current halfway target; provider implementation is optional M4-M5 work, with its reusable runtime/event prerequisites planned earlier. No BetterModel implementation or Paper 26.3 compatibility is claimed.
+
+## Current progress — 16 November 2026
+
+The 0.0.11/0.0.12 slices implemented mutable locals, loops, typed functions, immutable lists/defaults, owned command registration and core JSON/SQLite services. The current 0.0.16 implementation adds immutable host types, optional/unit semantics, a fixed capability-aware callable registry, bounded command continuations, own-feature/player SQLite location state and self teleport. `examples/homes.aether` composes those operations as a public native command with console-approved execution capabilities. Existing remote MCP grants remain message-only. The 0.0.16 fixture passed 23 homes checks across two Paper boots with two translated protocol clients; see [versioned evidence](../evidence/0.0.16/). This does not certify native-client UI, two-PC onboarding or wider gameplay. Historical evidence and counts below retain their named versions.
+
+All M1–M3 gates remain open. The narrow homes foundation does not complete general value/collection semantics, public events, wider gameplay, general persistence, kits/join rewards or M3 UI/editor work. Optional BetterModel integration remains planned.
+
+## Historical 0.0.10 baseline evidence and limits
 
 | Concrete capability | Status and evidence | Limit / next task |
 | --- | --- | --- |
@@ -50,7 +60,7 @@ Depends on the M0 audit and retention of the structured-message compatibility co
 - M1-C: Expose initial typed capability contracts: stable IDs, argument/return types, platform scope, thread context, permission/capability requirements, resource owner, error semantics and examples. Public callable semantics must be reusable by subsequent adapters; initial contracts are not the M4 external-addon completion claim.
 - M1-D: Pure-language examples run via the public parser/runtime and packaged validator/MCP; invalid syntax/type/budget failures preserve the active revision and emit no partial buffered messages. Existing YAML/JSON/static-text hashes and behavior remain compatible or receive an explicit tested migration. Hashes include loop/function semantics, not comments/positions.
 
-Current phase status: implementing foundation; **gate open**. Scalar locals/expressions/branches/arguments are recorded working subsets. Functions, loops and broader semantic contracts remain missing at the inspected baseline. Completing only loops/functions will not by itself close every M1 requirement.
+Current phase status: implementing foundation; **gate open**. Scalar locals, loops, functions, lists and the narrow host callable/type contracts are implemented subsets. General collections/value semantics and the remaining public contracts still need their complete gates; the historical baseline above is not the current implementation inventory.
 
 ### M2 — first real plugins and versioned state
 
@@ -62,7 +72,7 @@ Depends on M1 invocation semantics, callable metadata and revision ownership.
 - M2-D: Namespaced persistent gameplay variables use UUID player keys and supported snapshots, SQLite transactions/migrations, documented flush/durability/recovery behavior and bounded off-thread I/O. Expose authoritative unflushed reads, per-key revisions and change hooks for M3. Never persist live Bukkit objects.
 - M2-E: Homes/warps, kits and join rewards run as public scripts. Connected-player tests exercise permissions, argument suggestions, item delivery/capacity, persistent cooldowns/locations across restart, delayed cancellation/disappearance, invalid-update preservation and reload/unload cleanup. Record exact engine/Java/Paper versions and separate mock/unit from server evidence.
 
-Current phase status: specified; **gate open**. Revision persistence, `/ais run`, and transport authorization are useful foundations but do not satisfy these gameplay gates.
+Current phase status: implementing foundation; **gate open**. Owned commands and the locally approved homes/state/delay/self-teleport slice are implemented subsets. Public events, wider command trees/gameplay/state semantics, kits/join rewards and complete connected-player lifecycle evidence remain required.
 
 ### M3 — rich gameplay and safe variable administration
 
@@ -84,4 +94,4 @@ Production evidence still requires 100 reloads with connected players, active ti
 
 ## Updating this checkpoint
 
-For each completed slice record concrete capability IDs, source/public interface, runnable example, test command/result, server/client/provider scope, limitations and next task. Link new evidence under its actual release; preserve historical files. The next implementation dependency is bounded invocation control flow/functions and their semantic/authoring contract, followed by real owned command registration and versioned gameplay state. Release/version/changelog/commit/publish steps belong to the enclosing repository change batch under AGENTS.md; this checkpoint alone is not a release.
+For each completed slice record concrete capability IDs, source/public interface, runnable example, test command/result, server/client/provider scope, limitations and next task. Link new evidence under its actual release; preserve historical files. Next implementation dependencies are the remaining general collection/value contracts, public events, wider gameplay and persistence APIs, then kits/join rewards and the M3 UI/editor, with lifecycle and connected-player evidence at each gate. Release/version/changelog/commit/publish steps belong to the enclosing repository change batch under AGENTS.md; this checkpoint alone is not a release.

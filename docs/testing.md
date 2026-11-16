@@ -1,5 +1,13 @@
 # Actual test results
 
+## Release 0.0.16 — typed host calls and owner-approved homes
+
+Java 25 clean check build passed; the final incremental check/build includes 274 Java tests, with no failures/errors/skips. Eight relay regression tests passed. Packaged CLI/MCP checks cover discovery of the executable host-call catalog, homes capability inference, native argument type errors and offline host-context rejection. Both shaded JARs pass real SQLite provider/license checks. Nine wiki examples and seven published 0.0.11 semantic hashes pass. Documentation production and link/search checks pass.
+
+Paper 26.3 build 245 passed 23 homes checks across two boots with two synthetic 26.1 clients translated through ViaProxy 3.4.14. The fixture verifies per-player persistence, delayed teleport, replacement/permission/capability/disconnect cancellation and restart. This is not native 26.3 UI or two-PC verification.
+
+See [0.0.16 evidence](evidence/0.0.16/) for exact real-server scope. Actual AI-client certification, native 26.3 client UI/command-tree checks, two-PC Feather tests, Purpur and quantitative profiling remain unperformed for this version. Historical results below keep their original attribution.
+
 ## Release 0.0.12 — immutable lists, defaults and SQLite baseline
 
 Java 25 clean check build passed 254 tests. Both shaded JARs passed real native SQLite restart/CAS and retained-license checks. Packaged CLI/MCP authoring tests cover typed lists, iteration, function defaults/overrides and invalid type diagnostics; nine runnable wiki examples pass. Seven semantic hashes match a checksum-verified published 0.0.11 validator.

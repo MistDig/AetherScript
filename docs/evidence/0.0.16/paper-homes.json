@@ -1,0 +1,117 @@
+[
+  {
+    "test": "homes-startup-native-denied",
+    "result": "pass",
+    "detail": "[01:05:48 INFO]: AetherScript 0.0.16; 26.3-245-cd1c3b6 (MC: 26.3); ready=true; generation=1; features=1; busy=false; remoteManage=false; recovery=ENABLED"
+  },
+  {
+    "test": "homes-denial-keeps-pure-feature",
+    "result": "pass",
+    "detail": "[01:05:48 INFO]: Hello from AetherScript!"
+  },
+  {
+    "test": "homes-owner-permit",
+    "result": "pass",
+    "detail": "[01:05:48 INFO]: CAPABILITIES_SAVED homes: [player.location.read, player.teleport.self, runtime.message.send, scheduler.delay, state.own]; run ais reload homes to activate an approved edit"
+  },
+  {
+    "test": "homes-activate",
+    "result": "pass",
+    "detail": "[01:05:49 INFO]: ACTIVE generation=2 features=2; saved successfully"
+  },
+  {
+    "test": "homes-player-save",
+    "result": "pass",
+    "detail": "durable acknowledgement received"
+  },
+  {
+    "test": "homes-player-isolation",
+    "result": "pass",
+    "detail": "second UUID has no home"
+  },
+  {
+    "test": "homes-delay-teleport",
+    "result": "pass",
+    "detail": "{'event': 'position_snapshot', 'at': 1794771362868, 'id': 'snapshot', 'x': 10, 'y': 80, 'z': 10, 'yaw': 0, 'pitch': 0}"
+  },
+  {
+    "test": "homes-unchanged-reload",
+    "result": "pass",
+    "detail": "[01:06:03 INFO]: UNCHANGED: no new revision; generation=2"
+  },
+  {
+    "test": "homes-delay-edit",
+    "result": "pass",
+    "detail": "[01:06:03 INFO]: ACTIVE generation=3 features=2; saved successfully"
+  },
+  {
+    "test": "homes-unrelated-feature-edit",
+    "result": "pass",
+    "detail": "[01:06:04 INFO]: ACTIVE generation=4 features=2; saved successfully"
+  },
+  {
+    "test": "homes-unrelated-edit-retains-invocation",
+    "result": "pass",
+    "detail": "{'event': 'position_snapshot', 'at': 1794771367370, 'id': 'snapshot', 'x': 10, 'y': 80, 'z': 10, 'yaw': 0, 'pitch': 0}"
+  },
+  {
+    "test": "homes-own-edit-replaces-revision",
+    "result": "pass",
+    "detail": "[01:06:08 INFO]: ACTIVE generation=5 features=2; saved successfully"
+  },
+  {
+    "test": "homes-own-edit-cancels-pending",
+    "result": "pass",
+    "detail": "{'event': 'position_snapshot', 'at': 1794771371682, 'id': 'snapshot', 'x': 40, 'y': 80, 'z': 40, 'yaw': 0, 'pitch': 0}"
+  },
+  {
+    "test": "homes-permission-revocation-cancels-pending",
+    "result": "pass",
+    "detail": "{'event': 'position_snapshot', 'at': 1794771375529, 'id': 'snapshot', 'x': 40, 'y': 80, 'z': 40, 'yaw': 0, 'pitch': 0}"
+  },
+  {
+    "test": "homes-restrict",
+    "result": "pass",
+    "detail": "[01:06:16 INFO]: CAPABILITIES_SAVED homes: [runtime.message.send]; run ais reload homes to activate an approved edit"
+  },
+  {
+    "test": "homes-restrict-cancels-pending",
+    "result": "pass",
+    "detail": "{'event': 'position_snapshot', 'at': 1794771379819, 'id': 'snapshot', 'x': 40, 'y': 80, 'z': 40, 'yaw': 0, 'pitch': 0}"
+  },
+  {
+    "test": "homes-repermit",
+    "result": "pass",
+    "detail": "[01:06:20 INFO]: CAPABILITIES_SAVED homes: [player.location.read, player.teleport.self, runtime.message.send, scheduler.delay, state.own]; run ais reload homes to activate an approved edit"
+  },
+  {
+    "test": "homes-reactivate",
+    "result": "pass",
+    "detail": "[01:06:20 INFO]: ACTIVE generation=7 features=2; saved successfully"
+  },
+  {
+    "test": "homes-disconnect-delay-edit",
+    "result": "pass",
+    "detail": "[01:06:21 INFO]: ACTIVE generation=8 features=2; saved successfully"
+  },
+  {
+    "test": "homes-disconnect-same-uuid-cancels-pending",
+    "result": "pass",
+    "detail": "{'event': 'position_snapshot', 'at': 1794771414774, 'id': 'snapshot', 'x': 40, 'y': 80, 'z': 40, 'yaw': 0, 'pitch': 0}"
+  },
+  {
+    "test": "homes-restore-normal-delay",
+    "result": "pass",
+    "detail": "[01:06:55 INFO]: ACTIVE generation=9 features=2; saved successfully"
+  },
+  {
+    "test": "homes-restart-restores-state-and-owner-caps",
+    "result": "pass",
+    "detail": "{'event': 'position_snapshot', 'at': 1794771435903, 'id': 'snapshot', 'x': 10, 'y': 80, 'z': 10, 'yaw': 0, 'pitch': 0}"
+  },
+  {
+    "test": "homes-client-protocol",
+    "result": "pass",
+    "detail": "Offline26.1(protocol775) translated by verifiedViaProxy3.4.14 to Paper26.3(protocol777); not native26.3 client"
+  }
+]

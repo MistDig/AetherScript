@@ -19,3 +19,7 @@ First-wave repository metadata identifies ten reference release tags and license
 The 0.0.4 checkpoint has 113 passing automated tests and seven packaged offline authoring checks. The final 0.0.4 plugin passed 28 Paper console checks across five boots and 100 changed reloads. [Versioned evidence](../evidence/0.0.4/) records the executed tests.
 
 The completed 0.0.4 server record is [Paper 26.3 build 245 evidence](../evidence/0.0.4/paper-26.3-245.json).
+
+## Latest owner handoff
+
+The [15 November development handoff](development-handoff-2026-11-15.md) summarizes the unchanged core brief and the added BetterModel requirements; the identifier/category inventory tracks 124 registration entries without reproducing upstream syntax. The [BetterModel plan](model-integration-plan.md) and [registration inventory](skbettermodels-registration.csv) refine EXT-10. These are specified future capabilities, not support claims; M1-M3 remains the current halfway goal.

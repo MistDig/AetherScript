@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.aetherscript.core.CallableRegistryTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-15T19:23:44.953Z" hostname="VARUN" time="0.047">
+  <properties/>
+  <testcase name="typedDispatchRejectsDuplicatesArgumentsAndResults()" classname="dev.aetherscript.core.CallableRegistryTest" time="0.024"/>
+  <testcase name="authorityAndStalenessAreCheckedBeforeAndAfterHost()" classname="dev.aetherscript.core.CallableRegistryTest" time="0.006"/>
+  <testcase name="sharedBudgetBoundsNestedCallsAndMessages()" classname="dev.aetherscript.core.CallableRegistryTest" time="0.008"/>
+  <testcase name="hostOperationsRequireVirtualThreadAndMapCheckedErrors()" classname="dev.aetherscript.core.CallableRegistryTest" time="0.006"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -2,6 +2,8 @@
 
 ---
 
+Remote grants remain message-only, including full native-script access. Player location, persistent home state, delay and teleport calls require local console approval and local player invocation; remote apply/activation/tests reject those requirements. See the [local homes guide](https://github.com/MistDig/AetherScript/wiki/Language-Reference#owner-approved-homes-commands-current-implementation).
+
 ## Available tools
 
 Start with `aether_server_status` to confirm which server is connected. A selected-script connection can access only its approved feature IDs. A full-access connection can create and edit any valid native .aether feature ID, including existing scripts.

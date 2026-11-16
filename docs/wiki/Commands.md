@@ -1,4 +1,4 @@
-[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.15)
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.16)
 
 ---
 
@@ -11,6 +11,9 @@ Use `/ais` in game, or `ais` in console. Script administration requires **`aethe
 | `ais connect [feature-ids]` | Server console. Open a browser approval link; optional comma-separated IDs constrain the browser choice. |
 | `ais connections` | Server console. List connection IDs, names, permissions and revocations. |
 | `ais disconnect [connection-id]` | Server console. Revoke one connection or all connections. Wait for saved confirmation. |
+| `ais capabilities <feature>` | Actual server console. Inspect the local execution capability ceiling. |
+| `ais permit <feature> <comma-separated-capabilities>` | Actual server console. Replace the ceiling, retaining message send; wait for saved confirmation, then reload source. |
+| `ais restrict <feature>` | Actual server console. Restore message-only execution and retire incompatible active work. |
 | `/ais status` | Version, readiness, generation, active count, busy state and AI status. |
 | `/ais status <feature>` | Running revision, editable path, file state, errors and next action. |
 | `/ais list` | Feature running/file states. |
@@ -20,6 +23,8 @@ Use `/ais` in game, or `ais` in console. Script administration requires **`aethe
 | `/ais history <feature>` | Saved numbers, hashes, timestamps and active marker. |
 | `/ais diff <feature>` | Running saved source versus current edit, even if invalid. |
 | `/ais rollback <feature>` | Select the closest earlier readable, valid saved revision. |
+
+See the [homes command guide](https://github.com/MistDig/AetherScript/wiki/Language-Reference#owner-approved-homes-commands-current-implementation) for local player operations, persistence and cancellation. Remote MCP grants remain message-only even when the console approves a broader local ceiling.
 
 ### Direct script commands
 
@@ -48,4 +53,4 @@ Replies are bounded. Use per-feature commands or console for shortened lists. Ho
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.15
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.16
