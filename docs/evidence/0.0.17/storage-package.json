@@ -1,0 +1,14 @@
+{
+  "result": "pass",
+  "version": "0.0.17",
+  "packages": [
+    {
+      "jar": "gateway-mcp-0.0.17.jar",
+      "result": "pass"
+    },
+    {
+      "jar": "plugin-paper-0.0.17.jar",
+      "result": "pass"
+    }
+  ]
+}

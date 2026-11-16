@@ -1,0 +1,182 @@
+"""Real Paper native MCP protocol fixture; no actual AI application is exercised.
+Requires external Playwright Edge, pinned ViaProxy and homes_workflow Bot dependencies.
+OAuth credentials, private bearer tokens and console approval links remain in memory.
+"""
+import base64, hashlib, json, os, re, secrets, socket, subprocess, time, uuid
+from pathlib import Path
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from threading import Thread
+from urllib.error import HTTPError
+from urllib.parse import parse_qs, urlencode, urlsplit
+from urllib.request import Request, urlopen
+from playwright.sync_api import sync_playwright, expect
+from homes_workflow import Bot, PROXY_SHA256
+
+
+def verify(command, start, stop, server, repo, java, evidence, client_dir):
+    server, repo, client_dir = map(Path, (server, repo, client_dir))
+    proxy_jar = client_dir/'ViaProxy-3.4.14.jar'
+    assert hashlib.sha256(proxy_jar.read_bytes()).hexdigest() == PROXY_SHA256, 'Unexpected proxy checksum'
+    assert not (server/'plugins/AetherScript/relay.json').exists(), 'Fresh shared-relay installation required'
+    (client_dir/'viabedrock.yml').write_text('translate-resource-packs: false\nresource-pack-host: 127.0.0.1\n', encoding='utf-8')
+    proxy = log = bot = None
+    def passed(name, detail):
+        evidence.append(dict(test='native-mcp-'+name, result='pass', detail=detail))
+        print('native-mcp-'+name+': pass', flush=True)
+    def settled():
+        deadline = time.monotonic()+120
+        while time.monotonic() < deadline:
+            if 'busy=false' in command('ais status', 'AetherScript '): return
+            time.sleep(.2)
+        raise AssertionError('Paper activation did not settle')
+    def connect_bot():
+        result = Bot(client_dir, 'AetherHomeA', server/'native-mcp-client.jsonl')
+        command('op AetherHomeA', 'operator'); settled()
+        return result
+    def tp(x, z):
+        command(f'tp AetherHomeA {float(x)} 80.0 {float(z)}', 'Teleported')
+        bot.wait(lambda e: e['event']=='position' and abs(e['x']-x)<.1 and abs(e['z']-z)<.1, timeout=45)
+    def at(x, z):
+        bot.request(op='position', id='native-snapshot')
+        p = bot.wait(lambda e: e['event']=='position_snapshot', timeout=45)
+        assert abs(p['x']-x)<.25 and abs(p['z']-z)<.25, 'Unexpected real player location'
+    try:
+        start(); settled()
+        log = (server/'native-mcp-proxy.log').open('w', encoding='utf-8')
+        proxy = subprocess.Popen([str(java), '-jar', str(proxy_jar.resolve()), 'cli', '--bind-address', '127.0.0.1:25568', '--target-address', '127.0.0.1:25591', '--target-version', '26.3', '--proxy-online-mode', 'false', '--auth-method', 'NONE', '--chat-signing', 'false'], cwd=client_dir, stdout=log, stderr=subprocess.STDOUT, creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
+        deadline = time.monotonic()+120
+        while time.monotonic()<deadline:
+            if proxy.poll() is not None: raise AssertionError('Proxy exited')
+            try:
+                with socket.create_connection(('127.0.0.1',25568), timeout=.2): pass
+                break
+            except OSError: time.sleep(.25)
+        else: raise AssertionError('Proxy readiness timeout')
+        bot = connect_bot()
+        actor = str(uuid.UUID(bytes=hashlib.md5(b'OfflinePlayer:AetherHomeA').digest(), version=3))
+        line = command('ais connect', '/connect#code=')
+        link = re.search(r'https://[^\s]+/connect#code=[^\s]+', line).group()
+        origin = 'https://'+urlsplit(link).netloc
+        def http(path, value=None, token=None, form=False):
+            headers = {'Accept':'application/json, text/event-stream', 'User-Agent':'AetherScript-Native-MCP-Fixture'}
+            body = None
+            if value is not None:
+                headers['Content-Type'] = 'application/x-www-form-urlencoded' if form else 'application/json'
+                body = urlencode(value).encode() if form else json.dumps(value).encode()
+            if token: headers['Authorization'] = 'Bearer '+token
+            with urlopen(Request(origin+path, data=body, headers=headers), timeout=50) as response: return json.load(response)
+        def call(token, name, arguments, success=True):
+            answer = http('/mcp', {'jsonrpc':'2.0','id':1,'method':'tools/call','params':{'name':name,'arguments':arguments}}, token)
+            result = answer.get('result', {})
+            ok = 'error' not in answer and not result.get('isError', True)
+            assert ok == success, 'Unexpected result for '+name
+            return result.get('structuredContent', {})
+        def live(token):
+            deadline = time.monotonic()+120
+            while time.monotonic()<deadline:
+                try:
+                    result = call(token, 'aether_server_status', {})
+                    local = re.search(r'generation=(\d+)', command('ais status', 'AetherScript '))
+                    assert local and str(result.get('generation')) == local.group(1), 'Status differs from intended Paper instance'
+                    return result
+                except (HTTPError, AssertionError): time.sleep(1)
+            raise AssertionError('Approved connection did not reach intended Paper')
+        callback = {}
+        class Receiver(BaseHTTPRequestHandler):
+            def do_GET(self):
+                callback.update(parse_qs(urlsplit(self.path).query)); self.send_response(200); self.end_headers(); self.wfile.write(b'Fixture callback received.')
+            def log_message(self, *args): pass
+        with HTTPServer(('127.0.0.1',0), Receiver) as receiver, sync_playwright() as pw:
+            Thread(target=receiver.serve_forever, daemon=True).start()
+            browser = pw.chromium.launch(channel=os.environ.get('AETHER_BROWSER_CHANNEL','msedge'), headless=True)
+            def approve(native, player, fresh_link):
+                redirect = f'http://127.0.0.1:{receiver.server_port}/callback'
+                client = http('/register', {'redirect_uris':[redirect], 'token_endpoint_auth_method':'none'})
+                verifier = secrets.token_urlsafe(48)
+                challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip('=')
+                state = secrets.token_hex(16)
+                fields = dict(client_id=client['client_id'], redirect_uri=redirect, resource=origin+'/mcp', response_type='code', code_challenge_method='S256', code_challenge=challenge, state=state)
+                context = browser.new_context(); page = context.new_page()
+                try:
+                    page.goto(fresh_link); expect(page.locator('#server')).to_have_text(re.compile(r'\S'))
+                    page.locator('#kind').select_option('codex'); page.wait_for_timeout(700)
+                    page.goto(origin+'/oauth/authorize?'+urlencode(fields))
+                    expect(page.locator('#server')).to_have_text(re.compile(r'\S'))
+                    page.locator('#name').fill('Native protocol fixture' if native else 'Restricted protocol fixture')
+                    page.locator('#all').check()
+                    page.locator('#native').set_checked(native)
+                    page.locator('#test-player').select_option(actor if player else '')
+                    page.locator('#approve').click(); page.wait_for_url(redirect+'**', timeout=45000)
+                    returned = parse_qs(urlsplit(page.url).query); assert returned['state']==[state]
+                    token = http('/oauth/token', dict(grant_type='authorization_code', code=returned['code'][0], client_id=client['client_id'], redirect_uri=redirect, code_verifier=verifier, resource=origin+'/mcp'), form=True)['access_token']
+                    return token
+                finally: context.close()
+            token = approve(True, True, link); live(token)
+            caps = call(token, 'aether_capabilities', {})
+            assert 'player.teleport.self' in json.dumps(caps) and actor in json.dumps(caps), 'Native capabilities or approved actor absent'
+            passed('browser-grant', 'Fresh owner browser grant reached intended Paper with explicit native capabilities and actor')
+            source = (repo/'examples/homes.aether').read_text(encoding='utf-8').replace('feature homes ', 'feature nativehomes ').replace('command home ', 'command nativehome ')
+            assert call(token,'aether_scripts_read',{'id':'nativehomes'})['hash']=='ABSENT'
+            assert call(token,'aether_scripts_validate',{'id':'nativehomes','source':source})['valid']
+            applied = call(token,'aether_scripts_apply',{'id':'nativehomes','source':source,'expectedHash':'ABSENT'})
+            settled()
+            call(token,'aether_scripts_apply',{'id':'nativehomes','source':source,'expectedHash':'ABSENT'},False)
+            passed('authoring', 'AI validated and applied native source without a console permit; stale apply rejected')
+            def begin(action, expected):
+                result = call(token,'aether_scripts_test',{'id':'nativehomes','arguments':[action,'main'],'expectedMessages':expected})
+                assert result['status']=='pending' and result['testId']; return result['testId']
+            def poll(test_id, expected_status='completed'):
+                deadline = time.monotonic()+150
+                while time.monotonic()<deadline:
+                    result = call(token,'aether_scripts_test_status',{'id':'nativehomes','testId':test_id})
+                    if result['status']!='pending':
+                        if expected_status: assert result['status']==expected_status, 'Unexpected native test terminal status'
+                        return result
+                    time.sleep(.25)
+                raise AssertionError('Native test did not terminate')
+            tp(11,13)
+            saved_id = begin('set',['Home saved.']); saved = poll(saved_id)
+            assert saved['matched'] and saved['actualMessages']==['Home saved.']
+            assert any(r.get('operation')=='state.own.put_location' and r.get('acknowledged') for r in saved['receipts'])
+            tp(71,73)
+            arrived = poll(begin('go',['Teleporting in one second...','Home reached.']))
+            assert arrived['matched'] and any(r.get('operation')=='player.teleport.self' and 'actualLocation' in r for r in arrived['receipts']); at(11,13)
+            passed('real-effects', 'Asynchronous tests captured actual messages, durable state acknowledgement and post-teleport location')
+            line = command('ais connect','/connect#code='); restricted_link = re.search(r'https://[^\s]+/connect#code=[^\s]+',line).group()
+            restricted = approve(False, False, restricted_link); live(restricted)
+            call(restricted,'aether_scripts_apply',{'id':'nativehomes','source':source,'expectedHash':applied['hash']},False)
+            call(restricted,'aether_scripts_test_status',{'id':'nativehomes','testId':saved_id},False)
+            call(token,'aether_scripts_test_status',{'id':'hello-ai','testId':saved_id},False)
+            passed('scope-isolation', 'Fresh message-only connection rejected native apply and foreign test; feature mismatch rejected')
+            delayed = source.replace('delay(20)','delay(600)')
+            changed = call(token,'aether_scripts_apply',{'id':'nativehomes','source':delayed,'expectedHash':applied['hash']}); settled()
+            tp(91,93); pending = begin('go',['Teleporting in one second...','Home reached.'])
+            bot.message('Teleporting in one second...',timeout=45)
+            command('deop AetherHomeA','operator')
+            retired = poll(pending, None); assert retired['status']!='completed' and not retired['matched']; at(91,93)
+            command('op AetherHomeA','operator')
+            applied = call(token,'aether_scripts_apply',{'id':'nativehomes','source':source,'expectedHash':changed['hash']}); settled()
+            passed('permission-retirement', 'Removing real actor permission stopped delayed test before teleport')
+            bot.close(); bot=None; stop(); start(); settled(); bot=connect_bot(); live(token)
+            assert call(token,'aether_scripts_read',{'id':'nativehomes'})['hash']==applied['hash']
+            tp(101,103); restored = poll(begin('go',['Teleporting in one second...','Home reached.']))
+            assert restored['matched']; at(11,13)
+            passed('restart', 'Original OAuth token, native grant, active source and own-player state survived restart')
+            command('ais disconnect','revocation saved'); settled()
+            try:
+                call(token,'aether_scripts_read',{'id':'nativehomes'})
+                raise AssertionError('Revoked connection retained AI access')
+            except HTTPError as failure: assert failure.code in (401,403,409)
+            except AssertionError as failure:
+                if str(failure)=='Revoked connection retained AI access': raise
+            tp(111,113); bot.command('nativehome go main'); bot.message('Home reached.',timeout=45); at(11,13)
+            passed('disconnect', 'AI access revoked while locally approved native script still executed')
+            browser.close()
+            receiver.shutdown()
+    finally:
+        if bot: bot.close()
+        if proxy and proxy.poll() is None:
+            proxy.terminate()
+            try: proxy.wait(timeout=10)
+            except subprocess.TimeoutExpired: proxy.kill(); proxy.wait(timeout=5)
+        if log: log.close()

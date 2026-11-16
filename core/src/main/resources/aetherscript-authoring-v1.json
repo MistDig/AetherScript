@@ -7,7 +7,11 @@
   "evaluation": "Commands with arguments, mutable locals, loops, functions or host calls evaluate per invocation with fresh typed state. Legacy let/if/send-only scripts retain preparation-time evaluation and semantic hashes. All branches and callable signatures are type-checked before activation.",
   "entryPoint": "/ais run <feature-id> [arguments...]",
   "capabilities": [
-    "runtime.message.send"
+    "runtime.message.send",
+    "player.location.read",
+    "state.own",
+    "scheduler.delay",
+    "player.teleport.self"
   ],
   "authoringRules": [
     "Match the feature ID to the filename.",
@@ -165,10 +169,24 @@
       "scheduler.delay",
       "player.teleport.self"
     ],
-    "remoteExecutionCeiling": [
+    "hostCatalogDiscovery": "CLI --language and local/hosted aether_capabilities expose the executable host-call catalog; live discovery includes the actual connection grant.",
+    "approvalWindow": "Fresh ais connect browser approval chooses supported capabilities, all or selected scripts and an optional live test player. Explicit console ais permit/restrict ceilings remain authoritative.",
+    "legacyRemoteExecutionCeiling": [
       "runtime.message.send"
     ],
-    "hostCatalogDiscovery": "CLI --language and local aether_capabilities.authoring.hostCallables export the executable StandardCallables catalog. Hosted connections do not expose aether_capabilities.",
-    "approvalWindow": "actual Minecraft server console: ais permit <feature-id> <comma-separated-capabilities>"
+    "browserApprovedExecutionCeiling": [
+      "runtime.message.send",
+      "player.location.read",
+      "state.own",
+      "scheduler.delay",
+      "player.teleport.self"
+    ]
+  },
+  "remoteWorkflow": {
+    "discover": "aether_capabilities returns authoring metadata and server-approved capabilities; do not infer permission from language support.",
+    "edit": "Read using aether_scripts_read, validate the complete source, then aether_scripts_apply with the exact expectedHash (ABSENT for a new ID). Read back the active hash.",
+    "test": "aether_scripts_test takes id, arguments and expectedMessages. A real-player test returns a pending job. Poll aether_scripts_test_status with id and testId until completed, failed, cancelled or timeout. Inspect matched, actualMessages, error locations and receipts.",
+    "effects": "Live tests can emit real messages, store player data and teleport the approved player. The AI cannot supply or switch the actor. A saved-state or teleport receipt records a real host operation; completed effects are not rolled back.",
+    "recover": "For stale source, read again before editing. For missing player approval, reconnect with that player online. For failed tests, correct the source and test the newly activated revision; never reuse stale test receipts."
   }
 }

@@ -29,6 +29,138 @@ final class GameplayRuntime implements AutoCloseable, Listener {
     private final ExecutorService interpreters = Executors.newVirtualThreadPerTaskExecutor();
     private final Set<Run> active = ConcurrentHashMap.newKeySet();
     private final Map<UUID, UUID> sessions = new ConcurrentHashMap<>();
+    private final Map<String, TestJob> tests = new HashMap<>();
+    private final ScheduledExecutorService testExpiry = Executors.newSingleThreadScheduledExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "aetherscript-test-expiry"); thread.setDaemon(true); return thread;
+    });
+    private static final long TEST_NANOS = TimeUnit.SECONDS.toNanos(180);
+    /** Capture limits use wire bytes, including JSON escaping; capture never gates real effects. */
+    static final class CaptureBudget {
+        private final int limit;
+        private int used;
+        private boolean truncated;
+        CaptureBudget(int limit) { this.limit = limit; }
+        synchronized boolean accept(Object value) {
+            if (truncated) return false;
+            try {
+                int bytes = FeatureParser.JSON.writeValueAsBytes(value).length + 1; // Array separator.
+                if (bytes > limit - used) { truncated = true; return false; }
+                used += bytes; return true;
+            } catch (java.io.IOException | RuntimeException failure) { truncated = true; return false; }
+        }
+        synchronized void truncate() { truncated = true; }
+        synchronized boolean truncated() { return truncated; }
+    }
+    static String boundedError(String text) {
+        // At most 2 KiB of encoded JSON, including control-character escaping and UTF-8.
+        int codePoints = Math.min(text.codePointCount(0, text.length()), 2048);
+        int low = 0, high = codePoints;
+        String best = "";
+        while (low <= high) {
+            int count = (low + high) >>> 1;
+            String candidate = text.substring(0, text.offsetByCodePoints(0, count));
+            try {
+                if (FeatureParser.JSON.writeValueAsBytes(candidate).length <= 2048) {
+                    best = candidate; low = count + 1;
+                } else high = count - 1;
+            } catch (java.io.IOException | RuntimeException failure) { return "RUNTIME_FAILED"; }
+        }
+        return best;
+    }
+
+    private final class TestJob {
+        final String id = UUID.randomUUID().toString(), connection;
+        final CompiledFeature feature;
+        final List<String> expected;
+        final BooleanSupplier alive;
+        final long expires = System.nanoTime() + TEST_NANOS;
+        final List<String> messages = new ArrayList<>();
+        final CaptureBudget outputBudget = new CaptureBudget(12 * 1024);
+        final CaptureBudget receiptBudget = new CaptureBudget(6 * 1024);
+        final List<Map<String, Object>> receipts = new ArrayList<>();
+        volatile Run run;
+        String status = "pending", failure = "";
+        int line, column;
+        TestJob(String connection, CompiledFeature feature, List<String> expected, BooleanSupplier alive) {
+            this.connection = connection; this.feature = feature; this.expected = List.copyOf(expected); this.alive = alive;
+        }
+        synchronized void finish(String state, Throwable error) {
+            if (!status.equals("pending")) return;
+            status = state;
+            if (error != null) {
+                failure = boundedError(error instanceof ValidationException ? error.getMessage() : "RUNTIME_FAILED");
+                if (error instanceof ValidationException v) { line = v.line(); column = v.column(); }
+            }
+        }
+        synchronized void message(String text) {
+            if (messages.size() >= 128) outputBudget.truncate();
+            else if (outputBudget.accept(text)) messages.add(text);
+        }
+        synchronized void receipt(Map<String, Object> value) {
+            if (receipts.size() >= 128) receiptBudget.truncate();
+            else if (receiptBudget.accept(value)) {
+                try { receipts.add(Map.copyOf(value)); }
+                catch (RuntimeException failure) { receiptBudget.truncate(); }
+            }
+        }
+        synchronized boolean pending() { return status.equals("pending"); }
+        synchronized Map<String, Object> view() {
+            return Map.ofEntries(Map.entry("testId", id), Map.entry("id", feature.definition().id()),
+                Map.entry("sourceHash", feature.sourceHash()), Map.entry("status", status),
+                Map.entry("actualMessages", List.copyOf(messages)), Map.entry("receipts", List.copyOf(receipts)),
+                Map.entry("matched", status.equals("completed") && !outputBudget.truncated() && messages.equals(expected)), Map.entry("error", failure),
+                Map.entry("outputTruncated", outputBudget.truncated()), Map.entry("receiptsTruncated", receiptBudget.truncated()),
+                Map.entry("line", line), Map.entry("column", column));
+        }
+    }
+    /** Bounded asynchronous tests; the actor identity comes only from the browser grant. */
+    synchronized Map<String, Object> startTest(String connectionId, CompiledFeature feature, UUID actor,
+            List<String> arguments, List<String> expected, BooleanSupplier connectionAlive) {
+        expireTests();
+        if (closed || !ready.getAsBoolean()) throw error("RUNTIME_NOT_READY");
+        Objects.requireNonNull(actor); Objects.requireNonNull(connectionId); Objects.requireNonNull(connectionAlive);
+        List<String> checked = InvocationArguments.checked(arguments);
+        if (expected.size() > 128) throw error("INVALID_EXPECTED_MESSAGES");
+        if (tests.size() >= 32 || tests.values().stream().filter(j -> j.connection.equals(connectionId)).count() >= 8) throw error("TEST_BUSY");
+        TestJob job = new TestJob(connectionId, feature, expected, connectionAlive);
+        tests.put(job.id, job);
+        Map<String, Object> admitted = job.view();
+        try { interpreters.execute(() -> {
+            try {
+                main.call(() -> {
+                    if (!job.pending() || !job.alive.getAsBoolean() || System.nanoTime() >= job.expires) throw error("TEST_RETIRED");
+                    Player player = plugin.getServer().getPlayer(actor);
+                    if (player == null || !player.isOnline()) throw error("PLAYER_DISCONNECTED");
+                    if (!player.hasPermission(feature.definition().command().permission())) throw error("PERMISSION_DENIED");
+                    startRun(feature, player, checked, job);
+                    return null;
+                });
+            } catch (Exception failure) { job.finish("failed", failure); }
+        }); } catch (RejectedExecutionException failure) { tests.remove(job.id); throw error("TEST_BUSY"); }
+        return admitted;
+    }
+    synchronized Map<String, Object> testStatus(String connectionId, String featureId, String testId) {
+        expireTests(); TestJob job = tests.get(testId);
+        if (job == null || !job.connection.equals(connectionId) || !job.feature.definition().id().equals(featureId)) throw new SecurityException("TEST_NOT_FOUND");
+        CompiledFeature current = registry.snapshot().features().get(featureId);
+        if (current == null || !current.sourceHash().equals(job.feature.sourceHash())) {
+            if (job.run != null) job.run.cancel(); job.finish("cancelled", error("STALE_SOURCE"));
+            throw new SecurityException("TEST_STALE_SOURCE");
+        }
+        return job.view();
+    }
+    synchronized void retireTests(String connectionId) {
+        for (TestJob job : tests.values()) if (job.connection.equals(connectionId)) {
+            job.finish("cancelled", error("CONNECTION_REVOKED")); if (job.run != null) job.run.cancel();
+        }
+    }
+    private synchronized void expireTests() {
+        tests.values().removeIf(job -> {
+            if (System.nanoTime() >= job.expires) { job.finish("timeout", error("TEST_EXPIRED")); if (job.run != null) job.run.cancel(); return true; }
+            if (!job.alive.getAsBoolean()) { job.finish("cancelled", error("CONNECTION_REVOKED")); if (job.run != null) job.run.cancel(); }
+            return false;
+        });
+    }
     private volatile boolean closed;
     private volatile SQLiteVariables state; // Accessed by the single existing plugin I/O worker.
 
@@ -37,8 +169,12 @@ final class GameplayRuntime implements AutoCloseable, Listener {
         this.plugin = plugin; this.registry = registry; this.io = io; this.main = main;
         this.policy = policy; this.ready = ready; this.stateDirectory = directory;
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
+        testExpiry.scheduleAtFixedRate(this::expireTests, 1, 1, TimeUnit.SECONDS);
     }
     void start(CompiledFeature feature, Player actor, List<String> arguments) {
+        startRun(feature, actor, arguments, null);
+    }
+    private void startRun(CompiledFeature feature, Player actor, List<String> arguments, TestJob job) {
         List<String> checked = InvocationArguments.checked(arguments);
         policy.get().validate(feature);
         if (closed || !ready.getAsBoolean()) throw error("RUNTIME_NOT_READY");
@@ -48,14 +184,15 @@ final class GameplayRuntime implements AutoCloseable, Listener {
             throw error("RUNTIME_BUSY: player or feature invocation limit reached");
         if (!admission.tryAcquire()) throw error("RUNTIME_BUSY: invocation limit reached");
         Run run;
-        try { run = new Run(feature, actor.getUniqueId(), checked); }
+        try { run = new Run(feature, actor.getUniqueId(), checked, job); }
         catch (RuntimeException failure) { admission.release(); throw failure; }
+        if (job != null) job.run = run;
         active.add(run);
         try { interpreters.execute(run); }
         catch (RejectedExecutionException failure) { active.remove(run); admission.release(); run.cancel(); throw error("RUNTIME_BUSY"); }
     }
     /** Main-thread activation and policy changes retire only affected invocations. */
-    void reconcile() { for (Run run : active) if (!run.current(false)) run.cancel(); }
+    void reconcile() { expireTests(); for (Run run : active) if (!run.current(false)) run.cancel(); }
     @EventHandler public void quit(PlayerQuitEvent event) {
         UUID actor = event.getPlayer().getUniqueId();
         sessions.remove(actor); // A reconnect with the same UUID must never revive an earlier invocation.
@@ -66,6 +203,7 @@ final class GameplayRuntime implements AutoCloseable, Listener {
     private static void cleanup(Runnable action) { try { action.run(); } catch (RuntimeException ignored) { } }
     private final class Run implements Runnable {
         final CompiledFeature feature;
+        final TestJob job;
         final UUID actor;
         final UUID session;
         final List<String> arguments;
@@ -75,19 +213,20 @@ final class GameplayRuntime implements AutoCloseable, Listener {
         final Map<PersistentVariables.Key, Long> revisions = new HashMap<>(); // I/O worker confined.
         final InvocationContext context;
         volatile Thread worker;
-        Run(CompiledFeature feature, UUID actor, List<String> arguments) {
+        Run(CompiledFeature feature, UUID actor, List<String> arguments, TestJob job) {
+            this.job = job;
             this.feature = feature; this.actor = actor; this.session = sessions.get(actor); this.arguments = arguments;
             context = new InvocationContext(feature.definition().id(), feature.sourceHash(), actor,
                 policy.get().allowed(feature.definition().id()), new ExecutionBudget(), () -> current(true),
                 (descriptor, values, ignored) -> invoke(descriptor, values),
                 text -> {
-                    try { main.call(() -> { player().sendMessage(Component.text(text)); return null; }); }
+                    try { main.call(() -> { player().sendMessage(Component.text(text)); if (job != null) job.message(text); return null; }); }
                     catch (ValidationException failure) { throw failure; }
                     catch (Exception failure) { throw error("MESSAGE_UNAVAILABLE"); }
                 });
         }
         boolean current(boolean withDeadline) {
-            if (closed || cancelled.get() || !Objects.equals(session, sessions.get(actor)) || withDeadline && System.nanoTime() >= deadline) return false;
+            if (closed || cancelled.get() || job != null && (!job.alive.getAsBoolean() || System.nanoTime() >= job.expires) || !Objects.equals(session, sessions.get(actor)) || withDeadline && System.nanoTime() >= deadline) return false;
             CompiledFeature current = registry.snapshot().features().get(feature.definition().id());
             return current != null && current.sourceHash().equals(feature.sourceHash())
                 && policy.get().allowed(feature.definition().id()).containsAll(feature.definition().requires());
@@ -103,22 +242,41 @@ final class GameplayRuntime implements AutoCloseable, Listener {
             worker = Thread.currentThread();
             if (cancelled.get()) worker.interrupt();
             try {
-                if (feature.program() == null) throw error("HOST_PROGRAM_REQUIRED");
-                // Host-mode sends are streamed through the guarded context; do not emit returned messages twice.
-                feature.program().evaluate(arguments, context);
+                main.call(() -> { player(); return null; });
+                if (feature.definition().requires().stream().allMatch(ScriptCapabilityPolicy.MESSAGE::equals)) {
+                    main.call(() -> {
+                        boolean invoked = registry.run(feature.definition().id(), arguments, true,
+                            permission -> { player(); return true; }, text -> {
+                                player().sendMessage(Component.text(text));
+                                if (job != null) job.message(text);
+                            });
+                        if (!invoked) throw error("INVOCATION_DENIED");
+                        return null;
+                    });
+                } else {
+                    if (feature.program() == null) throw error("HOST_PROGRAM_REQUIRED");
+                    feature.program().evaluate(arguments, context);
+                }
+                if (!current(true)) throw error("INVOCATION_RETIRED");
+                if (job != null) job.finish("completed", null);
             } catch (Exception failure) {
                 if (current(false) && !context.cancelled()) try {
                     main.call(() -> {
                         if (!current(false)) return null;
                         Player player = plugin.getServer().getPlayer(actor);
-                        if (player != null && player.isOnline() && player.hasPermission(feature.definition().command().permission()))
-                            player.sendMessage(Component.text(FeatureManager.display(failure instanceof ValidationException ? failure.getMessage() : "RUNTIME_FAILED")));
+                        if (player != null && player.isOnline() && player.hasPermission(feature.definition().command().permission())) {
+                            String text = FeatureManager.display(failure instanceof ValidationException ? failure.getMessage() : "RUNTIME_FAILED");
+                            player.sendMessage(Component.text(text));
+                            if (job != null) job.message(text);
+                        }
                         return null;
                     });
                 } catch (Exception ignored) { }
-            } finally { cancel(); active.remove(this); admission.release(); }
+                if (job != null) job.finish(System.nanoTime() >= deadline ? "timeout" : cancelled.get() ? "cancelled" : "failed", failure);
+            } finally { cancel(); active.remove(this); if (job != null) job.run = null; admission.release(); }
         }
         void cancel() {
+            if (job != null) job.finish("cancelled", error("INVOCATION_RETIRED"));
             cancelled.set(true); context.cancel();
             pending.forEach((future, action) -> { future.cancel(false); cleanup(action); });
             Thread thread = worker; if (thread != null) thread.interrupt();
@@ -171,11 +329,15 @@ final class GameplayRuntime implements AutoCloseable, Listener {
                         Player player = player(); var world = plugin.getServer().getWorld(target.worldId());
                         if (world == null || !world.isChunkLoaded(((int) Math.floor(target.x())) >> 4, ((int) Math.floor(target.z())) >> 4)) throw error("WORLD_OR_CHUNK_UNAVAILABLE");
                         if (!player.teleport(new Location(world, target.x(), target.y(), target.z(), target.yaw(), target.pitch()))) throw error("TELEPORT_CANCELLED");
+                        if (job != null) receipt(Map.of("operation", "player.teleport.self", "actualLocation", LocationCodec.encode(new ScriptValue.LocationSnapshot(player.getWorld().getUID(), player.getLocation().getX(), player.getLocation().getY(), player.getLocation().getZ(), player.getLocation().getYaw(), player.getLocation().getPitch()))));
                         return unit();
                     });
                 }
                 default -> throw error("UNSUPPORTED_HOST_OPERATION");
             };
+        }
+        void receipt(Map<String, Object> receipt) {
+            if (job != null) job.receipt(receipt);
         }
         ScriptValue state(String operation, List<ScriptValue> values) throws Exception {
             String name = values.getFirst().text();
@@ -204,6 +366,7 @@ final class GameplayRuntime implements AutoCloseable, Listener {
                         // a durable write may finish after cancellation; never block Paper to wait for SQLite.
                         if (!current(true)) throw error("INVOCATION_RETIRED: state write was not accepted");
                         state.commit(mutations);
+                        receipt(Map.of("operation", operation, "key", name, "revision", Math.incrementExact(expected), "acknowledged", true));
                         revisions.put(key, Math.incrementExact(expected)); result.complete(unit());
                     }
                 } catch (PersistentVariables.ConflictException failure) { result.completeExceptionally(error("STATE_CONFLICT: value changed after this invocation read it")); }
@@ -214,7 +377,7 @@ final class GameplayRuntime implements AutoCloseable, Listener {
         }
     }
     @Override public void close() {
-        closed = true; sessions.clear(); active.forEach(Run::cancel); interpreters.shutdownNow(); HandlerList.unregisterAll(this);
+        closed = true; testExpiry.shutdownNow(); sessions.clear(); active.forEach(Run::cancel); interpreters.shutdownNow(); HandlerList.unregisterAll(this);
     }
     void closeStorageAfterShutdown() {
         // Never wait for disk on Paper's thread, and never close a connection underneath an in-flight worker.

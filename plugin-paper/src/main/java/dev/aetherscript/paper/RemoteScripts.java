@@ -8,6 +8,14 @@ import java.util.concurrent.Callable;
 final class RemoteScripts {
     interface Main { <T> T call(Callable<T> action) throws Exception; }
     interface Activate { void apply(Registry.Snapshot before, FeatureManager.Change change, Runnable authorized) throws Exception; }
+    interface NativeAccess {
+        void authorize(CompiledFeature feature) throws Exception;
+        Map<String, Object> start(CompiledFeature feature, List<String> arguments, List<String> expected) throws Exception;
+        Map<String, Object> status(String featureId, String testId) throws Exception;
+        default boolean testPlayerApproved() { return false; }
+        default Map<String, Object> describe() { return Map.of(); }
+    }
+    private final NativeAccess nativeAccess;
     private final FeatureManager manager;
     private final Registry registry;
     private final Set<String> allowed;
@@ -19,6 +27,10 @@ final class RemoteScripts {
         this(manager, registry, allowed, false, main, activate);
     }
     RemoteScripts(FeatureManager manager, Registry registry, Set<String> allowed, boolean allScripts, Main main, Activate activate) {
+        this(manager, registry, allowed, allScripts, main, activate, null);
+    }
+    RemoteScripts(FeatureManager manager, Registry registry, Set<String> allowed, boolean allScripts, Main main, Activate activate, NativeAccess nativeAccess) {
+        this.nativeAccess = nativeAccess;
         allowed.forEach(FeatureParser::requireId);
         this.manager = manager; this.registry = registry; this.allowed = Set.copyOf(allowed); this.allScripts = allScripts; this.main = main; this.activate = activate;
     }
@@ -35,32 +47,41 @@ final class RemoteScripts {
             }
             return Map.of("ids", List.copyOf(ids), "allScripts", allScripts);
         }
+        if (operation.equals("capabilities")) {
+            exact(args, Set.of());
+            return Map.of("authoring", AuthoringGuide.metadata(), "native", nativeAccess == null ? Map.of("enabled", false) : nativeAccess.describe());
+        }
         String id = string(args, "id"); FeatureParser.requireId(id);
         if (!allScripts && !allowed.contains(id)) throw new SecurityException("TARGET_DENIED");
         switch (operation) {
             case "scripts.read" -> { exact(args, Set.of("id")); return read(id); }
             case "scripts.validate" -> {
                 exact(args, Set.of("id", "source")); var compiled = manager.validateText(id, string(args, "source"), registry.snapshot());
-                messageOnly(compiled);
+                authorize(compiled);
                 return Map.of("valid", true, "hash", compiled.sourceHash());
             }
             case "scripts.apply" -> {
                 exact(args, Set.of("id", "source", "expectedHash"));
                 var before = registry.snapshot(); String source = string(args, "source"), expectedHash = string(args, "expectedHash");
                 var candidate = manager.validateText(id, source, before);
-                messageOnly(candidate);
+                authorize(candidate);
                 var previous = textSource(id);
                 if (!Objects.equals(expectedHash, previous == null ? "ABSENT" : previous.hash())) throw new java.io.IOException("STALE_SOURCE");
                 authorized(); FeatureManager.Change change = manager.prepareText(id, source, before);
                 boolean needsIntent = change.durable().changed();
                 if (needsIntent) manager.scripts().beginRemoteIntent(id, expectedHash, source, change.durable().before().sequence());
-                try { authorized(); activate.apply(before, change, this::authorized); }
+                try { authorized(); activate.apply(before, change, () -> {
+                    authorized();
+                    try { authorize(candidate); }
+                    catch (RuntimeException failure) { throw failure; }
+                    catch (Exception failure) { throw new SecurityException("REMOTE_AUTHORIZATION_UNAVAILABLE", failure); }
+                }); }
                 catch (Exception failure) {
                     boolean committed = change.durable().changed() && manager.store().state().equals(change.durable().after());
                     if (!committed) { if (needsIntent) manager.scripts().finishRemoteIntent(id); throw failure; }
                     // Delivery/logging failure after commit must never roll a committed source back.
                 }
-                if (!needsIntent) authorized();
+                if (!needsIntent) { authorized(); authorize(candidate); }
                 try { manager.scripts().compareAndSwapText(id, expectedHash, source); }
                 catch (java.io.IOException conflict) {
                     if (needsIntent && ("STALE_SOURCE".equals(conflict.getMessage()) || "TEXT_SOURCE_REQUIRED".equals(conflict.getMessage()))) manager.scripts().finishRemoteIntent(id);
@@ -69,12 +90,24 @@ final class RemoteScripts {
                 if (needsIntent) manager.scripts().finishRemoteIntent(id);
                 return read(id);
             }
+            case "scripts.test.status" -> {
+                exact(args, Set.of("id", "testId"));
+                if (nativeAccess == null) throw new SecurityException("REMOTE_CAPABILITY_DENIED");
+                return nativeAccess.status(id, string(args, "testId"));
+            }
             case "scripts.test" -> {
                 Set<String> fields = new HashSet<>(args.keySet()); fields.remove("arguments");
                 if (!fields.equals(Set.of("id", "expectedMessages"))) throw new IllegalArgumentException("INVALID_ARGUMENTS");
                 List<String> invocation = invocationArguments(args);
                 if (!(args.get("expectedMessages") instanceof List<?> expected) || expected.size() > 128 || expected.stream().anyMatch(v -> !(v instanceof String)))
                     throw new IllegalArgumentException("INVALID_EXPECTED_MESSAGES");
+                var candidate = registry.snapshot().features().get(id);
+                if (nativeAccess != null && candidate != null &&
+                    (nativeAccess.testPlayerApproved() || candidate.definition().command().sender().equals("player") ||
+                    candidate.definition().requires().stream().anyMatch(capability -> !capability.equals(ScriptCapabilityPolicy.MESSAGE)))) {
+                    authorize(candidate); manager.authorize(candidate);
+                    return nativeAccess.start(candidate, invocation, expected.stream().map(String.class::cast).toList());
+                }
                 return main.call(() -> {
                     authorized();
                     var active = registry.snapshot().features().get(id);
@@ -87,6 +120,10 @@ final class RemoteScripts {
             }
             default -> throw new SecurityException("OPERATION_DENIED");
         }
+    }
+    private void authorize(CompiledFeature compiled) throws Exception {
+        if (nativeAccess != null) nativeAccess.authorize(compiled);
+        else messageOnly(compiled);
     }
     private static void messageOnly(CompiledFeature compiled) {
         if (compiled.definition().requires().stream().anyMatch(capability -> !capability.equals(ScriptCapabilityPolicy.MESSAGE)))

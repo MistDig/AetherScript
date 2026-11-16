@@ -1,4 +1,4 @@
-[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.16)
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.17)
 
 ---
 
@@ -12,7 +12,7 @@ Use `/ais` in game, or `ais` in console. Script administration requires **`aethe
 | `ais connections` | Server console. List connection IDs, names, permissions and revocations. |
 | `ais disconnect [connection-id]` | Server console. Revoke one connection or all connections. Wait for saved confirmation. |
 | `ais capabilities <feature>` | Actual server console. Inspect the local execution capability ceiling. |
-| `ais permit <feature> <comma-separated-capabilities>` | Actual server console. Replace the ceiling, retaining message send; wait for saved confirmation, then reload source. |
+| `ais permit <feature> <comma-separated-capabilities>` | Actual server console. Replace the ceiling, retaining message send; wait for saved confirmation, then reload source. This explicit console policy overrides browser capability adoption. |
 | `ais restrict <feature>` | Actual server console. Restore message-only execution and retire incompatible active work. |
 | `/ais status` | Version, readiness, generation, active count, busy state and AI status. |
 | `/ais status <feature>` | Running revision, editable path, file state, errors and next action. |
@@ -24,7 +24,7 @@ Use `/ais` in game, or `ais` in console. Script administration requires **`aethe
 | `/ais diff <feature>` | Running saved source versus current edit, even if invalid. |
 | `/ais rollback <feature>` | Select the closest earlier readable, valid saved revision. |
 
-See the [homes command guide](https://github.com/MistDig/AetherScript/wiki/Language-Reference#owner-approved-homes-commands-current-implementation) for local player operations, persistence and cancellation. Remote MCP grants remain message-only even when the console approves a broader local ceiling.
+See the [homes command guide](https://github.com/MistDig/AetherScript/wiki/Language-Reference#owner-approved-homes-commands-current-implementation) for local player operations, persistence and cancellation. Fresh 0.0.17 browser approval selects all or selected native IDs, an execution capability set and optionally one test-player UUID. The AI can create, edit and activate native features within that grant. The execution set persists for installed features after AI disconnect. Console `ais permit` and `ais restrict` remain manual overrides that browser grants cannot exceed. Legacy personal-relay and older browser grants stay message-only until fresh approval.
 
 ### Direct script commands
 
@@ -49,8 +49,8 @@ Unchanged reloads report `UNCHANGED` and add no revision or generation. An expli
 
 The actual server console can run `ais remote cloud-note` to grant scoped relay management of that feature, and `ais remote-off` to revoke it. `ais remote id1,id2` grants several IDs. Remote mode requires private `relay.json` configuration. The server console can also run `ais pair` to start a read-only status session and `ais unpair` to revoke it. Follow the [pairing guide](https://github.com/MistDig/AetherScript/wiki/Security-and-MCP).
 
-Replies are bounded. Use per-feature commands or console for shortened lists. Hosted MCP supports permission-checked remote validation, source reading, creation/editing, activation and synthetic message tests. The `aether_scripts_apply` tool validates, activates, saves and reads back native source using an expected hash. Selected grants cover exact IDs; full access covers the supported native-script operations across valid feature IDs, including existing .aether files. General console commands, arbitrary filesystem access, Java/plugin installation and broader world operations are outside these grants. See the MCP reference and connection guide.
+Replies are bounded. Use per-feature commands or console for shortened lists. Hosted MCP supports permission-checked remote validation, source reading, creation/editing, activation and owner-approved native asynchronous tests. The `aether_scripts_apply` tool validates, activates, saves and reads back native source using an expected hash. Selected grants cover exact IDs; full access covers the supported native-script operations across valid feature IDs, including existing .aether files. General console commands, arbitrary filesystem access, Java/plugin installation and broader world operations are outside these grants. See the MCP reference and connection guide.
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.16
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.17

@@ -1,28 +1,31 @@
-[Documentation home](https://mistdig.github.io/AetherScript/)
+[☁ Documentation home](https://mistdig.github.io/AetherScript/)
+
+Test jobs retain at most 32 results globally and 8 per connection for up to 180 seconds; execution has a 120-second deadline. Captured message JSON is limited to 12 KiB and receipts to 6 KiB. `outputTruncated` or `receiptsTruncated` signals incomplete capture; truncated messages never count as a successful exact match. These capture limits do not undo effects already performed.
 
 ---
-
-Remote grants remain message-only, including full native-script access. Player location, persistent home state, delay and teleport calls require local console approval and local player invocation; remote apply/activation/tests reject those requirements. See the [local homes guide](https://github.com/MistDig/AetherScript/wiki/Language-Reference#owner-approved-homes-commands-current-implementation).
 
 # AetherScript AI reference
 
 ## Current capabilities
 
-This document describes the shipped engine. It supports native .aether message commands, typed positional arguments, immutable and mutable locals, bounded loops, typed functions, immutable homogeneous lists, arithmetic, boolean conditions, explicit reload, revisions and rollback. Events, inventories, item grants, economy, quests and script-level persistent player variables are planned. Do not invent syntax or promise unsupported gameplay.
+This document describes the current 0.0.17 implementation; verification remains attributed to its recorded version. It supports native .aether message commands, typed positional arguments, immutable and mutable locals, bounded loops, typed functions, immutable homogeneous lists, arithmetic, boolean conditions, explicit reload, revisions and rollback. A locally approved native player-command slice adds location snapshots, own-player/feature persistent homes, bounded delay and self teleport. Events, inventories, item grants, economy, quests and general persistent-value bindings remain planned. Do not invent syntax or promise unsupported gameplay.
 
 Use tool discovery from the connected app as the authority for available tools. Hosted and local gateways expose different tools. A hosted service version may differ from the plugin release version.
 
 ## Tools by connection mode
 
-Hosted OAuth MCP exposes exactly these six tools:
+Hosted OAuth MCP exposes these eight tools:
+
+- aether_capabilities {}
 - aether_server_status {}
 - aether_scripts_list {}
 - aether_scripts_read {id}
 - aether_scripts_validate {id, source}
 - aether_scripts_apply {id, source, expectedHash}
 - aether_scripts_test {id, expectedMessages, arguments?}
+- aether_scripts_test_status {id, testId}
 
-The local stdio gateway additionally has aether_capabilities {}, aether_validate {source, format}, and aether_test {source, format, expectedMessages, arguments?}. Offline and loopback status modes have four tools total, including aether_server_status, and cannot deploy. A local gateway using a management relay profile has nine tools. Hosted clients cannot call aether_capabilities, aether_validate or aether_test. Use the hosted script tools instead.
+`aether_capabilities` publishes the complete callable/type authoring guide and server-authorized execution capabilities, targets and test boundaries. Use it before writing native host code. The local gateway also exposes aether_validate {source, format} and aether_test {source, format, expectedMessages, arguments?}. Offline and loopback status modes have four tools and cannot deploy; a management relay profile has ten. Local discovery retains the guide when the server is unavailable and explicitly identifies older connections needing fresh approval.
 
 format is aether, yaml or json for local validation/testing. Remote management uses native .aether files. arguments is an optional list of strings, including strings for integer and boolean inputs. expectedMessages is an ordered list of exact message strings.
 
@@ -34,6 +37,8 @@ When allScripts is false, use only the granted IDs. Explain the need for fresh o
 Choose a sensible ID when the user authorizes creation but supplies no name. Do not ask for an additional approval already granted by the user and server. Never claim a denied operation succeeded.
 Feature IDs are lowercase, start with a letter, and contain only lowercase letters, digits and hyphens, up to 64 characters. The source filename must match the ID. Full native access does not overwrite existing YAML/JSON sources or bypass source-format collisions.
 
+Fresh 0.0.17 browser approval selects all or selected native feature IDs, an explicit execution capability set and, optionally, one test-player UUID. The AI may create, edit and activate native features within that grant without another per-edit approval. The approved execution set is persisted for those features so installed commands keep running after the AI disconnects. `ais permit` and `ais restrict` remain manual owner overrides; a browser grant cannot override an explicit console ceiling. Legacy personal-relay and older browser grants remain message-only until fresh browser approval; they never expand automatically.
+
 ## Safe editing workflow
 
 1. Read the target with aether_scripts_read.
@@ -42,7 +47,9 @@ Feature IDs are lowercase, start with a letter, and contain only lowercase lette
 4. Validate with aether_scripts_validate, then apply with aether_scripts_apply.
 5. Read back source, hash and activeHash. Confirm the intended source is active.
 6. Test using aether_scripts_test with explicit expectedMessages and arguments.
-7. Report actualMessages, matched and the active revision. A synthetic test does not certify player rendering or player-only behavior.
+7. If pending, poll aether_scripts_test_status with the same id and returned testId. Report actualMessages, matched, effects, error and the active revision.
+
+`aether_scripts_test` uses the owner-approved online player for native or player-only commands; the player must hold the command's declared permission. The AI cannot choose or replace that actor. Tests can send messages, write own-player state, wait and teleport the approved player: these are real effects. A start response may return `status: "pending"` and `testId`; poll `aether_scripts_test_status` with `{id,testId}` until completion, then report actual messages, errors, effects and comparison. A pure `sender any` message program without an approved actor retains synthetic compatibility. Offline `aether_test` is always synthetic and host calls fail with `HOST_CONTEXT_REQUIRED`.
 
 On a stale source hash, read again before merging. After a timeout or unknown network outcome, read back before retrying because the change may already be committed. Invalid edits preserve the working revision. A test mismatch is not success.
 
@@ -74,7 +81,7 @@ A player invokes /ais run greet "Alex Smith". Administrator console commands omi
 Declare arg name: text, arg count: integer = 1 or arg enabled: boolean = true at the start of a command. Required arguments precede defaults. At most 16 arguments, each at most 2048 UTF-16 units. Integer inputs are signed 64-bit decimal strings; booleans are exactly true or false. Quoted console arguments can contain spaces.
 
 let creates an immutable inferred scalar or homogeneous list value. if requires a boolean. send requires text. Use text(value) for explicit scalar conversion; lists cannot be converted directly. Operators include +, -, *, /, %, comparisons, equality, !, && and ||. Braces delimit blocks; put statements on separate lines. Comments begin //.
-Commands with arguments, var/set, loops or function declarations evaluate with fresh local state per invocation. Legacy scripts using only let, if and send without arguments preserve preparation-time evaluation and semantic hashes. Both branches are type-checked. Arithmetic errors, budget failures and invalid arguments fail before messages are emitted.
+Commands with arguments, var/set, loops or function declarations evaluate with fresh local state per invocation. Legacy scripts using only let, if and send without arguments preserve preparation-time evaluation and semantic hashes. Both branches are type-checked. Message-only evaluation buffers output, so arithmetic errors, budget failures and invalid arguments fail before message delivery. Host-backed commands stream sends as execution reaches them; later failure does not undo completed effects.
 Source limit is 64 KiB locally. The hosted tool's source schema allows at most 16000 characters and its serialized request has a smaller transport envelope than the compiler's source limit. Keep remote scripts comfortably within both limits.
 Messages are plain text, at most 2048 UTF-16 units each and at most 32 emitted messages per invocation. Conditional or zero-iteration paths may emit none. No arbitrary host objects, Java calls or general console execution.
 
@@ -85,7 +92,7 @@ var count = 3 declares an inferred mutable local. set count = count - 1 updates 
 
 while condition { ... } requires a boolean. repeat count { ... } evaluates a nonnegative integer count once. break exits the nearest enclosing loop; continue skips to its next iteration. These keywords are valid only inside loops.
 
-Declare fn name(parameter: integer): integer { ... } between the feature header and command. Parameters and results must declare text, integer, boolean or `list<elementType>` types. Call functions in expressions, for example text(double(3)). Every path must return a matching value with return expression. Functions can call earlier declarations or themselves, but cannot call later declarations or capture command locals. Trailing parameters may declare typed constant defaults, for example fn double(value: integer = 2): integer { return value * 2 }. Required parameters precede defaults. Defaults cannot reference names or call user functions; immutable scalar/list constants are shared safely across fresh frames. Limits are 32 functions, 16 parameters per function and 32 active function calls. Loops, expressions and nested calls share one 8192-step invocation budget and one 32-message output budget.
+Declare fn name(parameter: integer): integer { ... } between the feature header and command. Parameters and results declare text, integer, boolean, `list<elementType>`, uuid, location, unit or `optional<T>` types. Call functions in expressions, for example text(double(3)). Every path of a non-unit function must return a matching value with `return expression`; a unit function may fall through or use bare `return`. Functions can call earlier declarations or themselves, but cannot call later declarations or capture command locals. Trailing parameters may declare typed constant defaults, for example fn double(value: integer = 2): integer { return value * 2 }. Required parameters precede defaults. Defaults cannot reference names or call user functions; immutable scalar/list constants are shared safely across fresh frames. Limits are 32 functions, 16 parameters per function and 32 active function calls. Loops, expressions and nested calls share one 8192-step invocation budget and one 32-message output budget.
 
 Save as countdown.aether:
 
@@ -106,7 +113,7 @@ command countdown permission "aetherscript.example.countdown" sender any {
 
 Test with {"id":"countdown","expectedMessages":["Count 3","Count 2","Count 1","Done"]}. Run /ais run countdown twice; both invocations start at 3.
 
-PersistentVariables provides the JSON host backend; SQLiteVariables provides a separate transactional SQLite backend. Both are core Java services without script-level bindings; var does not persist values or expose player storage. Hosts must select a backend and run storage calls on bounded workers; no automatic migration is performed. Real command registration and this runtime slice do not establish completion of the broader gameplay ecosystem.
+PersistentVariables provides the JSON host backend; SQLiteVariables provides a separate transactional SQLite backend. Paper binds the narrow own-location operations below to SQLite on its bounded I/O worker. `var` remains invocation-local. Other hosts select their backend; no automatic JSON-to-SQLite migration is performed. Real command registration and this runtime slice do not establish completion of the broader gameplay ecosystem.
 
 ## Immutable lists
 
@@ -140,6 +147,37 @@ command scores permission "aetherscript.example.scores" sender any {
 
 Test with `{"id":"scores","expectedMessages":["6"]}`. Each invocation emits `6` and starts with fresh local state.
 
+## Locally approved host commands
+
+The fixed callable registry exposes only these operations. Requirements are inferred from native source, including calls inside helpers. No arbitrary Java/Bukkit objects, reflection, server commands or filesystem access are exposed.
+
+| Call | Result | Execution capability |
+| --- | --- | --- |
+| `player_location()` | `location` | `player.location.read` |
+| `state_get_location(name: text)` | `optional<location>` | `state.own` |
+| `state_put_location(name: text, value: location)` | `unit` | `state.own` |
+| `delay(ticks: integer)` | `unit` | `scheduler.delay` |
+| `teleport_self(destination: location)` | `unit` | `player.teleport.self` |
+
+A location is an immutable world-UUID/coordinates/yaw/pitch snapshot, not a live platform object. `is_some(value)` accepts an optional and returns boolean. `unwrap(value)` returns its element or fails with `OPTIONAL_EMPTY`; check presence first. Standalone calls must return unit. There is no general optional/location constructor or host-value command argument; command arguments remain text/integer/boolean.
+
+Install `examples/homes.aether` locally as `scripts/homes.aether`. Actual server-console workflow:
+
+```text
+ais permit homes player.location.read,state.own,scheduler.delay,player.teleport.self
+ais capabilities homes
+ais validate homes
+ais reload homes
+```
+
+Wait for `CAPABILITIES_SAVED` before validating/reloading. `permit` replaces the prior ceiling and includes `runtime.message.send`; `restrict homes` restores message-only execution and retires incompatible active work. Manual console approval does not activate source; use reload. A browser-authorized AI apply activates through the durable apply pipeline. Policy is persisted in `script-capabilities.json`; corrupt policy falls back to message-only until repaired. Players need the example's `aetherscript.example.home` permission. Use `/home set main`, then `/home go main`; this is a local player test, not an MCP synthetic test.
+
+Player commands and approved native MCP tests use this host runtime. Delay accepts 0–1200 server ticks; helper functions can suspend and resume. Storage runs on the bounded I/O worker, waiting uses virtual threads, and player effects re-enter Paper's main thread. There are no event handlers, persistent scheduled jobs or offline-player effects. Limits are 120 seconds per invocation, 32 active globally, four per player and eight per feature, plus interpreter/output budgets.
+
+Player disconnect, shutdown, source-revision replacement/retirement and removal of required capabilities retire pending work. Revoking an AI connection cancels its pending tests and prevents later remote operations; it does not unload installed scripts or erase their persisted execution policy. A reconnect never revives the invocation. Effects recheck the session, revision, capability ceiling and command permission. Teleport loads its target chunk asynchronously and guards again before the effect. Cancellation cannot undo already completed sends, writes or teleports.
+
+State keys use the feature ID, invoking player UUID and name matching `[a-z][a-z0-9_]{0,63}`. Locations persist in `player-state/variables.sqlite` across normal restarts and revisions of the same feature. A concurrent modification after a read can fail with `STATE_CONFLICT`. No script deletion API or automatic JSON migration is included. Back up player-state with the server stopped; script revision rollback does not restore player state. This foundation does not complete broader gameplay or the planned optional model integration.
+
 ## Errors and connection recovery
 
 Read isError and the response body. Validation diagnostics include a location in the message; local validation also returns line, column, path and reason. Correct the source and validate again.
@@ -151,5 +189,4 @@ The owner can inspect ais connections and revoke with ais disconnect. Approval d
 
 Use this current reference, discovered tool schemas and the bundled authoring contract for generation. The following full-guide appendix includes human tutorials, historical test records and explicitly planned work. Historical release examples do not add current capabilities.
 
-
-[Complete AI guide](https://mistdig.github.io/AetherScript/llms-full.txt)
+State writes have an acceptance check immediately before commit. Cancellation rejects work not yet accepted; an accepted write may finish after logout, revocation, timeout or shutdown. Accepted and completed writes are not rolled back.

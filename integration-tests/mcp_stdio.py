@@ -24,7 +24,7 @@ assert responses[0]['result']['protocolVersion']=='2025-06-18'
 assert responses[0]['result']['serverInfo']['version']==version
 tool_names = {tool['name'] for tool in responses[1]['result']['tools']}
 assert {'aether_capabilities', 'aether_validate', 'aether_server_status', 'aether_test'} <= tool_names
-assert not any(name in tool_names for name in ('aether_deploy', 'aether_apply', 'aether_script_apply'))
+assert not any(name in tool_names for name in ('aether_deploy', 'aether_apply', 'aether_script_apply', 'aether_scripts_test_status'))
 assert responses[2]['result']['structuredContent']['valid'] is True
 assert responses[3]['error']['code']==-32602
 assert responses[4]['result']['structuredContent']['connected'] is False

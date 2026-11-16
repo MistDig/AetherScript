@@ -142,4 +142,63 @@ class RemoteScriptsTest {
         assertThrows(SecurityException.class, () -> service(manager, registry).execute("scripts.read", Map.of("id", "new-note")));
         full.revoke(); assertThrows(SecurityException.class, () -> full.execute("scripts.list", Map.of()));
     }
+    @Test void nativeTestsUseGrantedAdapterAndStrictStatusShape() throws Exception {
+        var manager = new FeatureManager(new ScriptStore(Files.createDirectory(root.resolve("scripts"))), new RevisionStore(root.resolve("storage"), 5));
+        var registry = new Registry();
+        var calls = new ArrayList<String>();
+        var nativeAccess = new RemoteScripts.NativeAccess() {
+            public boolean testPlayerApproved() { return true; }
+            public void authorize(CompiledFeature feature) { calls.add("authorize:" + feature.definition().id()); }
+            public Map<String, Object> start(CompiledFeature feature, List<String> arguments, List<String> expected) {
+                calls.add("start:" + feature.sourceHash()); return Map.of("status", "pending", "testId", "opaque");
+            }
+            public Map<String, Object> status(String featureId, String testId) {
+                calls.add("status:" + featureId + ":" + testId); return Map.of("status", "completed");
+            }
+            public Map<String, Object> describe() { return Map.of("actor", "browser-approved"); }
+        };
+        var remote = new RemoteScripts(manager, registry, Set.of("hello-ai"), false, new RemoteScripts.Main() {
+            public <T> T call(Callable<T> action) { fail("Native tests must not block on main"); return null; }
+        }, (before, change, authorized) -> { authorized.run(); registry.replace(before.generation(), change.target()); manager.store().commit(change.durable()); }, nativeAccess);
+        remote.execute("scripts.apply", Map.of("id", "hello-ai", "source", source(), "expectedHash", "ABSENT"));
+        assertEquals("pending", remote.execute("scripts.test", Map.of("id", "hello-ai", "expectedMessages", List.of())).get("status"));
+        assertEquals("completed", remote.execute("scripts.test.status", Map.of("id", "hello-ai", "testId", "opaque")).get("status"));
+        assertTrue(calls.contains("status:hello-ai:opaque"));
+        assertThrows(IllegalArgumentException.class, () -> remote.execute("scripts.test.status", Map.of("id", "hello-ai", "testId", "opaque", "actor", "invented")));
+        assertThrows(SecurityException.class, () -> remote.execute("scripts.test.status", Map.of("id", "other", "testId", "opaque")));
+        assertEquals(Map.of("actor", "browser-approved"), remote.execute("capabilities", Map.of()).get("native"));
+        remote.revoke();
+        assertThrows(SecurityException.class, () -> remote.execute("scripts.test.status", Map.of("id", "hello-ai", "testId", "opaque")));
+    }
+    @Test void nativeAuthorizationDenialPrecedesPublicationAndJobStart() throws Exception {
+        var manager = new FeatureManager(new ScriptStore(Files.createDirectory(root.resolve("scripts"))), new RevisionStore(root.resolve("storage"), 5));
+        var registry = new Registry();
+        var remote = new RemoteScripts(manager, registry, Set.of("hello-ai"), false, new RemoteScripts.Main() {
+            public <T> T call(Callable<T> action) throws Exception { return action.call(); }
+        }, (before, change, authorized) -> fail("Denied grant must not activate"), new RemoteScripts.NativeAccess() {
+            public void authorize(CompiledFeature feature) { throw new SecurityException("GRANT_DENIED"); }
+            public Map<String, Object> start(CompiledFeature f, List<String> a, List<String> e) { fail("Denied grant must not execute"); return Map.of(); }
+            public Map<String, Object> status(String f, String t) { return Map.of(); }
+        });
+        assertThrows(SecurityException.class, () -> remote.execute("scripts.validate", Map.of("id", "hello-ai", "source", source())));
+        assertThrows(SecurityException.class, () -> remote.execute("scripts.apply", Map.of("id", "hello-ai", "source", source(), "expectedHash", "ABSENT")));
+        assertFalse(Files.exists(root.resolve("scripts/hello-ai.aether")));
+    }
+
+    @Test void legacyMessageGrantWithNativeAdapterRetainsSyntheticTesting() throws Exception {
+        var manager = new FeatureManager(new ScriptStore(Files.createDirectory(root.resolve("scripts"))), new RevisionStore(root.resolve("storage"), 5));
+        var registry = new Registry();
+        var remote = new RemoteScripts(manager, registry, Set.of("hello-ai"), false, new RemoteScripts.Main() {
+            public <T> T call(Callable<T> action) throws Exception { return action.call(); }
+        }, (before, change, authorized) -> { authorized.run(); registry.replace(before.generation(), change.target()); manager.store().commit(change.durable()); }, new RemoteScripts.NativeAccess() {
+            public void authorize(CompiledFeature feature) { }
+            public Map<String, Object> start(CompiledFeature feature, List<String> arguments, List<String> expected) { fail("Legacy sender-any test needs no actor"); return Map.of(); }
+            public Map<String, Object> status(String featureId, String testId) { return Map.of(); }
+        });
+        remote.execute("scripts.apply", Map.of("id", "hello-ai", "source", source(), "expectedHash", "ABSENT"));
+        var result = remote.execute("scripts.test", Map.of("id", "hello-ai", "expectedMessages", List.of("Hello from AetherScript!")));
+        assertEquals("synthetic-agent", result.get("sender"));
+        assertEquals(true, result.get("matched"));
+    }
+
 }

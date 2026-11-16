@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.aetherscript.paper.RemoteScriptsTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-11-16T21:04:36.631Z" hostname="VARUN" time="0.853">
+  <properties/>
+  <testcase name="nativeAuthorizationDenialPrecedesPublicationAndJobStart()" classname="dev.aetherscript.paper.RemoteScriptsTest" time="0.041"/>
+  <testcase name="postCommitDeliveryFailureDoesNotRestoreOldEditableSource()" classname="dev.aetherscript.paper.RemoteScriptsTest" time="0.081"/>
+  <testcase name="preexistingActiveHashDoesNotTurnDeniedActivationIntoPublication()" classname="dev.aetherscript.paper.RemoteScriptsTest" time="0.099"/>
+  <testcase name="fullNativeScopeListsInvalidAndInactiveSourcesCreatesNewIdsAndProtectsLegacy()" classname="dev.aetherscript.paper.RemoteScriptsTest" time="0.236"/>
+  <testcase name="targetPathSourceTypeAndOperationBypassesAreRejected()" classname="dev.aetherscript.paper.RemoteScriptsTest" time="0.017"/>
+  <testcase name="allScriptsAndOwnerApprovedCapabilitiesNeverExpandRemoteMessageOnlyGrant()" classname="dev.aetherscript.paper.RemoteScriptsTest" time="0.065"/>
+  <testcase name="legacyMessageGrantWithNativeAdapterRetainsSyntheticTesting()" classname="dev.aetherscript.paper.RemoteScriptsTest" time="0.051"/>
+  <testcase name="rejectedActivationLeavesNoEditableSourceAndNoRecoveryIntent()" classname="dev.aetherscript.paper.RemoteScriptsTest" time="0.053"/>
+  <testcase name="createEditReadbackActualMessagesStaleAndRevocation()" classname="dev.aetherscript.paper.RemoteScriptsTest" time="0.109"/>
+  <testcase name="nativeTestsUseGrantedAdapterAndStrictStatusShape()" classname="dev.aetherscript.paper.RemoteScriptsTest" time="0.039"/>
+  <testcase name="liveSyntheticTestsBindRuntimeArgumentsBeforeEvaluatingBranches()" classname="dev.aetherscript.paper.RemoteScriptsTest" time="0.055"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,37 @@
+[
+  {
+    "test": "native-mcp-browser-grant",
+    "result": "pass",
+    "detail": "Fresh owner browser grant reached intended Paper with explicit native capabilities and actor"
+  },
+  {
+    "test": "native-mcp-authoring",
+    "result": "pass",
+    "detail": "AI validated and applied native source without a console permit; stale apply rejected"
+  },
+  {
+    "test": "native-mcp-real-effects",
+    "result": "pass",
+    "detail": "Asynchronous tests captured actual messages, durable state acknowledgement and post-teleport location"
+  },
+  {
+    "test": "native-mcp-scope-isolation",
+    "result": "pass",
+    "detail": "Fresh message-only connection rejected native apply and foreign test; feature mismatch rejected"
+  },
+  {
+    "test": "native-mcp-permission-retirement",
+    "result": "pass",
+    "detail": "Removing real actor permission stopped delayed test before teleport"
+  },
+  {
+    "test": "native-mcp-restart",
+    "result": "pass",
+    "detail": "Original OAuth token, native grant, active source and own-player state survived restart"
+  },
+  {
+    "test": "native-mcp-disconnect",
+    "result": "pass",
+    "detail": "AI access revoked while locally approved native script still executed"
+  }
+]

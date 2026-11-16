@@ -14,7 +14,7 @@ import java.util.function.Consumer;
 /** Shared-service browser enrollment. Secrets stay in the local server identity file. */
 final class SharedRelayConnector implements AutoCloseable {
     static final URI ORIGIN = URI.create("https://aetherscript-relay.mistdig143.workers.dev");
-    static final Set<String> SCOPES = Set.of("status", "scripts.list", "scripts.read", "scripts.validate", "scripts.apply", "scripts.test");
+    static final Set<String> SCOPES = Set.of("status", "capabilities", "scripts.list", "scripts.read", "scripts.validate", "scripts.apply", "scripts.test", "scripts.test.status");
     interface Handler { Map<String, Object> execute(ConnectionStore.Grant grant, String operation, Map<String, Object> arguments) throws Exception; }
     interface Transport { JsonNode post(String path, String token, Map<String, ?> body) throws Exception; }
     private final ConnectionStore store;
@@ -46,6 +46,18 @@ final class SharedRelayConnector implements AutoCloseable {
     }
     void start() { worker.scheduleWithFixedDelay(this::pollSafely, 0, 5, TimeUnit.SECONDS); }
     void enroll(Set<String> targets) {
+        enroll(targets, ConnectionStore.MESSAGE_ONLY, List.of());
+    }
+    void enroll(Set<String> targets, Set<String> capabilities, List<Map<String, String>> testPlayers) {
+        targets = Set.copyOf(targets); capabilities = Set.copyOf(capabilities); testPlayers = testPlayers.stream().map(Map::copyOf).toList();
+        if (testPlayers.size() > 128) throw new IllegalArgumentException("Too many test players");
+        final Set<String> offeredTargets = targets, offeredCapabilities = capabilities;
+        final List<Map<String, String>> offeredPlayers = testPlayers;
+        final Set<String> playerIds = new HashSet<>();
+        for (var player : offeredPlayers) {
+            String id = player.get("uuid"), name = player.get("name");
+            if (id == null || !UUID.fromString(id).toString().equals(id) || name == null || name.isBlank() || name.length() > 64 || name.codePoints().anyMatch(Character::isISOControl) || !playerIds.add(id)) throw new IllegalArgumentException("Invalid test player");
+        }
         long epoch = enrollmentEpoch.incrementAndGet();
         store.state().pending().keySet().forEach(id -> enrollmentOutcomes.put(id, "enrollment_superseded"));
         worker.execute(() -> {
@@ -54,16 +66,16 @@ final class SharedRelayConnector implements AutoCloseable {
                 store.clearPending();
                 if (closed || epoch != enrollmentEpoch.get()) return;
                 var identity = store.state();
-                JsonNode result = transport.post("/v2/enrollments", null, Map.of("serverId", identity.serverId(), "serverToken", identity.serverToken(), "serverName", serverName, "allowedScriptIds", targets.stream().sorted().toList(), "allScripts", targets.isEmpty(), "scopes", SCOPES.stream().sorted().toList()));
+                JsonNode result = transport.post("/v2/enrollments", null, Map.of("serverId", identity.serverId(), "serverToken", identity.serverToken(), "serverName", serverName, "allowedScriptIds", offeredTargets.stream().sorted().toList(), "allScripts", offeredTargets.isEmpty(), "scopes", SCOPES.stream().sorted().toList(), "availableCapabilities", offeredCapabilities.stream().sorted().toList(), "testPlayers", offeredPlayers));
                 String id = result.path("enrollmentId").asText(), browserUrl = result.path("browserUrl").asText();
                 URI url = URI.create(browserUrl);
                 if (!ORIGIN.getScheme().equals(url.getScheme()) || !ORIGIN.getAuthority().equals(url.getAuthority()) || !"/connect".equals(url.getPath()) || url.getRawQuery() != null || url.getRawFragment() == null || !url.getRawFragment().startsWith("code=")) throw new IOException("Invalid browser enrollment URL");
                 if (closed || epoch != enrollmentEpoch.get()) { enrollmentOutcomes.put(id, "enrollment_superseded"); return; }
                 long expiresAt = result.path("expiresAt").asLong();
                 if (expiresAt <= System.currentTimeMillis() || expiresAt > System.currentTimeMillis() + 900000) throw new IOException("Invalid enrollment expiry");
-                store.pending(id, targets, expiresAt, targets.isEmpty());
+                store.pending(id, offeredTargets, expiresAt, offeredTargets.isEmpty(), offeredCapabilities, playerIds);
                 notice.accept("Open this private link to approve a named connection: " + browserUrl);
-                notice.accept(targets.isEmpty() ? "Choose full native-script access or selected IDs in the browser. This private one-use link expires in 10 minutes." : "Browser approval is restricted to these exact feature IDs: " + targets.stream().sorted().toList() + ". The private link expires in 10 minutes.");
+                notice.accept(offeredTargets.isEmpty() ? "Choose script access, supported gameplay permissions and an optional test player in the browser. This private one-use link expires in 10 minutes." : "Browser approval is restricted to these exact feature IDs: " + offeredTargets.stream().sorted().toList() + ". The private link expires in 10 minutes.");
             } catch (Exception failure) { if (!closed) notice.accept("CONNECT_UNAVAILABLE: enrollment could not be completed. Your existing local grants were kept; retry /ais connect."); }
         });
     }
@@ -103,7 +115,9 @@ final class SharedRelayConnector implements AutoCloseable {
                 String outcome = enrollmentOutcomes.get(enrollmentId);
                 if (outcome != null && !store.state().grants().containsKey(id)) { rejectGrant(offered, outcome); continue; }
                 if (offered.has("allScripts") && !offered.get("allScripts").isBoolean()) throw new IOException("INVALID_GRANT");
-                var grant = new ConnectionStore.Grant(id, offered.path("name").asText(), strings(offered.get("allowedScriptIds")), strings(offered.get("scopes")), offered.path("revoked").asBoolean(), offered.path("allScripts").asBoolean(false));
+                if (offered.has("testPlayerId") && !offered.get("testPlayerId").isTextual()) throw new IOException("INVALID_GRANT");
+                var grant = new ConnectionStore.Grant(id, offered.path("name").asText(), strings(offered.get("allowedScriptIds")), strings(offered.get("scopes")), offered.path("revoked").asBoolean(), offered.path("allScripts").asBoolean(false),
+                    offered.has("capabilities") ? strings(offered.get("capabilities")) : ConnectionStore.MESSAGE_ONLY, offered.path("testPlayerId").asText(""));
                 boolean fresh = !store.state().grants().containsKey(id);
                 ConnectionStore.Grant accepted = store.accept(grant, enrollmentId);
                 if (blocked.contains(id) || (fresh && enrollmentOutcomes.containsKey(enrollmentId))) {
@@ -133,7 +147,7 @@ final class SharedRelayConnector implements AutoCloseable {
                 var grant = store.state().grants().get(connectionId); String operation = request.path("operation").asText();
                 if (blocked(connectionId) || grant == null || grant.revoked() || !grant.scopes().contains(operation) || !request.path("arguments").isObject()) throw new SecurityException("CONNECTION_DENIED");
                 Map<String, Object> arguments = FeatureParser.JSON.convertValue(request.get("arguments"), new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
-                if (!operation.equals("status") && !operation.equals("scripts.list")) {
+                if (!operation.equals("status") && !operation.equals("capabilities") && !operation.equals("scripts.list")) {
                     if (!(arguments.get("id") instanceof String target)) throw new SecurityException("TARGET_DENIED");
                     FeatureParser.requireId(target);
                     if (!grant.allScripts() && !grant.allowedScriptIds().contains(target)) throw new SecurityException("TARGET_DENIED");
@@ -141,14 +155,27 @@ final class SharedRelayConnector implements AutoCloseable {
                 response = Map.of("connectionId", connectionId, "id", id, "result", handler.execute(grant, operation, arguments));
             } catch (Exception rejected) {
                 boolean textRequired = rejected instanceof IOException && rejected.getMessage() != null && rejected.getMessage().startsWith("TEXT_SOURCE_REQUIRED");
-                String code = textRequired ? "TEXT_SOURCE_REQUIRED" : rejected instanceof dev.aetherscript.core.ValidationException ? "VALIDATION_FAILED" : "REQUEST_REJECTED";
+                String safe = safeFailure(rejected);
+                String code = textRequired ? "TEXT_SOURCE_REQUIRED" : rejected instanceof dev.aetherscript.core.ValidationException ? "VALIDATION_FAILED" : safe;
                 String message = rejected instanceof dev.aetherscript.core.ValidationException
                     ? dev.aetherscript.core.FeatureManager.display(rejected.getMessage())
-                    : textRequired ? "Owner must convert this ID to one safe .aether file first; existing YAML/JSON and duplicate source files are never overwritten." : "Request rejected by the local server grant or script engine.";
-                response = Map.of("connectionId", connectionId, "id", id, "error", Map.of("code", code, "message", message));
+                    : textRequired ? "Owner must convert this ID to one safe .aether file first; existing YAML/JSON and duplicate source files are never overwritten."
+                    : safe.equals("PLAYER_APPROVAL_REQUIRED") ? "Join the server, run ais connect, and approve the online player in the browser before requesting a live player test."
+                    : safe.equals("STALE_SOURCE") ? "Source changed since the supplied hash; read the feature again before retrying."
+                    : safe.equals("REQUEST_REJECTED") ? "Request rejected by the local server grant or script engine." : safe;
+                Map<String, Object> error = new LinkedHashMap<>(Map.of("code", code, "message", message));
+                if (rejected instanceof dev.aetherscript.core.ValidationException validation) {
+                    error.put("line", validation.line()); error.put("column", validation.column()); error.put("path", validation.path()); error.put("reason", validation.reason());
+                }
+                response = Map.of("connectionId", connectionId, "id", id, "error", error);
             }
             if (!closed) transport.post(path("respond"), store.state().serverToken(), response);
         }
+    }
+    private static String safeFailure(Exception failure) {
+        String value = failure.getMessage() == null ? "" : failure.getMessage().split(":", 2)[0];
+        return Set.of("PLAYER_APPROVAL_REQUIRED", "TEST_NOT_FOUND", "TEST_STALE_SOURCE", "TEST_BUSY", "CONNECTION_REVOKED", "CONNECTION_DENIED", "TARGET_DENIED", "REMOTE_CAPABILITY_DENIED", "STALE_SOURCE", "BUSY", "RUNTIME_NOT_READY").contains(value)
+            ? value : "REQUEST_REJECTED";
     }
     private void rejectGrant(JsonNode offered, String reason) throws IOException {
         String id = offered.path("connectionId").asText(), state = fingerprint(offered) + ":" + reason;

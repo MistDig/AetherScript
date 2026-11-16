@@ -26,6 +26,25 @@ public final class ScriptCapabilityPolicy {
     /** Corrupt storage can use this immutable ceiling while the owner repairs it. */
     public static ScriptCapabilityPolicy messageOnly() { return new ScriptCapabilityPolicy(); }
     public Set<String> allowed(String id) { FeatureParser.requireId(id); return grants.getOrDefault(id, Set.of(MESSAGE)); }
+    public boolean configured(String id) { FeatureParser.requireId(id); return grants.containsKey(id); }
+    /** A fresh browser grant authorizes new features; explicit local ceilings still take priority. */
+    public void validateConnection(CompiledFeature feature, Set<String> capabilities) {
+        if (!known.containsAll(capabilities) || !capabilities.containsAll(feature.definition().requires()))
+            throw new ValidationException("$.requires", "CONNECTION_CAPABILITY_DENIED: reconnect and approve the required supported script capabilities");
+        if (file == null || configured(feature.definition().id())) validate(feature);
+    }
+    /** Persist the owner's connection approval so an activated script survives app disconnect/restart. */
+    public synchronized boolean approveConnection(CompiledFeature feature, Set<String> capabilities) throws IOException {
+        validateConnection(feature, capabilities);
+        if (configured(feature.definition().id()) || feature.definition().requires().stream().allMatch(MESSAGE::equals)) return false;
+        grant(feature.definition().id(), capabilities); return true;
+    }
+    /** Compensation for a source activation that did not commit; never removes an existing owner ceiling. */
+    public synchronized void removeGrant(String id) throws IOException {
+        FeatureParser.requireId(id);
+        if (!grants.containsKey(id)) return;
+        Map<String, Set<String>> next = new TreeMap<>(grants); next.remove(id); persistGrants(next);
+    }
     public void validate(CompiledFeature feature) {
         String id = feature.definition().id();
         Set<String> ceiling = allowed(id);
@@ -38,6 +57,10 @@ public final class ScriptCapabilityPolicy {
         if (file == null) throw new IOException("Capability policy is read-only until owner storage is repaired");
         FeatureParser.requireId(id); Set<String> approved = checked(capabilities);
         Map<String, Set<String>> next = new TreeMap<>(grants); next.put(id, approved);
+        persistGrants(next);
+    }
+    private void persistGrants(Map<String, Set<String>> next) throws IOException {
+        if (file == null) throw new IOException("Capability policy is read-only until owner storage is repaired");
         if (next.size() > MAX_FEATURES) throw new IllegalArgumentException("Maximum 128 feature capability grants");
         Map<String, Set<String>> immutable = Collections.unmodifiableMap(next);
         byte[] payload = FeatureParser.JSON.writeValueAsBytes(canonical(immutable));

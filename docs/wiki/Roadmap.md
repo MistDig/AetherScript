@@ -1,4 +1,4 @@
-[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.16)
+[☁ Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.17)
 
 ---
 
@@ -9,6 +9,8 @@ Published versions start at 0.0.1. The original v0.1–v0.5 roadmap labels descr
 ### Available now
 
 Native message commands support typed arguments, mutable scalar locals, bounded loops and typed functions at invocation time. Legacy commands without arguments or advanced constructs retain preparation-time evaluation. Real owned command names are registered; connected-player command-tree refresh and suggestions remain unverified. Live reload, saved revisions, startup recovery, diagnostics, diff, history and rollback are available. Hosted OAuth MCP can read, validate, apply and test native scripts under selected or full native-script grants. Events and the ten-heart block remain planned.
+
+Fresh 0.0.17 browser grants also authorize the supported location, state, delay and self-teleport calls. AI can create and activate those scripts, then run asynchronous tests as the explicitly approved player and inspect actual messages and effect receipts. Legacy grants remain message-only until reapproved; console ceilings still override app permissions.
 
 ### Next · reusable gameplay primitives
 
@@ -49,4 +51,4 @@ Performance measurements and connected-player checks remain release gates. Purpu
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.16
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.17

@@ -31,7 +31,7 @@ public final class AuthoringGuide {
             call.put("errors", descriptor.errorContract());
             call.put("description", descriptor.documentation());
         }
-        guide.put("hostAuthorization", "Host calls require a real player and console-approved per-feature capabilities. Existing MCP connections remain message-only: native script apply and live test are denied even with all-script access. Offline validation can type-check host calls, but offline execution requires a host context.");
+        guide.put("hostAuthorization", "Fresh browser grants can approve the supported native capabilities across all or selected feature IDs. Existing legacy connections remain message-only until reapproved. Native apply persists the owner's per-feature execution approval; explicit local ais permit/restrict ceilings take precedence. Live tests use only the real online player chosen in the browser and enforce that player's command permission. Offline validation can type-check host calls; offline host execution remains unavailable.");
         guide.put("hostEffects", "Host programs stream effects in source order. Cancellation stops future effects; already committed messages, state and teleports are not rolled back. Invocations belong to the active revision and player session.");
         return guide;
     }

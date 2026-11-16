@@ -81,12 +81,34 @@ public final class Main {
                 }
                 case "aether_capabilities" -> {
                     noArguments(args);
-                    value = Map.of("schemas", List.of(1), "actions", List.of("message.send"),
-                        "tools", tools().stream().map(tool -> tool.get("name")).toList(),
-                        "formats", List.of("yaml", "json", "aether"), "authoring", AuthoringGuide.metadata(),
-                        "serverGrants", bridge != null && bridge.live() ? bridge.grants() : List.of(), "pairedProfileConfigured", bridge != null, "deploymentEnabled", bridge != null && bridge.live() && bridge.grants().contains("scripts.apply"));
+                    Map<String,Object> capabilities = new LinkedHashMap<>();
+                    capabilities.put("schemas", List.of(1));
+                    capabilities.put("actions", List.of("message.send"));
+                    capabilities.put("tools", tools().stream().map(tool -> tool.get("name")).toList());
+                    capabilities.put("formats", List.of("yaml", "json", "aether"));
+                    capabilities.put("authoring", AuthoringGuide.metadata());
+                    capabilities.put("serverGrants", bridge != null && bridge.live() ? bridge.grants() : List.of());
+                    capabilities.put("pairedProfileConfigured", bridge != null);
+                    capabilities.put("deploymentEnabled", bridge != null && bridge.live() && bridge.grants().contains("scripts.apply"));
+                    capabilities.put("serverAuthorizationChecked", false);
+                    if (bridge != null && bridge.live()) {
+                        if (bridge.grants().contains("capabilities")) {
+                            try {
+                                JsonNode authorized = bridge.operation("capabilities", args);
+                                capabilities.put("serverCapabilities", authorized);
+                                capabilities.put("serverAuthorizationChecked", !authorized.has("error"));
+                            } catch (IOException unavailable) {
+                                capabilities.put("serverCapabilities", Map.of("available", false, "code",
+                                    unavailable instanceof BridgeClient.SessionExpiredException ? "SESSION_EXPIRED" : "BRIDGE_UNAVAILABLE"));
+                            }
+                        } else {
+                            capabilities.put("serverCapabilities", Map.of("available", false, "code", "FRESH_APPROVAL_REQUIRED",
+                                "freshApprovalRequired", true, "message", "This connection predates capability discovery. Ask the owner for fresh approval; existing permissions are unchanged."));
+                        }
+                    }
+                    value = capabilities;
                 }
-                case "aether_scripts_list", "aether_scripts_read", "aether_scripts_validate", "aether_scripts_apply", "aether_scripts_test" -> {
+                case "aether_scripts_list", "aether_scripts_read", "aether_scripts_validate", "aether_scripts_apply", "aether_scripts_test", "aether_scripts_test_status" -> {
                     if (bridge == null || !bridge.live()) return error(id, -32602, "Relay pairing required");
                     String operation = name.substring("aether_".length()).replace('_', '.');
                     validateLiveArguments(operation, args);
@@ -123,7 +145,7 @@ public final class Main {
     private List<Map<String, Object>> tools() {
         Map<String, Object> empty = Map.of("type", "object", "properties", Map.of(), "additionalProperties", false);
         List<Map<String,Object>> result = new ArrayList<>(List.of(tool("aether_server_status", bridge == null ? "Reports offline prototype status" : "Reads status from the explicitly owner-paired loopback server", empty),
-            tool("aether_capabilities", "Lists local validation capabilities; no server grants", empty),
+            tool("aether_capabilities", "Lists the local authoring guide and, when paired and authorized, current server capabilities and owner boundaries", empty),
             tool("aether_validate", "Validates bounded YAML/JSON/AetherScript source without server authorization", Map.of("type", "object", "required", List.of("source", "format"),
                 "properties", Map.of("source", Map.of("type", "string", "maxLength", FeatureParser.MAX_BYTES), "format", Map.of("type", "string", "enum", List.of("yaml", "json", "aether"))), "additionalProperties", false))));
         result.add(tool("aether_test", "Runs source with the shared Registry and synthetic console sender; compares exact messages", schema(Map.of("source", text(), "format", text(), "expectedMessages", messages(), "arguments", invocationSchema()), "source", "format", "expectedMessages")));
@@ -133,7 +155,9 @@ public final class Main {
             result.add(tool("aether_scripts_validate", "Validates a candidate against server authorization", schema(Map.of("id", text(), "source", text()), "id", "source")));
             Map<String,Object> apply = new HashMap<>(tool("aether_scripts_apply", "Creates or edits and activates authorized source using expectedHash CAS; ABSENT creates", schema(Map.of("id", text(), "source", text(), "expectedHash", text()), "id", "source", "expectedHash")));
             apply.put("annotations", Map.of("readOnlyHint", false, "destructiveHint", true, "idempotentHint", false, "openWorldHint", false)); result.add(apply);
-            result.add(tool("aether_scripts_test", "Tests active authorized script using a synthetic sender and exact messages", schema(Map.of("id", text(), "expectedMessages", messages(), "arguments", invocationSchema()), "id", "expectedMessages")));
+            Map<String,Object> test = new HashMap<>(tool("aether_scripts_test", "Tests active authorized script; native host tests execute real effects using the owner-selected player, and may return pending with testId", schema(Map.of("id", text(), "expectedMessages", messages(), "arguments", invocationSchema()), "id", "expectedMessages")));
+            test.put("annotations", Map.of("readOnlyHint", false, "destructiveHint", true, "idempotentHint", false, "openWorldHint", false)); result.add(test);
+            result.add(tool("aether_scripts_test_status", "Polls an authorized native test by testId for actual messages, errors and effects", schema(Map.of("id", text(), "testId", Map.of("type", "string", "format", "uuid")), "id", "testId")));
         }
         return result;
     }
@@ -156,6 +180,7 @@ public final class Main {
             case "scripts.validate" -> Set.of("id", "source");
             case "scripts.apply" -> Set.of("id", "source", "expectedHash");
             case "scripts.test" -> Set.of("id", "expectedMessages");
+            case "scripts.test.status" -> Set.of("id", "testId");
             default -> throw new IllegalArgumentException();
         };
         Set<String> actual = new HashSet<>(); args.fieldNames().forEachRemaining(actual::add);
@@ -163,6 +188,7 @@ public final class Main {
         if (operation.equals("scripts.test")) allowed.add("arguments");
         if (!actual.containsAll(required) || !allowed.containsAll(actual)) throw new IllegalArgumentException();
         if (args.has("arguments")) invocationArguments(args);
+        if (args.has("testId") && (!args.path("testId").isTextual() || !args.path("testId").textValue().matches("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"))) throw new IllegalArgumentException();
         for (String key : required) {
             if (key.equals("expectedMessages")) { if (!args.get(key).isArray() || args.get(key).size() > 128) throw new IllegalArgumentException(); for (JsonNode message : args.get(key)) if (!message.isTextual()) throw new IllegalArgumentException(); }
             else if (!args.get(key).isTextual()) throw new IllegalArgumentException();

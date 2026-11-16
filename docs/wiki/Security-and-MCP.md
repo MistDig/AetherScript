@@ -1,10 +1,10 @@
-[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.16)
+[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.17)
 
 ---
 
 ## Connect your AI
 
-Install AetherScript 0.0.16 in the Minecraft server's plugins folder and start the server. Java 25 is required. Keep one plugin JAR installed.
+Install AetherScript 0.0.17 in the Minecraft server's plugins folder and start the server. Java 25 is required. Keep one plugin JAR installed.
 
 ### On the Minecraft computer
 
@@ -14,11 +14,11 @@ The plugin creates its own identity automatically. The shared AetherScript servi
 
 ### On the AI computer
 
-Choose your AI app on the page. Follow its setup instructions and use the same browser for its authorization screen.
+Choose your AI app on the page. Follow its setup instructions and use the same browser for its authorization screen. [Client paths and primary sources checked 17 November 2026](https://github.com/MistDig/AetherScript/blob/v0.0.17/docs/mcp-clients.md) distinguish supported setup from actual-client verification.
 
-For Codex on Windows, download the linked ZIP, extract it, and double-click `Connect-AetherScript.cmd`. It registers the hosted server and opens Codex sign-in. Java and a separate MCP JAR are unnecessary for this hosted connection.
+For Codex, add the displayed URL in the app's MCP settings where available, or use the CLI commands below. An optional Windows ZIP helper registers the hosted server: extract it and double-click `Connect-AetherScript.cmd`, then follow OAuth sign-in if prompted. Java and a separate MCP JAR are unnecessary for this hosted connection.
 
-**Claude custom connector.** Select Claude on the enrollment page. Add the displayed HTTPS MCP address in Claude's custom connector settings and start authorization. The relay supports dynamic client registration with public-client PKCE. Use a fresh console link from the Paper server you want to connect. Every Paper server has its own private enrollment link and the hosted MCP address is shared.
+**Claude custom connector.** Select Claude on the enrollment page. In Claude web or Desktop, open Customize > Connectors, add a custom web connector using the displayed HTTPS MCP address and choose Register automatically. AetherScript supports dynamic registration with public-client PKCE; Claude's published-identity CIMD option is not implemented by this relay. Team/workspace permissions may require an owner. Use a fresh console link from the Paper server you want to connect. Every Paper server has its own private enrollment link and the hosted MCP address is shared.
 
 **Codex CLI.** Select Codex on the enrollment page, then run these commands on the AI computer. Use the displayed URL if you run your own relay.
 
@@ -29,15 +29,15 @@ codex mcp login aetherscript
 
 If AetherScript is already configured, run the login command. Complete authorization in the browser with the enrollment page and use `/mcp` in Codex to check the connection.
 
-For ChatGPT, add the displayed hosted MCP address in your app's custom connector settings and begin authorization. Availability depends on your account and workspace settings. For Cursor use the installation link. Claude Code and Cline can use the hosted OAuth address if the installed client supports it. Their actual client verification is recorded in the [matrix](https://github.com/MistDig/AetherScript/blob/v0.0.16/docs/mcp-clients.md).
+For ChatGPT, follow the current account/workspace MCP setup path documented in the [client guide](https://github.com/MistDig/AetherScript/blob/v0.0.17/docs/mcp-clients.md). Availability depends on your account and workspace settings. For Cursor use the installation link. Claude Code and Cline can use the hosted OAuth address if the installed client supports it. Their dated primary setup sources and actual verification status are recorded in the [client guide](https://github.com/MistDig/AetherScript/blob/v0.0.17/docs/mcp-clients.md).
 
 ### Approve and check
 
-On the authorization page, confirm the server name and callback destination. Choose a connection name. The default Create and edit all AetherScript scripts option grants creation and editing of every native .aether feature, including existing files. Choose Only selected scripts to restrict the connection to IDs such as `cloud-note`. Approve the listed operations. Existing restricted connections stay restricted until you explicitly create a new approval. Console-restricted IDs cannot be expanded by the browser.
+On the authorization page, confirm the server name and callback destination. Choose a connection name. The default Create and edit all AetherScript scripts option grants creation and editing of every native .aether feature, including existing files. Choose Only selected scripts to restrict the connection to IDs such as `cloud-note`. Select the native execution capabilities you want the AI to use and, optionally, one online test player UUID. Review the listed operations and real effects, then approve. Existing restricted connections stay restricted until you explicitly create a new approval. Console-restricted IDs cannot be expanded by the browser.
 
-Ask your AI to check AetherScript server status. The pairing page shows Connected after Paper answers that client's request. Approval alone shows a waiting state.
+Ask your AI to check AetherScript server status and `aether_capabilities` for the live authoring guide and approved boundaries. The pairing page shows Connected after Paper answers that client's request. Approval alone shows a waiting state.
 
-Ask the AI to create `cloud-note`, activate it and test its actual output. It can access all native script IDs or the selected IDs according to the approval. Script tests capture messages from a synthetic sender. Player-only scripts require a player test.
+Ask the AI to create `cloud-note`, activate it and test its actual output. It can access all native script IDs or the selected IDs according to the approval. Native or player-only MCP tests use the owner-selected online player, who must hold the declared command permission. The AI cannot choose the actor. Tests cause real sends, state writes, waits and teleports. When `aether_scripts_test` returns `pending: true` and `testId`, poll `aether_scripts_test_status` with `{id,testId}` and report actual messages, errors and effects. Pure `sender any` message tests without an actor remain synthetic. Offline `aether_test` stays synthetic and rejects host execution with `HOST_CONTEXT_REQUIRED`.
 
 ### Manage access
 
@@ -45,11 +45,11 @@ In the server console, `ais connections` lists each connection ID, name and full
 
 Use `ais disconnect <connection-id>` for one app or `ais disconnect` for all apps. Access blocks immediately. Wait for the console's saved-revocation confirmation before restarting.
 
-Connections expire after 30 days. Run `ais connect` again to authorize a fresh connection. Local scripts continue working during a relay outage.
+Connections expire after 30 days. Run `ais connect` again to authorize a fresh connection. Installed scripts and persisted feature capability policy continue working during a relay outage or after the AI disconnects. Revocation ends remote authority and cancels its pending tests.
 
 ## Local execution permissions
 
-Browser approvals authorize the listed remote script operations and IDs; all existing remote grants remain message-only. A full native-script grant cannot apply, activate or synthetically test a script requiring player location, state, delay or teleport operations. The actual server console separately controls local native execution with `ais capabilities`, `ais permit` and `ais restrict`. Neither a browser approval nor an MCP request can increase that ceiling. Follow the [homes guide](https://github.com/MistDig/AetherScript/wiki/Language-Reference#owner-approved-homes-commands-current-implementation) to install a locally approved player command.
+Fresh 0.0.17 browser approval selects all or selected native IDs, an execution capability set and optionally one test-player UUID. The AI can create, edit and activate native features within that grant. The execution set persists for installed features after AI disconnect. Console `ais permit` and `ais restrict` remain manual overrides that browser grants cannot exceed. Legacy personal-relay and older browser grants stay message-only until fresh approval.
 
 ## Privacy and limits
 

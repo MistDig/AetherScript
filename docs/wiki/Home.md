@@ -3,7 +3,7 @@
 
 <p align="center"><img src="https://raw.githubusercontent.com/MistDig/AetherScript/v0.0.2/docs/assets/aetherscript-banner.png" width="1200" alt="AetherScript: little scripts, big possibilities. A smiling cloud welcomes you."></p>
 
-<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.16"><b>Download 0.0.15</b></a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Getting-Started">Start building</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Commands">Commands</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Roadmap">What's next</a></p>
+<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.17"><b>Download 0.0.17</b></a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Getting-Started">Start building</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Commands">Commands</a> &nbsp; · &nbsp; <a href="https://github.com/MistDig/AetherScript/wiki/Roadmap">What's next</a></p>
 
 ---
 
@@ -14,7 +14,7 @@ AetherScript is an open-source Minecraft scripting engine for **Paper 26.3**, wi
 **0.0.2 adds a safety net:** successful revisions are saved, invalid edits leave your working script running, and diagnostics tell you which file to fix. One editable file. Five saved versions by default.
 
 > [!NOTE]
-> This is an experimental implementation. YAML/JSON and existing remote MCP grants remain message-only. Native commands can also use the locally approved [homes foundation](https://github.com/MistDig/AetherScript/wiki/Language-Reference#owner-approved-homes-commands-current-implementation): player location, persistent homes, bounded delay and self teleport. The actual server console approves those execution capabilities separately. Gameplay events, block health and broader gameplay remain planned. Scoped remote authoring is opt-in, with all or selected native feature IDs approved through pairing.
+> This is an experimental implementation. YAML/JSON and legacy remote grants remain message-only. Fresh browser approval can authorize native capabilities and one optional test player. Native commands can also use the locally approved [homes foundation](https://github.com/MistDig/AetherScript/wiki/Language-Reference#owner-approved-homes-commands-current-implementation): player location, persistent homes, bounded delay and self teleport. The owner selects execution capabilities in the browser; console permit/restrict overrides remain available. Gameplay events, block health and broader gameplay remain planned. Scoped remote authoring is opt-in, with all or selected native feature IDs approved through pairing.
 
 ## Pick your path
 

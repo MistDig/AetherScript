@@ -24,7 +24,7 @@ test('DCR public/confidential methods, Gemini redirects, full grants, supersessi
  const fourth=await enroll(true);const forbidden=await approve(fourth,publicClient);assert.equal(forbidden.a.status,400,'console selection forbids all scripts');
  const cors=await mf.dispatchFetch(origin+'/register',{method:'OPTIONS',headers:{origin:'https://gemini.google.com','access-control-request-method':'POST'}});assert.equal(cors.status,204);assert.equal(cors.headers.get('access-control-allow-origin'),'https://gemini.google.com');assert.equal(cors.headers.get('access-control-allow-credentials'),null);
  assert.equal((await mf.dispatchFetch(origin+'/register',{method:'OPTIONS',headers:{origin:'https://evil.example'}})).status,403);
- const page=await (await mf.dispatchFetch(origin+'/connect')).text();assert.match(page,/id="callbacks"/);assert.match(page,/id="client-credentials"/);assert.match(page,/0\.0\.8/);
+ const page=await (await mf.dispatchFetch(origin+'/connect')).text();assert.match(page,/id="callbacks"/);assert.match(page,/id="client-credentials"/);assert.match(page,/releases\/latest/);assert.match(page,/id="copy-endpoint"/);assert.match(page,/No local Java installation/);
 });
 
 

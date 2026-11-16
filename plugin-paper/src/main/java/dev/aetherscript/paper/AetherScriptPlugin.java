@@ -189,13 +189,16 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
                 try {
                     Set<String> targets = selected == null ? Set.of() : Set.copyOf(Arrays.asList(selected.split(",", -1)));
                     if (targets.size() > 128) throw new IllegalArgumentException(); targets.forEach(FeatureParser::requireId);
-                    shared.enroll(targets); say(sender, "Creating a private browser approval link; no relay configuration is required.");
+                    List<Map<String, String>> players = getServer().getOnlinePlayers().stream().sorted(Comparator.comparing(Player::getName)).limit(128)
+                        .map(player -> Map.of("uuid", player.getUniqueId().toString(), "name", player.getName())).toList();
+                    shared.enroll(targets, executionCapabilities(), players); say(sender, "Creating a private browser approval link; no relay configuration is required.");
                 } catch (RuntimeException invalid) { say(sender, "Use /ais connect [feature-id[,feature-id]]; feature IDs must be exact."); }
             } else if (op.equals("connections")) {
                 if (selected != null) { say(sender, "Use /ais connections"); return true; }
                 say(sender, "Named connections (revoked entries stay revoked across restart):");
                 connections.state().grants().values().stream().sorted(Comparator.comparing(ConnectionStore.Grant::name)).forEach(grant ->
-                    say(sender, grant.name() + " | " + grant.connectionId() + " | " + (grant.revoked() ? "REVOKED" : "APPROVED") + " | " + (grant.allScripts() ? "ALL NATIVE .aether SCRIPTS (including new IDs)" : grant.allowedScriptIds().stream().sorted().toList())));
+                    say(sender, grant.name() + " | " + grant.connectionId() + " | " + (grant.revoked() ? "REVOKED" : "APPROVED") + " | " + (grant.allScripts() ? "ALL NATIVE .aether SCRIPTS (including new IDs)" : grant.allowedScriptIds().stream().sorted().toList())
+                        + " | capabilities=" + new TreeSet<>(grant.capabilities()) + " | testPlayer=" + (grant.testPlayerId().isEmpty() ? "NONE" : grant.testPlayerId())));
                 if (connections.state().grants().isEmpty()) say(sender, "No approved connections. Use /ais connect.");
             } else {
                 String id = null;
@@ -205,8 +208,9 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
                     if (matches.size() != 1) { say(sender, "Select an unambiguous connection ID from /ais connections, or use /ais disconnect to revoke all."); return true; }
                     id = matches.getFirst().connectionId();
                 }
-                if (id == null) { connectionServices.values().forEach(RemoteScripts::revoke); connectionServices.clear(); }
-                else { var service = connectionServices.remove(id); if (service != null) service.revoke(); }
+                if (id == null) {
+                    connectionServices.forEach((key, service) -> { service.revoke(); if (gameplay != null) gameplay.retireTests(key); }); connectionServices.clear();
+                } else { var service = connectionServices.remove(id); if (service != null) service.revoke(); if (gameplay != null) gameplay.retireTests(id); }
                 shared.disconnect(id);
                 say(sender, "Access blocked immediately; waiting for durable revocation confirmation.");
             }
@@ -383,11 +387,67 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
     }
     private void connectionGrant(ConnectionStore.Grant grant) {
         if (grant.revoked() || shared == null || shared.blocked(grant.connectionId())) {
-            var previous = connectionServices.remove(grant.connectionId()); if (previous != null) previous.revoke(); return;
+            var previous = connectionServices.remove(grant.connectionId()); if (previous != null) previous.revoke();
+            if (gameplay != null) gameplay.retireTests(grant.connectionId()); return;
         }
-        connectionServices.computeIfAbsent(grant.connectionId(), id -> new RemoteScripts(manager, registry, grant.allowedScriptIds(), grant.allScripts(), new RemoteScripts.Main() {
-            public <T> T call(Callable<T> action) throws Exception { return onMain(action); }
-        }, (before, change, authorized) -> apply(null, "connection:" + id, "remote-apply", UUID.randomUUID().toString(), before, change, authorized)));
+        connectionServices.computeIfAbsent(grant.connectionId(), id -> {
+            FeatureManager scoped = new FeatureManager(manager.scripts(), manager.store(), feature -> {
+                CompiledFeature active = registry.snapshot().features().get(feature.definition().id());
+                // Unchanged neighbors retain their local authority; one app cannot claim them.
+                if (active != null && active.sourceHash().equals(feature.sourceHash())) scriptPolicy.validate(feature);
+                else authorizeConnection(grant, feature);
+            });
+            return new RemoteScripts(scoped, registry, grant.allowedScriptIds(), grant.allScripts(), new RemoteScripts.Main() {
+                public <T> T call(Callable<T> action) throws Exception { return onMain(action); }
+            }, (before, change, authorized) -> applyConnection(grant, before, change, authorized), new RemoteScripts.NativeAccess() {
+                public void authorize(CompiledFeature feature) { authorizeConnection(grant, feature); }
+                public boolean testPlayerApproved() { return !grant.testPlayerId().isEmpty(); }
+                public Map<String, Object> start(CompiledFeature feature, List<String> arguments, List<String> expected) {
+                    authorizeConnection(grant, feature);
+                    if (grant.testPlayerId().isEmpty()) throw new SecurityException("PLAYER_APPROVAL_REQUIRED: join the server and use ais connect to approve a test player");
+                    GameplayRuntime runtime = gameplay; if (runtime == null) throw new SecurityException("RUNTIME_NOT_READY");
+                    return runtime.startTest(id, feature, UUID.fromString(grant.testPlayerId()), arguments, expected, () -> connectionAlive(grant));
+                }
+                public Map<String, Object> status(String featureId, String testId) {
+                    if (!connectionAlive(grant) || gameplay == null) throw new SecurityException("CONNECTION_REVOKED");
+                    return gameplay.testStatus(id, featureId, testId);
+                }
+                public Map<String, Object> describe() {
+                    return Map.of("enabled", true, "capabilities", grant.capabilities().stream().sorted().toList(), "testPlayerId", grant.testPlayerId(),
+                        "testMode", "Real player, asynchronous job; poll aether_scripts_test_status for actual messages, errors and effect receipts",
+                        "localOwnerCeilings", "Explicit ais permit/restrict ceilings override connection permissions");
+                }
+            });
+        });
+    }
+    private boolean connectionAlive(ConnectionStore.Grant grant) {
+        return running && ready && shared != null && !shared.blocked(grant.connectionId()) && connections != null
+            && grant.equals(connections.state().grants().get(grant.connectionId())) && !grant.revoked();
+    }
+    private void authorizeConnection(ConnectionStore.Grant grant, CompiledFeature feature) {
+        if (!connectionAlive(grant)) throw new SecurityException("CONNECTION_REVOKED");
+        if (!grant.allScripts() && !grant.allowedScriptIds().contains(feature.definition().id())) throw new SecurityException("TARGET_DENIED");
+        scriptPolicy.validateConnection(feature, grant.capabilities());
+    }
+    private void applyConnection(ConnectionStore.Grant grant, Registry.Snapshot before, FeatureManager.Change change, Runnable authorized) throws Exception {
+        List<CompiledFeature> approved = new ArrayList<>();
+        try {
+            for (CompiledFeature feature : change.target().values()) {
+                CompiledFeature previous = before.features().get(feature.definition().id());
+                if (previous != null && previous.sourceHash().equals(feature.sourceHash())) continue;
+                authorized.run(); authorizeConnection(grant, feature);
+                if (scriptPolicy.approveConnection(feature, grant.capabilities())) approved.add(feature);
+            }
+            apply(null, "connection:" + grant.connectionId(), "remote-apply", UUID.randomUUID().toString(), before, change, authorized);
+        } catch (Exception failure) {
+            for (CompiledFeature feature : approved) {
+                CompiledFeature active = registry.snapshot().features().get(feature.definition().id());
+                if (active != null && active.sourceHash().equals(feature.sourceHash())) continue;
+                try { scriptPolicy.removeGrant(feature.definition().id()); }
+                catch (IOException uncertain) { ready = false; startupError = "CAPABILITY_POLICY_QUARANTINED"; getLogger().severe("Capability approval compensation failed; restore the owner policy backup before restarting."); }
+            }
+            throw failure;
+        }
     }
     private Map<String, Object> connectionRequest(ConnectionStore.Grant grant, String operation, Map<String, Object> arguments) throws Exception {
         String id = grant.connectionId(); var service = connectionServices.get(id);
@@ -397,8 +457,16 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
         try { io.execute(() -> {
             try {
                 if (shared == null || shared.blocked(id) || connectionServices.get(id) != service) throw new SecurityException("CONNECTION_REVOKED");
+                if (operation.equals("scripts.test")) audit.append(UUID.randomUUID().toString(), "connection:" + id, operation, "TEST_INTENT", registry.snapshot().generation(), Map.of());
                 var value = service.execute(operation, arguments);
-                audit.append(UUID.randomUUID().toString(), "connection:" + id, operation, "SUCCEEDED", registry.snapshot().generation(), Map.of()); result.complete(value);
+                try { audit.append(UUID.randomUUID().toString(), "connection:" + id, operation, "SUCCEEDED", registry.snapshot().generation(), Map.of()); }
+                catch (IOException failedAudit) {
+                    // An accepted test may already have real effects. Preserve its job ID so the
+                    // client polls the same operation rather than blindly retrying execution.
+                    if (!operation.equals("scripts.test") || !value.containsKey("testId")) throw failedAudit;
+                    getLogger().warning("Accepted MCP test audit completion could not be saved; the client retains its test ID. Inspect owner audit storage.");
+                }
+                result.complete(value);
             } catch (Exception rejected) {
                 try { audit.append(UUID.randomUUID().toString(), "connection:" + id, operation, "REJECTED", registry.snapshot().generation(), Map.of()); } catch (IOException ignored) { }
                 result.completeExceptionally(rejected);

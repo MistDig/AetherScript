@@ -8,6 +8,42 @@ import static org.junit.jupiter.api.Assertions.*;
 class ConnectionStoreTest {
     @TempDir Path root;
     String id() { return UUID.randomUUID().toString(); }
+    @Test void effectAuthorizationReadsDoNotWaitOnThePersistenceMonitor() throws Exception {
+        var store = new ConnectionStore(root.resolve("snapshot.json"));
+        synchronized (store) {
+            assertEquals(store.state(), java.util.concurrent.CompletableFuture.supplyAsync(store::state).get(2, java.util.concurrent.TimeUnit.SECONDS));
+        }
+    }
+    @Test void capabilitiesAndTestActorAreBoundToOneEnrollmentAndRemainImmutableAfterRestart() throws Exception {
+        Path file = root.resolve("native.json"); var store = new ConnectionStore(file);
+        String enrollment = id(), connection = id(), player = id();
+        Set<String> caps = Set.of("runtime.message.send", "state.own");
+        store.pending(enrollment, Set.of(), System.currentTimeMillis() + 60000, true, caps, Set.of(player));
+        assertThrows(java.io.IOException.class, () -> store.accept(new ConnectionStore.Grant(id(), "Wrong actor", Set.of(), SharedRelayConnector.SCOPES, false, true, caps, id()), enrollment));
+        assertThrows(java.io.IOException.class, () -> store.accept(new ConnectionStore.Grant(id(), "Expanded", Set.of(), SharedRelayConnector.SCOPES, false, true, Set.of("runtime.message.send", "player.teleport.self"), player), enrollment));
+        var grant = new ConnectionStore.Grant(connection, "Native", Set.of(), SharedRelayConnector.SCOPES, false, true, caps, player);
+        store.accept(grant, enrollment);
+        var reopened = new ConnectionStore(file);
+        assertEquals(grant, reopened.state().grants().get(connection));
+        assertThrows(java.io.IOException.class, () -> reopened.accept(new ConnectionStore.Grant(connection, "Native", Set.of(), SharedRelayConnector.SCOPES, false, true, caps, ""), enrollment));
+        reopened.revoke(connection);
+        assertEquals(caps, reopened.state().grants().get(connection).capabilities());
+        assertEquals(player, reopened.state().grants().get(connection).testPlayerId());
+        assertTrue(reopened.accept(grant, enrollment).revoked());
+    }
+    @Test void oldStoredGrantsCannotAcquireNativeCapabilitiesOrActorsByReplay() throws Exception {
+        Path file = root.resolve("legacy.json"); var store = new ConnectionStore(file);
+        String enrollment = id(), connection = id();
+        store.pending(enrollment, Set.of(), System.currentTimeMillis() + 60000, true);
+        store.accept(new ConnectionStore.Grant(connection, "Legacy", Set.of(), Set.of("status"), false, true), enrollment);
+        var json = dev.aetherscript.core.FeatureParser.JSON.readTree(Files.readAllBytes(file));
+        var saved = (com.fasterxml.jackson.databind.node.ObjectNode) json.path("grants").path(connection);
+        saved.remove("capabilities"); saved.remove("testPlayerId");
+        Files.write(file, dev.aetherscript.core.FeatureParser.JSON.writeValueAsBytes(json));
+        var reopened = new ConnectionStore(file); var old = reopened.state().grants().get(connection);
+        assertEquals(ConnectionStore.MESSAGE_ONLY, old.capabilities()); assertEquals("", old.testPlayerId());
+        assertThrows(java.io.IOException.class, () -> reopened.accept(new ConnectionStore.Grant(connection, "Legacy", Set.of(), Set.of("status"), false, true, Set.of("runtime.message.send", "state.own"), id()), enrollment));
+    }
     @Test void identityGrantRestrictionsRevocationAndSingleUseSurviveRestart() throws Exception {
         Path file = root.resolve("connections.json"); var store = new ConnectionStore(file);
         String enrollment = id(), connection = id();

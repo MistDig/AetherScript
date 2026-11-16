@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.aetherscript.core.TextIntegrationTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-11-16T21:04:17.617Z" hostname="VARUN" time="0.339">
+  <properties/>
+  <testcase name="mixedFormatsRejectDuplicateFeatureIdsBeforeReplacingRegistry()" classname="dev.aetherscript.core.TextIntegrationTest" time="0.012"/>
+  <testcase name="textualSourceUsesNormalReloadPermissionAndRetirementPaths()" classname="dev.aetherscript.core.TextIntegrationTest" time="0.046"/>
+  <testcase name="textualRollbackRetainsEditableFileAndHoldsAcrossRestart()" classname="dev.aetherscript.core.TextIntegrationTest" time="0.083"/>
+  <testcase name="normalParserSharesTypedIrAndRetainsOriginalSourceHash()" classname="dev.aetherscript.core.TextIntegrationTest" time="0.004"/>
+  <testcase name="structuredToTextMigrationAndRollbackKeepBothFormatsRecoverable()" classname="dev.aetherscript.core.TextIntegrationTest" time="0.133"/>
+  <testcase name="invalidTextEditPreservesWorkingRevisionAcrossRestart()" classname="dev.aetherscript.core.TextIntegrationTest" time="0.059"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

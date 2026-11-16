@@ -2,6 +2,16 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.17] - 2026-11-17
+
+- Connect the supported native language calls to fresh browser-approved MCP grants. AI can discover capabilities, validate, create and edit native scripts and activate them within all-script or selected-ID permissions. Persist execution approval for new native features; explicit console ceilings remain authoritative.
+- Let the owner approve one offered online player for real tests. Return bounded asynchronous test jobs with exact messages, source-linked errors, durable-save acknowledgments and actual post-teleport locations. Isolate jobs by connection/feature and cancel retired work. Preserve synthetic any-sender message tests when no actor is approved.
+- Keep old grants message-only, prohibit actor/capability changes by relay replay, and preserve revocation across restart. Expose stable approval/stale/test errors and preserve an accepted test ID if its completion audit fails. Bound retained jobs and JSON capture, with explicit truncation flags.
+- Simplify hosted setup with one MCP URL, app-specific instructions, endpoint copy and Cursor install links. Keep the local gateway/Windows helper optional. Document Claude automatic registration and current client setup sources; published-identity CIMD and actual-client certification remain unverified/unsupported as stated in the guides.
+- Publish hosted aether_capabilities and aether_scripts_test_status alongside gateway support. Update human/AI guides and the AI-first language roadmap without expanding future capabilities into current claims.
+- Verified Java 25 clean check/build: 286 tests, no failures/errors/skips; nine relay regressions; packaged MCP/authoring, both SQLite providers/licenses, nine wiki examples and seven published 0.0.11 semantic hashes.
+- The deployed Worker and final Paper 26.3 build 245 JAR passed seven browser/OAuth/MCP workflow groups over two boots: native authoring with no manual permit, actual player state/teleport tests, restricted/cross-job denial, stale writes, permission removal, original-token restart and disconnect preserving local execution. The fixture uses 26.1 synthetic clients translated to 26.3; it does not certify Codex, Claude, ChatGPT or other actual AI apps.
+
 ## [0.0.16] - 2026-11-17
 
 - Add closed typed UUID/location/unit/optional values, a typed host-call catalog and a bounded command invocation context with source-linked errors and revision/session ownership.

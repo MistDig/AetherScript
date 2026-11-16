@@ -1,0 +1,14 @@
+
+ ⛅️ wrangler 4.160.1 (update available 4.163.0)
+───────────────────────────────────────────────
+Total Upload: 63.03 KiB / gzip: 17.64 KiB
+Worker Startup Time: 2 ms
+Your Worker has access to the following bindings:
+Binding                              Resource            
+env.SESSIONS (RelaySession)          Durable Object      
+env.DIRECTORY (ServerDirectory)      Durable Object      
+
+Uploaded aetherscript-relay (8.79 sec)
+Deployed aetherscript-relay triggers (2.56 sec)
+  https://aetherscript-relay.mistdig143.workers.dev
+Current Version ID: c18f630a-bead-4f9e-81af-836e3030d0f2

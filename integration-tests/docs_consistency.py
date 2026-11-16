@@ -23,7 +23,8 @@ assert "invocation-time" in readme and "preparation-time" in readme
 commands=(root/"docs/wiki/Commands.md").read_text(encoding="utf8")
 assert "aether_scripts_apply" in commands and "full access" in commands.lower()
 reference=(root/"docs/ai-reference.md").read_text(encoding="utf8")
-assert "Hosted clients cannot call aether_capabilities" in reference
+assert "aether_capabilities" in reference and "aether_scripts_test_status" in reference
+assert "Hosted clients cannot call aether_capabilities" not in reference
 assert "allScripts" in reference
 implementation=(root/"plugin-paper/src/main/java/dev/aetherscript/paper/RemoteScripts.java").read_text()
 for op in ("scripts.read","scripts.validate","scripts.apply","scripts.test"):
@@ -43,6 +44,8 @@ for name in re.findall(r'add\(registry, "[^"]+", "([^"]+)"',catalog):
  assert name in reference and name in language, f"Missing documented host callable {name}"
 for name in ("uuid","location","unit","optional<elementType>"):
  assert name in guide["valueTypes"], f"Missing type contract {name}"
+assert set(guide["capabilityPolicy"]["browserApprovedExecutionCeiling"]) == set(guide["capabilities"])
+assert guide["capabilityPolicy"]["legacyRemoteExecutionCeiling"] == ["runtime.message.send"]
 for text in (reference, commands, (root/"docs/wiki/MCP-Reference.md").read_text(encoding="utf8")):
  assert "message-only" in text.lower(), "Remote native capability ceiling must be explicit"
 full=(root/"site/public/llms-full.txt").read_text(encoding="utf8")

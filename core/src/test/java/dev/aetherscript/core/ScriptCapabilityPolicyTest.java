@@ -12,6 +12,21 @@ class ScriptCapabilityPolicyTest {
     CompiledFeature compiled(String id, String... requirements) {
         return new CompiledFeature(new Feature(1, id, "1", List.of(requirements), new Feature.Command("hello", "test.hello", "any", List.of())), "hash", "ir");
     }
+    @Test void browserApprovalStagesWithoutWritingAndPersistsOnlyWithinTheOwnerCeiling() throws Exception {
+        Path file = root.resolve("policy.json"); var policy = new ScriptCapabilityPolicy(file, KNOWN);
+        var feature = compiled("native-new", ScriptCapabilityPolicy.MESSAGE, "state.own");
+        policy.validateConnection(feature, KNOWN);
+        assertFalse(Files.exists(file), "Validation must not persist a capability approval");
+        assertThrows(ValidationException.class, () -> policy.validateConnection(feature, Set.of(ScriptCapabilityPolicy.MESSAGE)));
+        assertTrue(policy.approveConnection(feature, KNOWN));
+        assertFalse(policy.approveConnection(feature, KNOWN));
+        new ScriptCapabilityPolicy(file, KNOWN).validate(feature);
+        policy.grant("native-new", Set.of(ScriptCapabilityPolicy.MESSAGE));
+        assertThrows(ValidationException.class, () -> policy.validateConnection(feature, KNOWN), "An app cannot undo ais restrict");
+        policy.removeGrant("native-new");
+        assertFalse(new ScriptCapabilityPolicy(file, KNOWN).configured("native-new"));
+        assertThrows(ValidationException.class, () -> ScriptCapabilityPolicy.messageOnly().validateConnection(feature, KNOWN));
+    }
     @Test void exactOwnerCeilingsPersistAndCannotBeChangedThroughReturnedSets() throws Exception {
         Path file = root.resolve("policy.json"); var policy = new ScriptCapabilityPolicy(file, KNOWN);
         policy.validate(compiled("home", ScriptCapabilityPolicy.MESSAGE));

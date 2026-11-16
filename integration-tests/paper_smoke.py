@@ -11,6 +11,7 @@ parser.add_argument('--accept-eula', action='store_true')
 parser.add_argument('--existing-json', action='store_true', help='Seed a JSON example as an upgrade with no revision storage')
 parser.add_argument('--aether', action='store_true', help='Exercise textual source, diagnostics and restart recovery')
 parser.add_argument('--runtime-control', action='store_true', help='Exercise native functions/loops and owned real commands on Paper (requires --aether)')
+parser.add_argument('--native-mcp', action='store_true', help='Exercise browser-approved real-player native MCP on fresh Paper (requires --aether and --client-dir)')
 parser.add_argument('--homes', action='store_true', help='Exercise player homes with two translated protocol clients (requires --aether and --client-dir)')
 parser.add_argument('--client-dir', type=Path, help='External pinned ViaProxy/client dependency directory for --homes')
 parser.add_argument('--pairing', action='store_true', help='Pair the packaged MCP with this disposable server and check live status and revocation')
@@ -24,6 +25,10 @@ if args.existing_json and args.aether:
     parser.error('Choose --existing-json or --aether')
 if args.runtime_control and not args.aether:
     parser.error('--runtime-control requires --aether')
+if args.native_mcp and (not args.aether or args.client_dir is None):
+    parser.error('--native-mcp requires --aether and --client-dir')
+if args.native_mcp and (args.homes or args.runtime_control or args.browser_only or args.browser_008 or args.pairing or args.relay_config):
+    parser.error('--native-mcp is a separate test mode')
 if args.homes and (not args.aether or args.client_dir is None):
     parser.error('--homes requires --aether and --client-dir')
 if args.homes and (args.runtime_control or args.browser_only or args.browser_008 or args.pairing or args.relay_config):
@@ -43,7 +48,7 @@ shutil.copy2(jar, server/'paper.jar')
 shutil.copy2(repo/'plugin-paper/build/libs'/f'plugin-paper-{version}.jar', server/'plugins/AetherScript.jar')
 (server/'eula.txt').write_text('eula=true\n')
 (server/'server.properties').write_text('server-ip=127.0.0.1\nserver-port=25591\nonline-mode=false\nenforce-secure-profile=false\nview-distance=2\nsimulation-distance=2\nmax-players=2\nlevel-type=minecraft:flat\ngenerate-structures=false\nspawn-protection=0\n')
-if args.homes:
+if args.homes or args.native_mcp:
     with (server/'server.properties').open('a') as properties:
         properties.write('allow-flight=true\nwhite-list=true\nenforce-whitelist=true\n')  # Loopback protocol clients do not run vanilla client physics.
     import uuid
@@ -81,7 +86,7 @@ def command(text, match):
         q.get_nowait()
     p.stdin.write(text+'\n')
     p.stdin.flush()
-    return expect(match, 30)
+    return expect(match, 45 if args.native_mcp else 30)
 
 def check(name, text, match):
     detail = command(text, match)
@@ -136,6 +141,24 @@ def edit(message):
     source.write_text(changed, encoding='utf-8')
 def history():
     return json.loads((data/'storage/manifest.json').read_text())['state']['features']['hello-ai']
+if args.native_mcp:
+    from native_mcp_workflow import verify
+    try:
+        verify(command, start, stop, server, repo, args.java, evidence, args.client_dir.resolve())
+    except Exception as error:
+        import traceback
+        frames = traceback.extract_tb(error.__traceback__)
+        location = '; '.join(Path(frame.filename).name+':'+str(frame.lineno) for frame in frames[-4:])
+        evidence.append(dict(test='native-mcp-smoke', result='fail', detail='Native protocol fixture failed ('+type(error).__name__+') at '+location+'; private browser URLs and OAuth values omitted'))
+    finally:
+        stop()
+        (server/'smoke-console.log').write_text(redact(''.join(lines)), encoding='utf-8')
+        (server/'smoke-results.json').write_text(json.dumps(evidence, indent=2), encoding='utf-8')
+    if any(item['result'] == 'fail' for item in evidence):
+        print(evidence[-1]['detail'], flush=True)
+        raise SystemExit(1)
+    print(f'PASS: {len(evidence)} native MCP HTTP/browser protocol checks; 26.1 clients translated to 26.3; actual AI apps untested', flush=True)
+    raise SystemExit(0)
 if args.homes:
     from homes_workflow import verify
     try:

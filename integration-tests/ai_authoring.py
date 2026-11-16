@@ -86,7 +86,7 @@ assert home_valid['valid'] and set(home_valid['requiredCapabilities']) == {
     'runtime.message.send','player.location.read','state.own','scheduler.delay','player.teleport.self'}, home_valid
 assert not home_invalid['valid'] and home_invalid['line'] > 0, home_invalid
 assert not home_offline['valid'] and 'HOST_CONTEXT_REQUIRED' in home_offline['message'], home_offline
-assert {c['name'] for c in guide['hostCallables']} == {
+assert {c['name'] for c in guide['hostCallables']} >= {
     'player_location','state_get_location','state_put_location','delay','teleport_self'}
 print(json.dumps({"result":"pass","version":version,"checks":["discover template","validate template",
     "single-line edit changes behavior","comment preserves behavior","type error identifies line and column",

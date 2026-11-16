@@ -1,0 +1,21 @@
+
+> aetherscript-relay@0.0.8 test
+> node --test
+
+✔ DCR accepts Claude grant preferences and reports only the implemented grant (522.2682ms)
+✔ native permission snapshots enforce subsets and explicitly offered actor; legacy stays message-only (125.8368ms)
+✔ DCR public/confidential methods, Gemini redirects, full grants, supersession and terminal rejection (17872.9768ms)
+✔ expired pending handshake is terminal and cannot be acknowledged or used (15.7258ms)
+✔ private pairing, bounded requests, outbound reply, isolation, revocation (648.9331ms)
+✔ unknown grants, expiry bound, pairing attempt bound, payload bound (83.9932ms)
+✔ abandoned requests expire without a results poll (14.9935ms)
+✔ browser enrollment, exact OAuth grant, PKCE, actual client status, revocation (707.8011ms)
+✔ expired credentials and quota data have bounded retention (8.3965ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 18767.7484

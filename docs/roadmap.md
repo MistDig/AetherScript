@@ -1,12 +1,14 @@
 # Roadmap and exit gates
 
+New capabilities ship AI-first: language syntax/type checks, server-side permission enforcement, MCP discovery/authoring/activation/testing, and matching human/AI documentation belong to the same release. A local-only API is an unfinished integration, not complete support.
+
 ## BetterModel planning update - 15 November 2026
 
 The latest handoff adds detailed SkBetterModels/BetterModel requirements to EXT-10. The [integration plan](ecosystem/model-integration-plan.md) tracks 124 supplied registration entries, typed provider handles, synchronous combat callbacks, animation markers, rendering/rigs, paths, spawn rules and lifecycle gates. M1-M3 remains the current halfway target; provider implementation is optional M4-M5 work, with its reusable runtime/event prerequisites planned earlier. No BetterModel implementation or Paper 26.3 compatibility is claimed.
 
 ## Current M1–M3 goal
 
-The owner’s current halfway target is M1–M3 from the [complete ecosystem brief](ecosystem/implementation-brief.md). See the [acceptance checkpoint](ecosystem/halfway-milestone.md) for concrete gates. The 0.0.11 slice adds bounded scalar functions/control flow, owned real command names and a core-only versioned JSON state service. Subsequent foundations add homogeneous lists and, in the current 0.0.16 implementation, immutable host values, a fixed capability-aware callable registry, bounded command continuations, own-location SQLite persistence and self teleport. General collections/value semantics, events, independently scheduled jobs, broader gameplay and persistence, and the M3 UI/editor remain open. Existing remote grants remain message-only; the narrow host slice requires local console approval. The milestone phases are not release numbers or percentages of capability parity.
+The owner’s current halfway target is M1–M3 from the [complete ecosystem brief](ecosystem/implementation-brief.md). See the [acceptance checkpoint](ecosystem/halfway-milestone.md) for concrete gates. The 0.0.11 slice adds bounded scalar functions/control flow, owned real command names and a core-only versioned JSON state service. Subsequent foundations add homogeneous lists and, introduced in 0.0.16, immutable host values, a fixed capability-aware callable registry, bounded command continuations, own-location SQLite persistence and self teleport. General collections/value semantics, events, independently scheduled jobs, broader gameplay and persistence, and the M3 UI/editor remain open. The 0.0.17 integration permits freshly browser-approved MCP connections to author those capabilities and test as the explicitly approved player. Legacy grants remain message-only; explicit local capability ceilings override browser grants. The milestone phases are not release numbers or percentages of capability parity.
 
 ## Release 0.0.7 — browser pairing and command inputs
 

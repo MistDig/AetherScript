@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.aetherscript.core.ScriptCapabilityPolicyTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-11-16T21:04:17.350Z" hostname="VARUN" time="0.149">
+  <properties/>
+  <testcase name="corruptUnknownOversizedAndNonregularStorageFailsClosed()" classname="dev.aetherscript.core.ScriptCapabilityPolicyTest" time="0.041"/>
+  <testcase name="browserApprovalStagesWithoutWritingAndPersistsOnlyWithinTheOwnerCeiling()" classname="dev.aetherscript.core.ScriptCapabilityPolicyTest" time="0.049"/>
+  <testcase name="exactOwnerCeilingsPersistAndCannotBeChangedThroughReturnedSets()" classname="dev.aetherscript.core.ScriptCapabilityPolicyTest" time="0.034"/>
+  <testcase name="failedSaveNeverPublishesNewGrantAndBoundsRejectUnknownIds()" classname="dev.aetherscript.core.ScriptCapabilityPolicyTest" time="0.017"/>
+  <testcase name="parentSymlinksAndFileSymlinksAreRejectedWhenSupported()" classname="dev.aetherscript.core.ScriptCapabilityPolicyTest" time="0.006"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

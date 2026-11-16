@@ -1,5 +1,11 @@
 # Actual test results
 
+## Release 0.0.17 — browser-approved native MCP
+
+Java25 clean check/build passed286 tests with zero failures/errors/skips. Nine relay tests, packaged stdio/authoring, both SQLite providers/licenses, nine wiki examples and seven published0.0.11 semantic hashes pass. The documentation build, link/search checks and consistency checks pass.
+
+Seven grouped browser/OAuth/MCP checks passed over two boots on pinned Paper26.3 build245: explicit actor/capability approval, native validate/apply with no manual permit, actual state/teleport receipts, stale/restricted/foreign-job denial, actor permission removal, original-token/grant/state restart and revocation with continued local execution. The fixture uses headless Edge and26.1 clients translated through ViaProxy3.4.14. Actual AI apps, native26.3 UI, two-PC Feather, Purpur, profiling and load stress remain unverified for this version. Audit completion failure handling was reviewed but not fault-injected on the live server. [Evidence](evidence/0.0.17/)
+
 ## Release 0.0.16 — typed host calls and owner-approved homes
 
 Java 25 clean check build passed; the final incremental check/build includes 274 Java tests, with no failures/errors/skips. Eight relay regression tests passed. Packaged CLI/MCP checks cover discovery of the executable host-call catalog, homes capability inference, native argument type errors and offline host-context rejection. Both shaded JARs pass real SQLite provider/license checks. Nine wiki examples and seven published 0.0.11 semantic hashes pass. Documentation production and link/search checks pass.

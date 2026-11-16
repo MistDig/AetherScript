@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.aetherscript.paper.GameplayRuntimeCaptureTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-11-16T21:04:35.878Z" hostname="VARUN" time="0.023">
+  <properties/>
+  <testcase name="budgetCountsEscapedUtf8AndKeepsTruncationSticky()" classname="dev.aetherscript.paper.GameplayRuntimeCaptureTest" time="0.002"/>
+  <testcase name="errorsBoundEncodedBytesWithoutSplittingSupplementaryCharacters()" classname="dev.aetherscript.paper.GameplayRuntimeCaptureTest" time="0.006"/>
+  <testcase name="maximumCapturedSnapshotFitsDuplicatedMcpWireEnvelope()" classname="dev.aetherscript.paper.GameplayRuntimeCaptureTest" time="0.014"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

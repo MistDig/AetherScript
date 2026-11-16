@@ -140,7 +140,7 @@ class PairingProfile {
     }
     PairingProfile(URI endpoint, String token, Instant expiresAt, String sessionId, String serverId, List<String> scopes) {
         this.endpoint = sessionId == null ? BridgeClient.validateEndpoint(endpoint) : RelayClient.validateEndpoint(endpoint);
-        if (sessionId != null && (!sessionId.matches("[A-Za-z0-9_-]{1,128}") || serverId == null || serverId.isBlank() || serverId.length() > 128 || scopes.isEmpty() || !java.util.Set.of("status", "scripts.list", "scripts.read", "scripts.validate", "scripts.apply", "scripts.test").containsAll(scopes))) throw new IllegalArgumentException("Invalid relay credentials");
+        if (sessionId != null && (!sessionId.matches("[A-Za-z0-9_-]{1,128}") || serverId == null || serverId.isBlank() || serverId.length() > 128 || scopes.isEmpty() || !java.util.Set.of("status", "scripts.list", "scripts.read", "scripts.validate", "scripts.apply", "scripts.test", "scripts.test.status", "capabilities").containsAll(scopes))) throw new IllegalArgumentException("Invalid relay credentials");
         this.sessionId = sessionId; this.serverId = serverId; this.scopes = List.copyOf(scopes);
         String tokenFormat = sessionId == null ? "[A-Za-z0-9_-]{43}" : "[0-9a-f]{64}";
         if (token == null || !token.matches(tokenFormat) || expiresAt == null) throw new IllegalArgumentException("Invalid pairing credentials");

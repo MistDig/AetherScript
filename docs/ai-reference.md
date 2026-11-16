@@ -2,21 +2,24 @@
 
 ## Current capabilities
 
-This document describes the current 0.0.16 implementation; verification remains attributed to its recorded version. It supports native .aether message commands, typed positional arguments, immutable and mutable locals, bounded loops, typed functions, immutable homogeneous lists, arithmetic, boolean conditions, explicit reload, revisions and rollback. A locally approved native player-command slice adds location snapshots, own-player/feature persistent homes, bounded delay and self teleport. Events, inventories, item grants, economy, quests and general persistent-value bindings remain planned. Do not invent syntax or promise unsupported gameplay.
+This document describes the current 0.0.17 implementation; verification remains attributed to its recorded version. It supports native .aether message commands, typed positional arguments, immutable and mutable locals, bounded loops, typed functions, immutable homogeneous lists, arithmetic, boolean conditions, explicit reload, revisions and rollback. A locally approved native player-command slice adds location snapshots, own-player/feature persistent homes, bounded delay and self teleport. Events, inventories, item grants, economy, quests and general persistent-value bindings remain planned. Do not invent syntax or promise unsupported gameplay.
 
 Use tool discovery from the connected app as the authority for available tools. Hosted and local gateways expose different tools. A hosted service version may differ from the plugin release version.
 
 ## Tools by connection mode
 
-Hosted OAuth MCP exposes exactly these six tools:
+Hosted OAuth MCP exposes these eight tools:
+
+- aether_capabilities {}
 - aether_server_status {}
 - aether_scripts_list {}
 - aether_scripts_read {id}
 - aether_scripts_validate {id, source}
 - aether_scripts_apply {id, source, expectedHash}
 - aether_scripts_test {id, expectedMessages, arguments?}
+- aether_scripts_test_status {id, testId}
 
-The local stdio gateway additionally has aether_capabilities {}, aether_validate {source, format}, and aether_test {source, format, expectedMessages, arguments?}. Offline and loopback status modes have four tools total, including aether_server_status, and cannot deploy. A local gateway using a management relay profile has nine tools. Hosted clients cannot call aether_capabilities, aether_validate or aether_test. Use the hosted script tools instead.
+`aether_capabilities` publishes the complete callable/type authoring guide and server-authorized execution capabilities, targets and test boundaries. Use it before writing native host code. The local gateway also exposes aether_validate {source, format} and aether_test {source, format, expectedMessages, arguments?}. Offline and loopback status modes have four tools and cannot deploy; a management relay profile has ten. Local discovery retains the guide when the server is unavailable and explicitly identifies older connections needing fresh approval.
 
 format is aether, yaml or json for local validation/testing. Remote management uses native .aether files. arguments is an optional list of strings, including strings for integer and boolean inputs. expectedMessages is an ordered list of exact message strings.
 
@@ -28,7 +31,7 @@ When allScripts is false, use only the granted IDs. Explain the need for fresh o
 Choose a sensible ID when the user authorizes creation but supplies no name. Do not ask for an additional approval already granted by the user and server. Never claim a denied operation succeeded.
 Feature IDs are lowercase, start with a letter, and contain only lowercase letters, digits and hyphens, up to 64 characters. The source filename must match the ID. Full native access does not overwrite existing YAML/JSON sources or bypass source-format collisions.
 
-Remote grants remain message-only even with allScripts=true. They cannot apply, activate or synthetically test native programs requiring host capabilities. Browser approval cannot expand the local execution ceiling. Use local installation and actual server-console approval for the host operations below.
+Fresh 0.0.17 browser approval selects all or selected native feature IDs, an explicit execution capability set and, optionally, one test-player UUID. The AI may create, edit and activate native features within that grant without another per-edit approval. The approved execution set is persisted for those features so installed commands keep running after the AI disconnects. `ais permit` and `ais restrict` remain manual owner overrides; a browser grant cannot override an explicit console ceiling. Legacy personal-relay and older browser grants remain message-only until fresh browser approval; they never expand automatically.
 
 ## Safe editing workflow
 
@@ -38,7 +41,9 @@ Remote grants remain message-only even with allScripts=true. They cannot apply, 
 4. Validate with aether_scripts_validate, then apply with aether_scripts_apply.
 5. Read back source, hash and activeHash. Confirm the intended source is active.
 6. Test using aether_scripts_test with explicit expectedMessages and arguments.
-7. Report actualMessages, matched and the active revision. A synthetic test does not certify player rendering or player-only behavior.
+7. If pending, poll aether_scripts_test_status with the same id and returned testId. Report actualMessages, matched, effects, error and the active revision.
+
+`aether_scripts_test` uses the owner-approved online player for native or player-only commands; the player must hold the command's declared permission. The AI cannot choose or replace that actor. Tests can send messages, write own-player state, wait and teleport the approved player: these are real effects. A start response may return `status: "pending"` and `testId`; poll `aether_scripts_test_status` with `{id,testId}` until completion, then report actual messages, errors, effects and comparison. A pure `sender any` message program without an approved actor retains synthetic compatibility. Offline `aether_test` is always synthetic and host calls fail with `HOST_CONTEXT_REQUIRED`.
 
 On a stale source hash, read again before merging. After a timeout or unknown network outcome, read back before retrying because the change may already be committed. Invalid edits preserve the working revision. A test mismatch is not success.
 
@@ -159,11 +164,11 @@ ais validate homes
 ais reload homes
 ```
 
-Wait for `CAPABILITIES_SAVED` before validating/reloading. `permit` replaces the prior ceiling and includes `runtime.message.send`; `restrict homes` restores message-only execution and retires incompatible active work. Approval does not activate source. Policy is persisted in `script-capabilities.json`; corrupt policy falls back to message-only until repaired. Players need the example's `aetherscript.example.home` permission. Use `/home set main`, then `/home go main`; this is a local player test, not an MCP synthetic test.
+Wait for `CAPABILITIES_SAVED` before validating/reloading. `permit` replaces the prior ceiling and includes `runtime.message.send`; `restrict homes` restores message-only execution and retires incompatible active work. Manual console approval does not activate source; use reload. A browser-authorized AI apply activates through the durable apply pipeline. Policy is persisted in `script-capabilities.json`; corrupt policy falls back to message-only until repaired. Players need the example's `aetherscript.example.home` permission. Use `/home set main`, then `/home go main`; this is a local player test, not an MCP synthetic test.
 
-Only player command invocations use this host runtime. Delay accepts 0–1200 server ticks; helper functions can suspend and resume. Storage runs on the bounded I/O worker, waiting uses virtual threads, and player effects re-enter Paper's main thread. There are no event handlers, persistent scheduled jobs or offline-player effects. Limits are 120 seconds per invocation, 32 active globally, four per player and eight per feature, plus interpreter/output budgets.
+Player commands and approved native MCP tests use this host runtime. Delay accepts 0–1200 server ticks; helper functions can suspend and resume. Storage runs on the bounded I/O worker, waiting uses virtual threads, and player effects re-enter Paper's main thread. There are no event handlers, persistent scheduled jobs or offline-player effects. Limits are 120 seconds per invocation, 32 active globally, four per player and eight per feature, plus interpreter/output budgets.
 
-Disconnect, shutdown, source-revision replacement/retirement and removal of required capabilities retire pending work. A reconnect never revives the invocation. Effects recheck the session, revision, capability ceiling and command permission. Teleport loads its target chunk asynchronously and guards again before the effect. Cancellation cannot undo already completed sends, writes or teleports.
+Player disconnect, shutdown, source-revision replacement/retirement and removal of required capabilities retire pending work. Revoking an AI connection cancels its pending tests and prevents later remote operations; it does not unload installed scripts or erase their persisted execution policy. A reconnect never revives the invocation. Effects recheck the session, revision, capability ceiling and command permission. Teleport loads its target chunk asynchronously and guards again before the effect. Cancellation cannot undo already completed sends, writes or teleports.
 
 State keys use the feature ID, invoking player UUID and name matching `[a-z][a-z0-9_]{0,63}`. Locations persist in `player-state/variables.sqlite` across normal restarts and revisions of the same feature. A concurrent modification after a read can fail with `STATE_CONFLICT`. No script deletion API or automatic JSON migration is included. Back up player-state with the server stopped; script revision rollback does not restore player state. This foundation does not complete broader gameplay or the planned optional model integration.
 
@@ -179,3 +184,5 @@ The owner can inspect ais connections and revoke with ais disconnect. Approval d
 Use this current reference, discovered tool schemas and the bundled authoring contract for generation. The following full-guide appendix includes human tutorials, historical test records and explicitly planned work. Historical release examples do not add current capabilities.
 
 State writes have an acceptance check immediately before commit. Cancellation rejects work not yet accepted; an accepted write may finish after logout, revocation, timeout or shutdown. Accepted and completed writes are not rolled back.
+
+Test jobs retain at most 32 results globally and 8 per connection for up to 180 seconds; execution has a 120-second deadline. Captured message JSON is limited to 12 KiB and receipts to 6 KiB. `outputTruncated` or `receiptsTruncated` signals incomplete capture; truncated messages never count as a successful exact match. These capture limits do not undo effects already performed.

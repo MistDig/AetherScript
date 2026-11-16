@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/assets/aetherscript-banner.png" alt="AetherScript — little scripts, big possibilities" width="1200"></p>
 
-<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.16"><b>Download 0.0.16</b></a> · <a href="https://mistdig.github.io/AetherScript/">Explore the docs</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
+<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.17"><b>Download 0.0.17</b></a> · <a href="https://mistdig.github.io/AetherScript/">Explore the docs</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
 
 [![Build](https://github.com/MistDig/AetherScript/actions/workflows/ci.yml/badge.svg)](https://github.com/MistDig/AetherScript/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/MistDig/AetherScript)](https://github.com/MistDig/AetherScript/releases)
@@ -8,17 +8,17 @@
 
 An open-source Minecraft scripting engine with **live hot reloading**, saved working revisions and a path toward secure, vendor-neutral AI tooling. Target: **Paper 26.3 build 245 · Java 25**.
 
-## Local homes foundation in the current 0.0.16 implementation
+## Native commands and approved tests in 0.0.17
 
-Native player commands can read immutable locations, persist homes, wait a bounded number of server ticks and teleport the invoking player. Install [homes.aether](examples/homes.aether) locally and approve its execution capabilities in the actual server console; see the [homes guide](https://mistdig.github.io/AetherScript/guide/language.html#owner-approved-homes-commands-current-implementation). Existing MCP grants remain message-only, including full native-script access. This command-only slice does not complete the planned event, UI, general gameplay or optional model ecosystem. Verification claims below retain their original versions.
+Native player commands can read immutable locations, persist homes, wait a bounded number of server ticks and teleport the invoking player. Install [homes.aether](examples/homes.aether) locally with console approval, or authorize your AI in the browser to create and activate native commands; see the [homes guide](https://mistdig.github.io/AetherScript/guide/language.html#owner-approved-homes-commands-current-implementation). Fresh 0.0.17 browser approval selects all or selected native IDs, an execution capability set and optionally one test-player UUID. The AI can create, edit and activate native features within that grant. The execution set persists for installed features after AI disconnect. Console `ais permit` and `ais restrict` remain manual overrides that browser grants cannot exceed. Legacy personal-relay and older browser grants stay message-only until fresh approval. This command-only slice does not complete the planned event, UI, general gameplay or optional model ecosystem. Verification claims below retain their original versions.
 
-## Browser pairing in 0.0.8
+## Connect through your browser
 
-Install the plugin, run `ais connect` in the Minecraft server console, and open the private link on your AI computer. Choose your app and approve all native scripts or selected script IDs in its browser authorization screen. Each server creates its own identity automatically. The shared service handles the connection.
+Install the plugin, run `ais connect` in the Minecraft server console, and open the private link on your AI computer. Choose your app, approve all native scripts or selected IDs, select execution capabilities and optionally select a test player in the browser. Hosted clients use one HTTPS MCP URL; they need no separate gateway JAR or Java installation on the AI computer. Each server creates its own identity automatically. The shared service handles the connection.
 
-For Codex on Windows, the page links a ZIP. Extract it and double-click `Connect-AetherScript.cmd` to register the hosted MCP and open sign-in. For Claude custom connectors and Codex CLI, use the hosted MCP address displayed on the page and approve access in the same browser as your private console link. [Step-by-step guide](https://mistdig.github.io/AetherScript/guide/security.html)
+For Claude, open Customize > Connectors, add the displayed HTTPS MCP URL and choose Register automatically. For Cursor, use the page's installation link. Codex users can use the page's Windows setup ZIP or the documented CLI add/login commands. Complete authorization in the browser holding your private console link. Client steps and dated primary sources are recorded in [MCP clients](docs/mcp-clients.md). [Step-by-step guide](https://mistdig.github.io/AetherScript/guide/security.html)
 
-Use `ais connections` to see grants and `ais disconnect` to revoke access. Normal server restarts preserve approved connections. The service can see scripts/results, and connections expire after 30 days.
+Use `ais connections` to see grants and `ais disconnect` to revoke access. Normal server restarts preserve approved connections. Disconnect revokes remote access and pending tests; installed scripts and persisted capability grants keep working. The service can see scripts/results, and connections expire after 30 days.
 
 ## Runtime inputs in 0.0.7
 
@@ -71,7 +71,7 @@ This experimental implementation supports sender messages, preparation-time lega
 
 ## Get started
 
-1. Stop Paper, back up existing AetherScript data, and install **AetherScript-0.0.16.jar** from the release. Keep only one plugin JAR installed.
+1. Stop Paper, back up existing AetherScript data, and install **AetherScript-0.0.17.jar** from the release. Keep only one plugin JAR installed.
 2. Start with Java 25 and wait for `Ready. Restored ...`. A new install creates and activates `plugins/AetherScript/scripts/hello-ai.yml`.
 3. Run `/ais run hello-ai`. Players need `aetherscript.example.hello` (operators by default).
 4. Edit its quoted `text`, save, then `/ais validate hello-ai` and `/ais reload hello-ai`.
@@ -107,10 +107,12 @@ python integration-tests/mcp_stdio.py
 
 Linux/macOS: `./gradlew clean check build`. Gradle 9.1.0 wrapper, dependency locks and checksums are committed. First build needs network access.
 
-- `plugin-paper/build/libs/plugin-paper-0.0.16.jar`: standalone plugin; do not install the thin JAR.
-- `gateway-mcp/build/libs/gateway-mcp-0.0.16.jar`: separate executable MCP process.
+- `plugin-paper/build/libs/plugin-paper-0.0.17.jar`: standalone plugin; do not install the thin JAR.
+- `gateway-mcp/build/libs/gateway-mcp-0.0.17.jar`: separate executable MCP process.
 
-The 0.0.16 implementation passed **274 Java tests** with no failures, eight relay regressions, packaged CLI/MCP authoring, both SQLite packaging/license checks, nine wiki examples and seven published 0.0.11 semantic-hash comparisons. The documentation production build and link/search checks passed. [0.0.16 evidence](docs/evidence/0.0.16/) separates real-server checks and remaining limits.
+The 0.0.17 clean build passed **286 Java tests**, with nine relay regressions and the packaged authoring/storage/compatibility checks passing. Seven browser/OAuth/MCP workflow groups passed across two Paper boots, including native authoring without manual permits, real-player tests and effect receipts, isolation, permission loss, restart and revocation. [0.0.17 evidence](docs/evidence/0.0.17/) identifies protocol testing separately from actual AI-client certification.
+
+Historical 0.0.16 baseline: The 0.0.16 implementation passed **274 Java tests** with no failures, eight relay regressions, packaged CLI/MCP authoring, both SQLite packaging/license checks, nine wiki examples and seven published 0.0.11 semantic-hash comparisons. The documentation production build and link/search checks passed. [0.0.16 evidence](docs/evidence/0.0.16/) separates real-server checks and remaining limits.
 
 Paper 26.3 build 245 passed 23 homes checks across two boots with two synthetic 26.1 clients translated through ViaProxy 3.4.14. The fixture verifies per-player persistence, delayed teleport, replacement/permission/capability/disconnect cancellation and restart. This is not native 26.3 UI or two-PC verification.
 
@@ -118,7 +120,7 @@ Historical baseline: The 0.0.12 clean build passed **254 Java tests**. Both pack
 
 ## MCP connection
 
-The default connection uses the shared hosted MCP at `https://aetherscript-relay.mistdig143.workers.dev/mcp`. Start from `ais connect` to establish the owner browser session before your AI app begins OAuth. Approval limits the connection to all native scripts or the selected feature IDs and the fixed script operations.
+The default connection uses the shared hosted MCP at `https://aetherscript-relay.mistdig143.workers.dev/mcp`. Start from `ais connect` to establish the owner browser session before your AI app begins OAuth. Approval limits the connection to all native scripts or the selected feature IDs and the fixed script operations, execution capability set and optional owner-selected test player. Native tests report real effects and may require polling aether_scripts_test_status with id and testId.
 
 The local gateway JAR retains offline validation, synthetic message tests, the 0.0.5 loopback status mode and the 0.0.6 personal-relay mode. It is optional for hosted pairing. [Client verification](docs/mcp-clients.md) records exactly which checks ran.
 

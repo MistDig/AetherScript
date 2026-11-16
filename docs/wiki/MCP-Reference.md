@@ -2,7 +2,7 @@
 
 ---
 
-Remote grants remain message-only, including full native-script access. Player location, persistent home state, delay and teleport calls require local console approval and local player invocation; remote apply/activation/tests reject those requirements. See the [local homes guide](https://github.com/MistDig/AetherScript/wiki/Language-Reference#owner-approved-homes-commands-current-implementation).
+Fresh 0.0.17 browser approval selects all or selected native feature IDs, an explicit execution capability set and, optionally, one test-player UUID. The AI may create, edit and activate native features within that grant without another per-edit approval. The approved execution set is persisted for those features so installed commands keep running after the AI disconnects. `ais permit` and `ais restrict` remain manual owner overrides; a browser grant cannot override an explicit console ceiling. Legacy personal-relay and older browser grants remain message-only until fresh browser approval; they never expand automatically.
 
 ## Available tools
 
@@ -10,14 +10,16 @@ Start with `aether_server_status` to confirm which server is connected. A select
 
 | Tool | Input | Result and next step |
 | --- | --- | --- |
+| `aether_capabilities` | No arguments | Machine-readable callable/type guide, approved execution capabilities, targets and test-player boundaries. |
 | `aether_server_status` | No arguments | Current live registry generation and server grant. A connection failure is an error. |
 | `aether_scripts_list` | No arguments | Selected IDs, or existing native IDs under full access. Full access can create new valid IDs. |
 | `aether_scripts_read` | `id` | Editable source, source hash, active hash, revision and generation. Read before editing. |
 | `aether_scripts_validate` | `id`, `source` | Validates a complete native script using the server compiler. |
 | `aether_scripts_apply` | `id`, `source`, `expectedHash` | Validates, activates, saves and reads back the result. Use the read hash, or `ABSENT` to create. |
-| `aether_scripts_test` | `id`, `expectedMessages`, optional `arguments` | Invokes the active feature using a synthetic sender, captures messages and checks exact equality. |
+| `aether_scripts_test` | `id`, `expectedMessages`, optional `arguments` | Starts an authorized active-feature test, possibly returning pending and testId; native/player-only tests use the owner-approved real actor and can cause effects. |
+| `aether_scripts_test_status` | `id`, `testId` | Polls the same connection's test for actual messages, effects, error and exact comparison. |
 
-The separate local gateway also exposes `aether_capabilities`, `aether_validate`, and `aether_test`. These can validate and test supplied source offline. Offline success does not imply server authorization.
+The separate local gateway also exposes `aether_validate` and `aether_test`. These can validate and test supplied source offline. Offline success does not imply server authorization.
 
 ## A reliable editing workflow
 
@@ -27,13 +29,17 @@ On a stale-hash error, read again before deciding whether to merge the owner's e
 
 ## Test limitations
 
-Synthetic tests capture message actions. They do not impersonate a connected player or verify client rendering. A player-only sender rule requires a player test. Test mismatch means the actual messages differ from the expected list, even when invocation completed.
+`aether_scripts_test` uses the owner-approved online player for native or player-only commands; the player must hold the command's declared permission. The AI cannot choose or replace that actor. Tests can send messages, write own-player state, wait and teleport the approved player: these are real effects. A start response may return `status: "pending"` and `testId`; poll `aether_scripts_test_status` with `{id,testId}` until completion, then report actual messages, errors, effects and comparison. A pure `sender any` message program without an approved actor retains synthetic compatibility. Offline `aether_test` is always synthetic and host calls fail with `HOST_CONTEXT_REQUIRED`.
+
+Test mismatch means actual messages differ from the expected list. Errors and completed effects remain observable; completed writes or teleports are not rolled back. Job IDs cannot be used across connections or features. Revocation, permission loss and stale active hashes retire pending tests.
 
 ## Boundaries and diagnostics
 
 An unknown ID outside the grant is denied. A malformed or invalid source cannot replace a saved working revision. Use `ais status <id>`, `ais diff <id>`, `ais history <id>` and rollback on the server when investigating a failed update.
 
 The hosted service bounds JSON requests, source size, pending operations and daily work. Keep native sources below the tool schema's source limit. The local compiler supports larger sources, but a transport envelope includes JSON escaping and metadata.
+
+Test jobs retain at most 32 results globally and 8 per connection for up to 180 seconds; execution has a 120-second deadline. Captured message JSON is limited to 12 KiB and receipts to 6 KiB. `outputTruncated` or `receiptsTruncated` signals incomplete capture; truncated messages never count as a successful exact match. These capture limits do not undo effects already performed.
 
 ---
 
