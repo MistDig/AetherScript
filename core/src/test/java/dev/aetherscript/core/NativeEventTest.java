@@ -65,6 +65,7 @@ class NativeEventTest {
         var legacy = compile(command);
         var mixed = compile(command + "on join permission \"*\" {\nsend player_name\n}");
         assertFalse(mixed.program().eventOnly());
+        assertThrows(ValidationException.class, () -> mixed.program().evaluate(List.of("unexpected")));
         assertEquals(legacy.definition().command().actions(), mixed.program().evaluate(List.of()));
         assertNotEquals(legacy.irHash(), mixed.irHash());
         assertEquals(mixed.irHash(), compile(command + "on join permission \"*\" {\nsend player_name\n}").irHash());
@@ -90,6 +91,11 @@ class NativeEventTest {
         assertEquals(2, reopened.target().size());
         assertTrue(reopened.target().get("protect").program().eventOnly());
         assertTrue(reopened.target().get("protect").program().eventHandlers().getFirst().evaluate(data("block_place", "world")).cancelled());
+    }
+
+    @Test void rejectsUnboundedHandlersAndMessageFanout() {
+        assertThrows(ValidationException.class, () -> compile("on join permission \"*\" {\n" + "send \"x\"\n".repeat(33) + "}"));
+        assertThrows(ValidationException.class, () -> compile("on join permission \"*\" {\nsend \"x\"\n}\n".repeat(17)));
     }
 
 }

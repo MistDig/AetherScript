@@ -289,7 +289,7 @@ on block_place permission "*" bypass "aetherscript.protection.bypass" {
 Run these commands in the server console:
 
 ```text
-ais permit starter-protection runtime.message.send runtime.event.block_break runtime.event.block_place runtime.event.cancel
+ais permit starter-protection runtime.message.send,runtime.event.block_break,runtime.event.block_place,runtime.event.cancel
 ais validate starter-protection
 ais reload starter-protection
 ```

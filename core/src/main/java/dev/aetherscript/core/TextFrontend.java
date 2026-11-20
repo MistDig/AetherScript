@@ -444,6 +444,8 @@ public final class TextFrontend {
         public List<Feature.MessageAction> evaluate(List<String> arguments) { return evaluate(arguments, null); }
         public List<Feature.MessageAction> evaluate(List<String> arguments, InvocationContext context) {
             if (command == null) throw new ValidationException("$", "Event-only features have no command");
+            if (command.program() == null && !InvocationArguments.checked(arguments).isEmpty())
+                throw new ValidationException("$.arguments", "This feature takes no invocation arguments");
             return command.program() == null ? command.definition().command().actions() : command.program().evaluate(arguments, context);
         }
         @Override public boolean equals(Object other) { return other instanceof EventProgram program && sourceHash.equals(program.sourceHash); }
@@ -640,6 +642,7 @@ public final class TextFrontend {
                 fields.forEach((name, type) -> eventBindings.put(name, new Binding(name, type, kind, bindings++, false)));
                 scopes.push(eventBindings); eventKind = kind.text();
                 List<Statement> body = block();
+                if (maximumMessages(body) > FeatureParser.MAX_ACTIONS) throw kind.error("Event handlers may emit at most 32 messages on any branch");
                 eventKind = null; scopes.pop(); newlines();
                 handlers.add(new NativeEventHandler(kind.text(), permission.text(), bypass, Map.copyOf(eventBindings), body));
             }
