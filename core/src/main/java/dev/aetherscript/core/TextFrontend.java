@@ -936,7 +936,12 @@ public final class TextFrontend {
                         var descriptor = callables.descriptor(token.text()); take(); List<Expression> values = new ArrayList<>();
                         if (!matches(")")) do {
                             if (values.size() >= descriptor.parameters().size()) throw token.error("Too many native call arguments");
-                            Expression value = expression(); requireType(value, descriptor.parameters().get(values.size()), token, "Native call argument has the wrong type"); values.add(value);
+                            Expression value = expression();
+                            if (CallableRegistry.typedState(descriptor) && values.size() == 1) {
+                                try { descriptor = CallableRegistry.specialize(descriptor, value.type()); }
+                                catch (IllegalArgumentException invalid) { throw token.error(invalid.getMessage()); }
+                            }
+                            requireType(value, descriptor.parameters().get(values.size()), token, "Native call argument has the wrong type"); values.add(value);
                             if (!matches(",")) break; take();
                         } while (true);
                         expect(")"); if (values.size() != descriptor.parameters().size()) throw token.error("Missing native call argument");

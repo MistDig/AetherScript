@@ -1,6 +1,6 @@
 # SQLite variable baseline
 
-`SQLiteVariables` is a blocking Java service, separate from the existing JSON service. It has no Bukkit dependencies and no script syntax, tick scheduling, or plugin activation. The host must select its storage explicitly and dispatch every constructor/read/commit/close call onto a bounded owner-managed worker. There is no automatic JSON migration.
+`SQLiteVariables` is a blocking Java service, separate from the existing JSON service. The core baseline has no Bukkit dependencies. Paper separately binds typed per-player `state_save` / `state_load` calls and the location helpers through bounded asynchronous host execution. The host must select its storage explicitly and dispatch every constructor/read/commit/close call onto a bounded owner-managed worker. There is no automatic JSON migration.
 
 The service reuses `PersistentVariables.Key`, `Value`, `Entry`, and `Mutation`. Feature namespace and optional canonical player UUID identify each typed text/integer/boolean key. Revision zero means absent. A commit contains 1–128 distinct mutations and compares all expected revisions in one `BEGIN IMMEDIATE` transaction; a stale revision rejects the whole batch. At most 4096 keys are allowed. Reads return a fresh immutable transaction snapshot, including changes committed through another connection. SQLite's busy timeout is 5 seconds; a lock timeout is an I/O failure, distinct from a stale revision conflict. Retrying requires host policy.
 

@@ -2,7 +2,7 @@
 
 ## Current capabilities
 
-This document describes the 0.0.18 language foundation; verification remains attributed to its recorded version. It supports native .aether message commands, typed positional arguments, immutable and mutable locals, bounded loops, typed functions, immutable homogeneous lists/maps/sets, arithmetic, boolean conditions, explicit reload, revisions and rollback. A locally approved native player-command slice adds location snapshots, own-player/feature persistent homes, bounded delay and self teleport. Events, inventories, item grants, economy, quests and general persistent-value bindings remain planned. Do not invent syntax or promise unsupported gameplay.
+This document describes the 0.0.19 language foundation; verification remains attributed to its recorded version. It supports native .aether message commands, typed positional arguments, immutable and mutable locals, bounded loops, typed functions, immutable homogeneous lists/maps/sets, arithmetic, boolean conditions, explicit reload, revisions and rollback. A locally approved native player-command slice adds location snapshots, own-player/feature persistent homes, bounded delay and self teleport. Events, inventories, item grants, economy and quest systems remain planned. Do not invent syntax or promise unsupported gameplay.
 
 Use tool discovery from the connected app as the authority for available tools. Hosted and local gateways expose different tools. A hosted service version may differ from the plugin release version.
 
@@ -111,7 +111,7 @@ command countdown permission "aetherscript.example.countdown" sender any {
 
 Test with {"id":"countdown","expectedMessages":["Count 3","Count 2","Count 1","Done"]}. Run /ais run countdown twice; both invocations start at 3.
 
-PersistentVariables provides the JSON host backend; SQLiteVariables provides a separate transactional SQLite backend. Paper binds the narrow own-location operations below to SQLite on its bounded I/O worker. `var` remains invocation-local. Other hosts select their backend; no automatic JSON-to-SQLite migration is performed. Real command registration and this runtime slice do not establish completion of the broader gameplay ecosystem.
+PersistentVariables provides the JSON host backend; SQLiteVariables provides a separate transactional SQLite backend. Paper binds typed per-player save/load and the own-location operations below to SQLite on its bounded I/O worker. `var` remains invocation-local. Other hosts select their backend; no automatic JSON-to-SQLite migration is performed. Real command registration and this runtime slice do not establish completion of the broader gameplay ecosystem.
 
 ## Immutable lists
 
@@ -144,6 +144,33 @@ command scores permission "aetherscript.example.scores" sender any {
 ```
 
 Test with `{"id":"scores","expectedMessages":["6"]}`. Each invocation emits `6` and starts with fresh local state.
+
+## Typed per-player storage (0.0.19)
+
+`state_save(key, value)` durably saves a typed value and returns `unit`. `state_load(key, fallback)` returns the saved value with the exact type of `fallback`, or the fallback when the key is absent. Both require `state.own` and a player invocation. Keys match `[a-z][a-z0-9_]{0,63}` and are isolated by feature ID and invoking player UUID. A saved type mismatch fails with `STATE_TYPE_MISMATCH`; changing a fallback does not migrate existing data. Immutable nested lists, maps, sets, UUIDs, locations and optionals retain their types. Values exclude `unit`, including nested `unit`. Encoded values are capped at 4096 ASCII bytes and 4096 nodes; exceeding codec bounds fails with `STATE_VALUE_LIMIT`. The same key cannot change type. Legacy location keys and typed keys cannot be read or overwritten through the other API; incompatible or corrupt encoding fails with `STATE_TYPE_MISMATCH`. The existing `state_get_location` and `state_put_location` calls remain supported.
+
+Copy `examples/player-progress.aether` into the scripts directory. Approve locally with `ais permit player-progress state.own`, then validate/reload it and grant `aetherscript.example.progress` to the test players. `/progress show` initially sends `No saved progress.`. `/progress save` sends `Progress saved: score=7, quest_stage=2.`. A later `/progress show` sends `Score: 7` then `Quest stage: 2`. Another player's initial result remains `No saved progress.`. Saved progress survives reload and normal restart under the same feature ID.
+
+```aether
+feature player-progress version "1.0.0"
+command progress permission "aetherscript.example.progress" sender player {
+  arg action: text = "show"
+  if action == "save" {
+    state_save("progress", {"score": 7, "quest_stage": 2})
+    send "Progress saved: score=7, quest_stage=2."
+  } else {
+    let progress = state_load("progress", map<text, integer>())
+    if contains_key(progress, "score") {
+      send "Score: " + text(unwrap(get(progress, "score")))
+      send "Quest stage: " + text(unwrap(get(progress, "quest_stage")))
+    } else {
+      send "No saved progress."
+    }
+  }
+}
+```
+
+Storage runs on the bounded worker in `player-state/variables.sqlite`. Read/modify/write sequences can fail with `STATE_CONFLICT`; effects are ordered and do not form a transaction across calls. Cancellation rejects unaccepted writes; an accepted write can finish after cancellation. Back up player state with the server stopped. Source rollback does not roll back player data. Deletion, automatic migration, feature-global script state and a general transaction API remain planned.
 
 ## Immutable maps and sets (0.0.18 foundation)
 

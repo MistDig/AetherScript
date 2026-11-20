@@ -88,6 +88,18 @@ assert not home_invalid['valid'] and home_invalid['line'] > 0, home_invalid
 assert not home_offline['valid'] and 'HOST_CONTEXT_REQUIRED' in home_offline['message'], home_offline
 assert {c['name'] for c in guide['hostCallables']} >= {
     'player_location','state_get_location','state_put_location','delay','teleport_self'}
+catalog = {call['name']: call for call in guide['hostCallables']}
+for name, result_type in [('state_save', 'unit'), ('state_load', 'T')]:
+    assert catalog[name]['parameters'] == ['text', 'T'] and catalog[name]['returns'] == result_type
+    assert catalog[name]['requiredCapabilities'] == ['state.own']
+progress = guide['typedPlayerStorage']['example']
+assert progress == (repo / 'examples/player-progress.aether').read_text(encoding='utf-8')
+bad_progress = progress.replace('state_save("progress",', 'state_save(123,')
+progress_valid, progress_error = calls([('aether_validate', {'format':'aether','source':source})
+                                        for source in (progress, bad_progress)])
+assert progress_valid['valid'] and set(progress_valid['requiredCapabilities']) == {'state.own','runtime.message.send'}, progress_valid
+assert not progress_error['valid'] and progress_error['reason'] and progress_error['line'] == next(
+    number for number, line in enumerate(bad_progress.splitlines(), 1) if 'state_save(123,' in line)
 print(json.dumps({"result":"pass","version":version,"checks":["discover template","validate template",
     "single-line edit changes behavior","comment preserves behavior","type error identifies line and column",
     "CLI and MCP agree on valid source","CLI and MCP agree on invalid source",
@@ -96,4 +108,5 @@ print(json.dumps({"result":"pass","version":version,"checks":["discover template
     "list iteration example emits expected total", "mixed append rejects with source diagnostic",
     "function defaults and explicit overrides run through packaged MCP",
     "homes validates with inferred capabilities", "host argument types reject with location",
-    "offline native execution requires host context", "host discovery exports executable callable catalog"]},indent=2))
+    "offline native execution requires host context", "host discovery exports executable callable catalog",
+    "typed state signatures discovered", "player-progress validates with scoped capabilities"]},indent=2))

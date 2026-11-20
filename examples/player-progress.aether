@@ -1,0 +1,16 @@
+feature player-progress version "1.0.0"
+command progress permission "aetherscript.example.progress" sender player {
+  arg action: text = "show"
+  if action == "save" {
+    state_save("progress", {"score": 7, "quest_stage": 2})
+    send "Progress saved: score=7, quest_stage=2."
+  } else {
+    let progress = state_load("progress", map<text, integer>())
+    if contains_key(progress, "score") {
+      send "Score: " + text(unwrap(get(progress, "score")))
+      send "Quest stage: " + text(unwrap(get(progress, "quest_stage")))
+    } else {
+      send "No saved progress."
+    }
+  }
+}

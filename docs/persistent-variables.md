@@ -1,6 +1,6 @@
 # Persistent variable core baseline
 
-`PersistentVariables` is a standalone, blocking, single-writer Java service. It has no Bukkit objects or gameplay behavior. Hosts should construct it during startup, execute disk operations on a bounded worker outside the tick/invocation path, and close it during shutdown. It is not wired into the language or host runtime yet.
+`PersistentVariables` is a standalone, blocking, single-writer Java service. It has no Bukkit objects or gameplay behavior. Hosts should construct it during startup, execute disk operations on a bounded worker outside the tick/invocation path, and close it during shutdown. This page describes the standalone JSON baseline. Paper uses the separate SQLite player-state service and exposes typed `state_save` / `state_load` calls; see the language guide.
 
 Keys consist of feature ID, optional player UUID, and a variable name (`[a-z][a-z0-9_]{0,63}`). A null player means feature scope. Values are explicitly text (up to 4096 UTF-8 bytes), signed 64-bit integer, or boolean. There is no implicit conversion. Each key starts absent at revision zero; every accepted mutation increments its revision, even if the value is unchanged. Deletion is deliberately absent so revisions cannot reset and permit stale writes.
 
@@ -10,4 +10,4 @@ The storage directory is exclusive to one service instance using an OS file lock
 
 Directory fsync is attempted after replacement; `directoryFlushSupported()` exposes when it is unavailable (commonly Windows). Replacement is the commit point: a later directory-flush failure returns the committed state and marks flushing unavailable, so memory and the committed file retain the same revision. Process-interruption safety is covered by tests; power-loss durability depends on filesystem and directory-flush support. No real-server or power-loss verification is claimed.
 
-SQLite is not implemented: no SQLite dependency was present in the project or the default local Gradle cache. This atomic JSON snapshot is a foundational persistence baseline, not completion of the requested SQLite/WAL milestone. Runtime/language integration, migrations, database backup policy, quotas per feature/player, and operational recovery tooling remain follow-up work.
+SQLite is implemented separately; see [SQLite variables](sqlite-variables.md). Automatic JSON migration, a database backup API, operational recovery tooling and broader persistence policy remain follow-up work.

@@ -22,6 +22,11 @@ public final class AuthoringGuide {
             var parameters = call.putArray("parameters");
             descriptor.parameters().forEach(type -> parameters.add(type.name().toLowerCase(Locale.ROOT)));
             call.put("returns", descriptor.result().name().toLowerCase(Locale.ROOT));
+            if (CallableRegistry.typedState(descriptor)) {
+                parameters.removeAll(); parameters.add("text"); parameters.add("T");
+                call.put("returns", descriptor.id().equals("state.own.load") ? "T" : "unit");
+                call.put("typeParameter", "T inferred from argument 2; unit and containers containing unit are unsupported");
+            }
             call.put("executionContext", descriptor.context().name());
             var capabilities = call.putArray("requiredCapabilities");
             descriptor.requiredCapabilities().stream().sorted().forEach(capabilities::add);

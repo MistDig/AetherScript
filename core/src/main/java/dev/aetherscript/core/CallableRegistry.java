@@ -36,6 +36,19 @@ public final class CallableRegistry {
         CallableRegistry copy = new CallableRegistry();
         names.values().forEach(copy::register); copy.frozen = true; return copy;
     }
+    public static boolean typedState(Descriptor descriptor) {
+        return descriptor.id().equals("state.own.save") || descriptor.id().equals("state.own.load");
+    }
+    public static Descriptor specialize(Descriptor descriptor, ScriptType type) {
+        if (!typedState(descriptor)) return descriptor;
+        if (containsUnit(type)) throw new IllegalArgumentException("STATE_TYPE_UNSUPPORTED: unit cannot be persisted");
+        return new Descriptor(descriptor.id(), descriptor.dslName(), List.of(ScriptType.TEXT, type),
+            descriptor.id().equals("state.own.load") ? type : ScriptType.UNIT, descriptor.context(), descriptor.requiredCapabilities(),
+            descriptor.playerRequired(), descriptor.platform(), descriptor.errorContract(), descriptor.documentation(), descriptor.owner());
+    }
+    private static boolean containsUnit(ScriptType type) {
+        return type.equals(ScriptType.UNIT) || type.element() != null && containsUnit(type.element()) || type.key() != null && containsUnit(type.key());
+    }
     public ScriptValue invoke(String name, List<ScriptValue> arguments, InvocationContext context, SourceLocation at) {
         Objects.requireNonNull(at);
         Descriptor descriptor = descriptor(name);
@@ -43,6 +56,10 @@ public final class CallableRegistry {
         if (context == null) throw at.error("Callable requires a host invocation context");
         List<ScriptValue> args;
         try { args = List.copyOf(arguments); } catch (RuntimeException invalid) { throw at.error("Invalid callable arguments"); }
+        if (typedState(descriptor) && args.size() == 2) {
+            try { descriptor = specialize(descriptor, args.get(1).type()); }
+            catch (IllegalArgumentException invalid) { throw at.error(invalid.getMessage()); }
+        }
         if (args.size() != descriptor.parameters().size()) throw at.error("Wrong argument count for " + name);
         for (int i = 0; i < args.size(); i++)
             if (!descriptor.parameters().get(i).equals(args.get(i).type())) throw at.error("Wrong argument type for " + name + " at argument " + (i + 1));

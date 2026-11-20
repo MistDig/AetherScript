@@ -13,6 +13,8 @@ public final class StandardCallables {
         add(registry, "state.own.put_location", "state_put_location", List.of(ScriptType.TEXT, ScriptType.LOCATION), ScriptType.UNIT, ASYNC_IO, "state.own", "Durably store a location owned by this feature and player.");
         add(registry, "scheduler.delay", "delay", List.of(ScriptType.INTEGER), ScriptType.UNIT, PAPER_MAIN, "scheduler.delay", "Resume after a bounded number of server ticks.");
         add(registry, "player.teleport.self", "teleport_self", List.of(ScriptType.LOCATION), ScriptType.UNIT, PAPER_MAIN, "player.teleport.self", "Teleport only the invoking player to a validated location.");
+        add(registry, "state.own.save", "state_save", List.of(ScriptType.TEXT, ScriptType.UNIT), ScriptType.UNIT, ASYNC_IO, "state.own", "Save a bounded typed value T for this feature/player; T is inferred from argument 2. Unit is not persistable.");
+        add(registry, "state.own.load", "state_load", List.of(ScriptType.TEXT, ScriptType.UNIT), ScriptType.UNIT, ASYNC_IO, "state.own", "Load a bounded typed value T, inferred from fallback argument 2; missing returns fallback and a stored type mismatch fails.");
         return registry;
     }
     private static void add(CallableRegistry registry, String id, String name, List<ScriptType> parameters, ScriptType result,

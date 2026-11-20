@@ -1,4 +1,4 @@
-[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.17)
+[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.19)
 
 ---
 
@@ -241,6 +241,33 @@ Homes are stored in `plugins/AetherScript/player-state/variables.sqlite` and sur
 
 `ais permit` replaces the feature's approved set (and always includes `runtime.message.send`); it is not additive. `ais restrict homes` restores message-only execution, retires incompatible active commands and cancels affected work. Manual console approval does not activate source: reload explicitly; an authorized AI apply activates through the durable pipeline. Policy lives in `plugins/AetherScript/script-capabilities.json` and survives restart. If policy storage is corrupt, execution falls back to a message-only ceiling until the owner repairs it. Fresh browser approval can supply execution capabilities for autonomous native apply; explicit console policy remains the ceiling. Native or player-only MCP tests use the owner-selected online player, who must hold the declared command permission. The AI cannot choose the actor. Tests cause real sends, state writes, waits and teleports. When `aether_scripts_test` returns `pending: true` and `testId`, poll `aether_scripts_test_status` with `{id,testId}` and report actual messages, errors and effects. Pure `sender any` message tests without an actor remain synthetic. Offline `aether_test` stays synthetic and rejects host execution with `HOST_CONTEXT_REQUIRED`.
 
+## Typed per-player storage (0.0.19)
+
+`state_save(key, value)` durably saves a typed value and returns `unit`. `state_load(key, fallback)` returns the saved value with the exact type of `fallback`, or the fallback when the key is absent. Both require `state.own` and a player invocation. Keys match `[a-z][a-z0-9_]{0,63}` and are isolated by feature ID and invoking player UUID. A saved type mismatch fails with `STATE_TYPE_MISMATCH`; changing a fallback does not migrate existing data. Immutable nested lists, maps, sets, UUIDs, locations and optionals retain their types. Values exclude `unit`, including nested `unit`. Encoded values are capped at 4096 ASCII bytes and 4096 nodes; exceeding codec bounds fails with `STATE_VALUE_LIMIT`. The same key cannot change type. Legacy location keys and typed keys cannot be read or overwritten through the other API; incompatible or corrupt encoding fails with `STATE_TYPE_MISMATCH`. The existing `state_get_location` and `state_put_location` calls remain supported.
+
+Copy `examples/player-progress.aether` into the scripts directory. Approve locally with `ais permit player-progress state.own`, then validate/reload it and grant `aetherscript.example.progress` to the test players. `/progress show` initially sends `No saved progress.`. `/progress save` sends `Progress saved: score=7, quest_stage=2.`. A later `/progress show` sends `Score: 7` then `Quest stage: 2`. Another player's initial result remains `No saved progress.`. Saved progress survives reload and normal restart under the same feature ID.
+
+```aether
+feature player-progress version "1.0.0"
+command progress permission "aetherscript.example.progress" sender player {
+  arg action: text = "show"
+  if action == "save" {
+    state_save("progress", {"score": 7, "quest_stage": 2})
+    send "Progress saved: score=7, quest_stage=2."
+  } else {
+    let progress = state_load("progress", map<text, integer>())
+    if contains_key(progress, "score") {
+      send "Score: " + text(unwrap(get(progress, "score")))
+      send "Quest stage: " + text(unwrap(get(progress, "quest_stage")))
+    } else {
+      send "No saved progress."
+    }
+  }
+}
+```
+
+Storage runs on the bounded worker in `player-state/variables.sqlite`. Read/modify/write sequences can fail with `STATE_CONFLICT`; effects are ordered and do not form a transaction across calls. Cancellation rejects unaccepted writes; an accepted write can finish after cancellation. Back up player state with the server stopped. Source rollback does not roll back player data. Deletion, automatic migration, feature-global script state and a general transaction API remain planned.
+
 ## YAML and JSON
 
 Structured definitions continue to use schema version 1:
@@ -284,10 +311,10 @@ The engine caps active features at 128, tracked histories at 128 and scripts-dir
 
 Copy an example to `scripts/welcome.aether` or `scripts/welcome.yml`. Set both feature ID and command name to `welcome`, choose the explicit permission `aetherscript.example.welcome`, and write your message. Validate, reload and invoke `/ais run welcome`.
 
-[Working examples](https://github.com/MistDig/AetherScript/tree/v0.0.17/examples) · [Structured JSON Schema](https://github.com/MistDig/AetherScript/blob/v0.0.17/schema/feature-v1.schema.json) · [Grammar and architecture decision](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/language-decision.md) · [Capability matrix](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/capabilities.csv)
+[Working examples](https://github.com/MistDig/AetherScript/tree/v0.0.19/examples) · [Structured JSON Schema](https://github.com/MistDig/AetherScript/blob/v0.0.19/schema/feature-v1.schema.json) · [Grammar and architecture decision](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/language-decision.md) · [Capability matrix](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/capabilities.csv)
 
 State writes have an acceptance check immediately before commit. Cancellation rejects work not yet accepted; an accepted write may finish after logout, revocation, timeout or shutdown. Accepted and completed writes are not rolled back.
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.17
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.19

@@ -302,7 +302,7 @@ final class GameplayRuntime implements AutoCloseable, Listener {
                     Location place = player().getLocation();
                     return new ScriptValue(ScriptType.LOCATION, new ScriptValue.LocationSnapshot(place.getWorld().getUID(), place.getX(), place.getY(), place.getZ(), place.getYaw(), place.getPitch()));
                 });
-                case "state.own.get_location", "state.own.put_location" -> state(descriptor.id(), values);
+                case "state.own.get_location", "state.own.put_location", "state.own.save", "state.own.load" -> state(descriptor.id(), values);
                 case "scheduler.delay" -> {
                     long ticks = values.getFirst().integer();
                     if (ticks < 0 || ticks > 1200) throw error("DELAY_LIMIT: expected 0..1200 server ticks");
@@ -339,6 +339,10 @@ final class GameplayRuntime implements AutoCloseable, Listener {
         void receipt(Map<String, Object> receipt) {
             if (job != null) job.receipt(receipt);
         }
+        ScriptValue.LocationSnapshot readLocation(String text) {
+            try { return LocationCodec.decode(text); }
+            catch (java.io.IOException | IllegalArgumentException invalid) { throw error("STATE_TYPE_MISMATCH: expected a legacy location snapshot"); }
+        }
         ScriptValue state(String operation, List<ScriptValue> values) throws Exception {
             String name = values.getFirst().text();
             PersistentVariables.Key key;
@@ -352,16 +356,31 @@ final class GameplayRuntime implements AutoCloseable, Listener {
                     if (state == null) state = new SQLiteVariables(stateDirectory);
                     var previous = state.get(key);
                     long revision = previous == null ? 0 : previous.revision();
-                    if (operation.equals("state.own.get_location")) {
+                    boolean typed = operation.equals("state.own.save") || operation.equals("state.own.load");
+                    boolean read = operation.equals("state.own.load") || operation.equals("state.own.get_location");
+                    ScriptValue stored = null;
+                    if (previous != null) {
+                        if (previous.value().type() != PersistentVariables.Type.TEXT) throw error("STATE_TYPE_MISMATCH: expected encoded player state");
+                        if (typed) {
+                            try { stored = ScriptValueCodec.decode(previous.value().text()); }
+                            catch (IllegalArgumentException invalid) { throw error("STATE_TYPE_MISMATCH: key contains legacy or invalid state"); }
+                            if (!stored.type().equals(values.get(1).type())) throw error("STATE_TYPE_MISMATCH: stored type differs from requested type");
+                        } else {
+                            stored = new ScriptValue(ScriptType.LOCATION, readLocation(previous.value().text()));
+                        }
+                    }
+                    if (read) {
                         revisions.put(key, revision);
-                        if (previous != null && previous.value().type() != PersistentVariables.Type.TEXT) throw error("STATE_TYPE_MISMATCH: expected a location snapshot");
-                        Optional<ScriptValue> value = previous == null ? Optional.empty()
-                            : Optional.of(new ScriptValue(ScriptType.LOCATION, LocationCodec.decode(previous.value().text())));
-                        result.complete(new ScriptValue(ScriptType.optional(ScriptType.LOCATION), value));
+                        result.complete(typed ? stored == null ? values.get(1) : stored
+                            : new ScriptValue(ScriptType.optional(ScriptType.LOCATION), Optional.ofNullable(stored)));
                     } else {
+                        String encoded;
+                        if (typed) {
+                            try { encoded = ScriptValueCodec.encode(values.get(1)); }
+                            catch (IllegalArgumentException invalid) { throw error("STATE_VALUE_LIMIT: value exceeds typed state bounds"); }
+                        } else encoded = LocationCodec.encode(values.get(1).location());
                         long expected = revisions.getOrDefault(key, revision);
-                        var mutations = List.of(new PersistentVariables.Mutation(key, expected,
-                            PersistentVariables.Value.text(LocationCodec.encode(values.get(1).location()))));
+                        var mutations = List.of(new PersistentVariables.Mutation(key, expected, PersistentVariables.Value.text(encoded)));
                         // Write acceptance boundary: retired work is discarded before commit. Once accepted,
                         // a durable write may finish after cancellation; never block Paper to wait for SQLite.
                         if (!current(true)) throw error("INVOCATION_RETIRED: state write was not accepted");

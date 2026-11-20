@@ -221,5 +221,30 @@
     "entryPoint": "FeatureParser(CallableRegistry)",
     "semantics": "Compiler uses a frozen registry snapshot.",
     "scope": "Compiler injection only; not a full addon loader/event/serializer SDK."
+  },
+  "typedPlayerStorage": {
+    "save": "state_save(key: text, value: T) -> unit",
+    "load": "state_load(key: text, fallback: T) -> T",
+    "capability": "state.own",
+    "scope": "feature ID / invoking player UUID / key",
+    "keyPattern": "[a-z][a-z0-9_]{0,63}",
+    "missing": "Return fallback without writing.",
+    "typeMismatch": "STATE_TYPE_MISMATCH; no implicit conversion or migration",
+    "concurrency": "Revision CAS; STATE_CONFLICT after a competing write. Calls are not a multi-key transaction.",
+    "lifecycle": "Bounded asynchronous worker; accepted writes may finish after cancellation; source rollback does not restore player data.",
+    "exampleFile": "player-progress.aether",
+    "example": "feature player-progress version \"1.0.0\"\ncommand progress permission \"aetherscript.example.progress\" sender player {\n  arg action: text = \"show\"\n  if action == \"save\" {\n    state_save(\"progress\", {\"score\": 7, \"quest_stage\": 2})\n    send \"Progress saved: score=7, quest_stage=2.\"\n  } else {\n    let progress = state_load(\"progress\", map<text, integer>())\n    if contains_key(progress, \"score\") {\n      send \"Score: \" + text(unwrap(get(progress, \"score\")))\n      send \"Quest stage: \" + text(unwrap(get(progress, \"quest_stage\")))\n    } else {\n      send \"No saved progress.\"\n    }\n  }\n}\n",
+    "unsupported": [
+      "deletion",
+      "automatic migration",
+      "feature-global script state",
+      "multi-key script transactions"
+    ],
+    "limits": {
+      "encodedAsciiBytes": 4096,
+      "nodes": 4096,
+      "error": "STATE_VALUE_LIMIT"
+    },
+    "valueTypes": "Scalars, collections and optionals; unit and nested unit rejected. Same key cannot change type; legacy location and typed keys are mutually protected."
   }
 }

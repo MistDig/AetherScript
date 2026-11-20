@@ -108,6 +108,14 @@ def verify(command, start, stop, server, repo, java, evidence, client_dir):
         else: raise AssertionError('Proxy readiness timeout: '+(server/'homes-proxy.log').read_text()[-1500:])
         a,b=connect('AetherHomeA'),connect('AetherHomeB')
         command('op AetherHomeA','operator'); command('op AetherHomeB','operator')
+        progress = 'player-progress'
+        (scripts/(progress+'.aether')).write_bytes((repo/'examples'/(progress+'.aether')).read_bytes())
+        check('progress-owner-permit', 'ais permit player-progress state.own', 'CAPABILITIES_SAVED player-progress:')
+        check('progress-activate', 'ais reload player-progress', 'ACTIVE generation=')
+        a.command('progress show'); a.message('No saved progress.')
+        a.command('progress save'); a.message('Progress saved: score=7, quest_stage=2.')
+        b.command('progress show'); b.message('No saved progress.')
+        passed('progress-player-isolation', 'Second player received the missing-state fallback after first player saved.')
         tp(a,10,10); a.command('home set main'); a.message('Home saved.'); passed('homes-player-save','durable acknowledgement received')
         b.command('home go main'); b.message('No home saved with that name.'); passed('homes-player-isolation','second UUID has no home')
         tp(a,40,40); travel(a); a.message('Home reached.'); passed('homes-delay-teleport',at(a,10,10))
@@ -137,6 +145,8 @@ def verify(command, start, stop, server, repo, java, evidence, client_dir):
         for bot in bots: bot.close()
         bots.clear(); stop(); start()
         a=connect('AetherHomeA'); travel(a); a.message('Home reached.'); passed('homes-restart-restores-state-and-owner-caps',at(a,10,10))
+        a.command('progress show'); a.message('Score: 7'); a.message('Quest stage: 2')
+        passed('progress-restart-restores-map', 'Both integer entries restored for the original player.')
         passed('homes-client-protocol','Offline26.1(protocol775) translated by verifiedViaProxy3.4.14 to Paper26.3(protocol777); not native26.3 client')
     finally:
         for bot in bots: bot.close()

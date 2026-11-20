@@ -2,6 +2,14 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.19] - 2026-11-20
+
+- Add typed per-player storage with `state_save(key, value)` and `state_load(key, fallback)`, including immutable nested maps, sets and lists.
+- Preserve feature/player isolation, bounded worker execution, revision conflicts and the existing location-call API. Missing keys return the typed fallback; stored type mismatches fail explicitly.
+- Add a runnable player-progress example and update the machine-readable contract, human/AI guides and persistence roadmap.
+- Java 25 clean build passed all 310 tests. Packaged CLI/MCP discovery and diagnostics, SQLite packaging, seven legacy IR hashes, and all 12 wiki examples passed.
+- Paper 26.3 build 245 passed 27 checks across two boots. The first player saved a map, a second player saw the missing-key fallback, and both map entries survived restart for the first player. Used two loopback 26.1 protocol clients through ViaProxy. Actual AI app and two-PC testing remain unverified for this release.
+
 ## [0.0.18] - 2026-11-20
 
 - Add bounded immutable typed maps and sets, with deterministic iteration, typed lookup, and explicit updates.
