@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/assets/aetherscript-banner.png" alt="AetherScript — little scripts, big possibilities" width="1200"></p>
 
-<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.17"><b>Download 0.0.17</b></a> · <a href="https://mistdig.github.io/AetherScript/">Explore the docs</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
+<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.18"><b>Download 0.0.18</b></a> · <a href="https://mistdig.github.io/AetherScript/">Explore the docs</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
 
 [![Build](https://github.com/MistDig/AetherScript/actions/workflows/ci.yml/badge.svg)](https://github.com/MistDig/AetherScript/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/MistDig/AetherScript)](https://github.com/MistDig/AetherScript/releases)
@@ -8,7 +8,11 @@
 
 An open-source Minecraft scripting engine with **live hot reloading**, saved working revisions and a path toward secure, vendor-neutral AI tooling. Target: **Paper 26.3 build 245 · Java 25**.
 
-## Native commands and approved tests in 0.0.17
+## Language foundation and the month goal
+
+The [17 November–17 December plan](docs/ecosystem/month-goal-2026-11-17.md) prioritizes the language, core Minecraft APIs and addon foundations, then gameplay adapters and reliability, with MCP expansion last. AI authors get canonical syntax, a machine-readable contract and precise errors; humans need not learn the DSL to request features. The one-month goal is a broad plugin language, with explicit acceptance gates rather than a guarantee of Java API parity. This first 0.0.18 batch adds bounded immutable maps/sets and compiler registry injection; build verification is pending the release checks. Existing MCP validation uses the shared core, with no new tools or relay changes.
+
+## Native commands and approved tests introduced in 0.0.17
 
 Native player commands can read immutable locations, persist homes, wait a bounded number of server ticks and teleport the invoking player. Install [homes.aether](examples/homes.aether) locally with console approval, or authorize your AI in the browser to create and activate native commands; see the [homes guide](https://mistdig.github.io/AetherScript/guide/language.html#owner-approved-homes-commands-current-implementation). Fresh 0.0.17 browser approval selects all or selected native IDs, an execution capability set and optionally one test-player UUID. The AI can create, edit and activate native features within that grant. The execution set persists for installed features after AI disconnect. Console `ais permit` and `ais restrict` remain manual overrides that browser grants cannot exceed. Legacy personal-relay and older browser grants stay message-only until fresh approval. This command-only slice does not complete the planned event, UI, general gameplay or optional model ecosystem. Verification claims below retain their original versions.
 
@@ -57,7 +61,7 @@ command helloai permission "aetherscript.example.hello" sender any {
 
 Save this as `scripts/hello-ai.aether`, using one source file for that feature ID. Validate, reload and run it with the existing `/ais` commands. The [language guide](https://mistdig.github.io/AetherScript/guide/language.html) covers types, scope, operators and preparation limits.
 
-The [documentation website](https://mistdig.github.io/AetherScript/) includes local search, sidebar guides, dark mode and mobile navigation. The [ecosystem inventory](docs/ecosystem/README.md) tracks the brief's concrete capabilities, evidence and dependency order. The [halfway milestone](docs/ecosystem/halfway-milestone.md) tracks M1–M3. Scalar runtime locals, loops, functions and owned direct commands are implemented foundations. Lists and the narrow location/state/delay/self-teleport bindings are available; maps/sets/records, events, broader gameplay and persistence, menus and the addon SDK remain open.
+The [documentation website](https://mistdig.github.io/AetherScript/) includes local search, sidebar guides, dark mode and mobile navigation. The [ecosystem inventory](docs/ecosystem/README.md) tracks the brief's concrete capabilities, evidence and dependency order. The [halfway milestone](docs/ecosystem/halfway-milestone.md) tracks M1–M3. Scalar runtime locals, loops, functions and owned direct commands are implemented foundations. Lists and the narrow location/state/delay/self-teleport bindings are available; The 0.0.18 foundation adds immutable maps/sets and a public compiler registry-injection seam; records, events, broader gameplay and persistence, menus and the complete addon loader/event/serializer SDK remain open.
 
 ## What the engine does
 
@@ -71,7 +75,7 @@ This experimental implementation supports sender messages, preparation-time lega
 
 ## Get started
 
-1. Stop Paper, back up existing AetherScript data, and install **AetherScript-0.0.17.jar** from the release. Keep only one plugin JAR installed.
+1. Stop Paper, back up existing AetherScript data, and install **AetherScript-0.0.18.jar** from the release. Keep only one plugin JAR installed.
 2. Start with Java 25 and wait for `Ready. Restored ...`. A new install creates and activates `plugins/AetherScript/scripts/hello-ai.yml`.
 3. Run `/ais run hello-ai`. Players need `aetherscript.example.hello` (operators by default).
 4. Edit its quoted `text`, save, then `/ais validate hello-ai` and `/ais reload hello-ai`.
@@ -107,10 +111,10 @@ python integration-tests/mcp_stdio.py
 
 Linux/macOS: `./gradlew clean check build`. Gradle 9.1.0 wrapper, dependency locks and checksums are committed. First build needs network access.
 
-- `plugin-paper/build/libs/plugin-paper-0.0.17.jar`: standalone plugin; do not install the thin JAR.
-- `gateway-mcp/build/libs/gateway-mcp-0.0.17.jar`: separate executable MCP process.
+- `plugin-paper/build/libs/plugin-paper-0.0.18.jar`: standalone plugin; do not install the thin JAR.
+- `gateway-mcp/build/libs/gateway-mcp-0.0.18.jar`: separate executable MCP process.
 
-The 0.0.17 clean build passed **286 Java tests**, with nine relay regressions and the packaged authoring/storage/compatibility checks passing. Seven browser/OAuth/MCP workflow groups passed across two Paper boots, including native authoring without manual permits, real-player tests and effect receipts, isolation, permission loss, restart and revocation. [0.0.17 evidence](docs/evidence/0.0.17/) identifies protocol testing separately from actual AI-client certification.
+Historical 0.0.17 verification: the clean build passed **286 Java tests**, with nine relay regressions and the packaged authoring/storage/compatibility checks passing. Seven browser/OAuth/MCP workflow groups passed across two Paper boots, including native authoring without manual permits, real-player tests and effect receipts, isolation, permission loss, restart and revocation. [0.0.17 evidence](docs/evidence/0.0.17/) identifies protocol testing separately from actual AI-client certification.
 
 Historical 0.0.16 baseline: The 0.0.16 implementation passed **274 Java tests** with no failures, eight relay regressions, packaged CLI/MCP authoring, both SQLite packaging/license checks, nine wiki examples and seven published 0.0.11 semantic-hash comparisons. The documentation production build and link/search checks passed. [0.0.16 evidence](docs/evidence/0.0.16/) separates real-server checks and remaining limits.
 

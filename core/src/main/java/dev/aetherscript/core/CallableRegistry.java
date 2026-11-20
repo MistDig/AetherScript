@@ -21,13 +21,21 @@ public final class CallableRegistry {
     }
     private final Map<String, Descriptor> names = new LinkedHashMap<>();
     private final Set<String> ids = new HashSet<>();
+    private boolean frozen;
     public synchronized void register(Descriptor descriptor) {
         Objects.requireNonNull(descriptor);
+        if (frozen) throw new IllegalStateException("Callable catalog is a frozen compiler snapshot");
         if (names.containsKey(descriptor.dslName()) || ids.contains(descriptor.id())) throw new IllegalArgumentException("Duplicate callable ID or DSL name");
         names.put(descriptor.dslName(), descriptor); ids.add(descriptor.id());
     }
     public synchronized Descriptor descriptor(String name) { return names.get(name); }
     public synchronized List<Descriptor> descriptors() { return List.copyOf(names.values()); }
+    /** Bind a compiler to a stable catalogue without preventing provider setup in its source registry. */
+    public synchronized CallableRegistry snapshot() {
+        if (frozen) return this;
+        CallableRegistry copy = new CallableRegistry();
+        names.values().forEach(copy::register); copy.frozen = true; return copy;
+    }
     public ScriptValue invoke(String name, List<ScriptValue> arguments, InvocationContext context, SourceLocation at) {
         Objects.requireNonNull(at);
         Descriptor descriptor = descriptor(name);

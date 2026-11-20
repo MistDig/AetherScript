@@ -1,6 +1,11 @@
 package dev.aetherscript.core;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -17,6 +22,14 @@ public record ScriptValue(ScriptType type, Object value) {
     public ScriptValue {
         Objects.requireNonNull(type, "type"); Objects.requireNonNull(value, "value");
         if (type.isList() && value instanceof List<?> list) value = List.copyOf(list);
+        if (type.isMap() && value instanceof Map<?, ?> map) {
+            if (map.size() > 256) throw new IllegalArgumentException("Map exceeds 256 entries");
+            value = Collections.unmodifiableMap(new LinkedHashMap<>(map));
+        }
+        if (type.isSet() && value instanceof Set<?> set) {
+            if (set.size() > 256) throw new IllegalArgumentException("Set exceeds 256 elements");
+            value = Collections.unmodifiableSet(new LinkedHashSet<>(set));
+        }
         boolean valid = switch (type.kind()) {
             case INTEGER -> value instanceof Long;
             case TEXT -> value instanceof String text && text.length() <= FeatureParser.MAX_TEXT;
@@ -25,6 +38,8 @@ public record ScriptValue(ScriptType type, Object value) {
             case LOCATION -> value instanceof LocationSnapshot;
             case UNIT -> value == Unit.INSTANCE;
             case LIST -> value instanceof List<?> list && list.size() <= 256 && list.stream().allMatch(item -> item instanceof ScriptValue child && child.type.equals(type.element()));
+            case MAP -> value instanceof Map<?, ?> map && map.size() <= 256 && map.entrySet().stream().allMatch(entry -> entry.getKey() instanceof ScriptValue k && k.type.equals(type.key()) && entry.getValue() instanceof ScriptValue v && v.type.equals(type.element()));
+            case SET -> value instanceof Set<?> set && set.size() <= 256 && set.stream().allMatch(item -> item instanceof ScriptValue child && child.type.equals(type.element()));
             case OPTIONAL -> value instanceof Optional<?> optional && (optional.isEmpty() || optional.get() instanceof ScriptValue child && child.type.equals(type.element()));
         };
         if (!valid) throw new IllegalArgumentException("Invalid value for " + type.name());
@@ -33,6 +48,8 @@ public record ScriptValue(ScriptType type, Object value) {
     public boolean bool() { return (Boolean) value; }
     public String text() { return (String) value; }
     @SuppressWarnings("unchecked") public List<ScriptValue> list() { return (List<ScriptValue>) value; }
+    @SuppressWarnings("unchecked") public Map<ScriptValue, ScriptValue> map() { return (Map<ScriptValue, ScriptValue>) value; }
+    @SuppressWarnings("unchecked") public Set<ScriptValue> set() { return (Set<ScriptValue>) value; }
     public UUID uuid() { return (UUID) value; }
     public LocationSnapshot location() { return (LocationSnapshot) value; }
     @SuppressWarnings("unchecked") public Optional<ScriptValue> optional() { return (Optional<ScriptValue>) value; }

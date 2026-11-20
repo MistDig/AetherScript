@@ -18,7 +18,7 @@
     "Keep the command name unique among active features.",
     "Write each statement on its own line and delimit blocks with braces.",
     "Keep permission nodes explicit and preserve them when editing message text.",
-    "Use text, integer, boolean, homogeneous immutable lists and host-provided uuid/location/optional values. let and parameters are immutable; var/set preserve type. Command arguments remain text/integer/boolean.",
+    "Use immutable typed lists/maps/sets and host uuid/location/optional values. Map keys and set elements are integer/text/boolean/uuid/location. Command arguments remain text/integer/boolean; decimals are unsupported.",
     "Check both branches for type errors. Use text(value) only for scalar conversion; text(listValue) is rejected.",
     "Declare typed functions after the feature header and before use. Functions have no captures; non-unit functions must return a matching value on every path. Unit functions support bare return or implicit completion.",
     "Validate the complete edited source before requesting a local reload."
@@ -31,7 +31,9 @@
     "uuid",
     "location",
     "unit",
-    "optional<elementType>"
+    "optional<elementType>",
+    "map<keyType, valueType>",
+    "set<elementType>"
   ],
   "statements": [
     "arg name: text | integer | boolean [= constantExpression]",
@@ -42,7 +44,7 @@
     "set name = expression",
     "while booleanExpression { ... }",
     "repeat integerExpression { ... }",
-    "for name in listExpression { ... }",
+    "for name in listOrSetExpression { ... }",
     "break",
     "continue",
     "fn name(parameter: type [= constantExpression]): type { ... }",
@@ -116,42 +118,63 @@
   },
   "runtimeControl": {
     "exampleFile": "countdown.aether",
-    "localState": "Fresh per invocation and function call. Scalars and immutable homogeneous lists; no persistent script bindings.",
-    "loops": "while checks its boolean condition each iteration; repeat evaluates a nonnegative integer count once. break and continue target the nearest enclosing loop. for evaluates a list once and visits each element with an immutable body-scoped binding.",
-    "functions": "At most 32 feature-level functions and 16 typed parameters per function. Declare before use; direct self-recursion is allowed, forward calls and captures are rejected. Every path must return a value matching the declared scalar or list result. Trailing typed constant defaults are supported; required parameters precede defaults. Defaults reject named values and user function calls.",
+    "localState": "Fresh typed state per invocation/function call; immutable scalar, list, map, set and host values; no persistent script bindings.",
+    "loops": "while checks its boolean condition each iteration; repeat evaluates a nonnegative integer count once. break and continue target the nearest enclosing loop. for evaluates a list or set once and visits each element with an immutable body-scoped binding.",
+    "functions": "At most 32 feature-level functions and 16 typed parameters per function. Declare before use; direct self-recursion is allowed, forward calls and captures are rejected. Every path of a non-unit function must return its declared type. Unit functions may use bare return or fall through. Trailing typed constant defaults are supported; required parameters precede defaults. Defaults reject named values and user function calls.",
     "limits": {
       "sharedExecutionSteps": 8192,
       "functionCallDepth": 32
     },
     "budget": "The entire invocation, including loops and nested function calls, shares one execution-step and 32-message budget.",
     "nativeCommands": "Paper registers real command names. Server-console dispatch, replacement, removal and restart are tested; connected-player command-tree visibility and suggestions remain unverified.",
-    "persistence": "Core Java host services offer JSON and SQLite backends. Neither has script bindings or automatic migration; run storage calls on bounded host workers."
+    "persistence": "Core JSON/SQLite services; Paper binds narrow own-location storage to SQLite. General persistent-value bindings and automatic migration are not provided."
   },
   "collections": {
     "exampleFile": "scores.aether",
-    "types": "Homogeneous recursive list<elementType>; scalar command argument types remain unchanged. No host objects or arbitrary host-array access.",
+    "types": "Immutable homogeneous list<T>, map<K,V> and set<T>; map keys and set elements are integer/text/boolean/uuid/location. CLI argument types unchanged.",
     "literals": [
       "[1, 2, 3]",
       "[[1], [2]]",
       "list<integer>()",
-      "list<list<text>>()"
+      "list<list<text>>()",
+      "{\"red\": 1, \"blue\": 2}",
+      "map<text, integer>()",
+      "set(1, 2, 1)",
+      "set<integer>()"
     ],
     "operations": [
       "values[0] reads an element using a zero-based integer index within bounds",
       "length(values) returns integer",
       "append(values, value) returns a new list of the same type; use set to replace a mutable local",
-      "== and != compare matching list types structurally"
+      "== and != compare matching list types structurally",
+      "put(map, key, value) -> map<K,V>",
+      "get(map, key) -> optional<V>",
+      "contains_key(map, key) -> boolean",
+      "keys(map) -> list<K>",
+      "values(map) -> list<V>",
+      "remove(map, key) -> map<K,V>",
+      "add(set, value) -> set<T>",
+      "contains(set, value) -> boolean",
+      "remove(set, value) -> set<T>",
+      "length(list|map|set) -> integer"
     ],
     "limits": {
-      "elementsPerList": 256,
-      "listTypeDepth": 8,
+      "elementsPerCollection": 256,
+      "collectionTypeDepth": 8,
       "sharedExecutionSteps": 8192
     },
-    "restrictions": "No indexed assignment, list + concatenation, text(listValue), maps, sets, records, closures or modules. Convert scalar elements with text(value). Feature functions named length or append take precedence over built-ins.",
+    "restrictions": "No indexed assignment, collection + concatenation, text(collection), decimal values, records, closures or modules. Feature functions take precedence over built-ins.",
     "test": {
       "id": "scores",
       "expectedMessages": [
         "6"
+      ]
+    },
+    "semantics": "Map/set iteration preserves insertion order; map iteration requires keys/values. Duplicate map-literal keys fail during evaluation with source location; set literals deduplicate. put replaces in place; remove/readd appends. Map/set equality is order-independent; lists ordered. Nested optional/collection comparison and collection copying charge the shared execution budget.",
+    "mapSetExample": {
+      "source": "feature palette version \"1.0.0\"\ncommand palette permission \"aetherscript.example.palette\" sender any {\n  let counts = {\"red\": 2}\n  send text(unwrap(get(counts, \"red\")))\n}\n",
+      "expectedMessages": [
+        "2"
       ]
     }
   },
@@ -188,5 +211,15 @@
     "test": "aether_scripts_test takes id, arguments and expectedMessages. A real-player test returns a pending job. Poll aether_scripts_test_status with id and testId until completed, failed, cancelled or timeout. Inspect matched, actualMessages, error locations and receipts.",
     "effects": "Live tests can emit real messages, store player data and teleport the approved player. The AI cannot supply or switch the actor. A saved-state or teleport receipt records a real host operation; completed effects are not rolled back.",
     "recover": "For stale source, read again before editing. For missing player approval, reconnect with that player online. For failed tests, correct the source and test the newly activated revision; never reuse stale test receipts."
+  },
+  "authoringPriority": {
+    "goal": "Language and core Minecraft API/addon foundations first; MCP expansion last. AI-first means canonical syntax, machine-readable contracts and precise errors; human DSL literacy is not required.",
+    "monthPlan": "docs/ecosystem/month-goal-2026-11-17.md",
+    "mcpChanges": "No new tools or relay changes; existing validation inherits shared core changes."
+  },
+  "compilerExtension": {
+    "entryPoint": "FeatureParser(CallableRegistry)",
+    "semantics": "Compiler uses a frozen registry snapshot.",
+    "scope": "Compiler injection only; not a full addon loader/event/serializer SDK."
   }
 }

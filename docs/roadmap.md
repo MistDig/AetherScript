@@ -1,6 +1,6 @@
 # Roadmap and exit gates
 
-New capabilities ship AI-first: language syntax/type checks, server-side permission enforcement, MCP discovery/authoring/activation/testing, and matching human/AI documentation belong to the same release. A local-only API is an unfinished integration, not complete support.
+The December 17 target prioritizes script packages, typed values and persistence, Minecraft events and gameplay APIs, and a public addon SDK. Each slice includes a machine-readable authoring contract and runnable examples. Expanded MCP integration follows the language and gameplay work.
 
 ## BetterModel planning update - 15 November 2026
 

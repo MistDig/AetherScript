@@ -1,0 +1,9 @@
+feature collections-demo version "1"
+command collections-demo permission "aetherscript.example.collections" sender any {
+  let points = {"alex": 2}
+  let updated = put(points, "alex", 3)
+  let members = add(set("alex"), "sam")
+  if contains(members, "alex") {
+    send text(unwrap(get(updated, "alex")))
+  }
+}

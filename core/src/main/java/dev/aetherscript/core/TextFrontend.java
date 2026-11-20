@@ -27,7 +27,7 @@ public final class TextFrontend {
 
     private final CallableRegistry callables;
     public TextFrontend() { this(StandardCallables.create()); }
-    public TextFrontend(CallableRegistry callables) { this.callables = java.util.Objects.requireNonNull(callables); }
+    public TextFrontend(CallableRegistry callables) { this.callables = java.util.Objects.requireNonNull(callables).snapshot(); }
 
     public CompiledFeature parse(byte[] source) {
         if (source.length > FeatureParser.MAX_BYTES) throw new ValidationException("$", "Source exceeds 65536 bytes", 1, 1);
@@ -186,14 +186,35 @@ public final class TextFrontend {
         }
     }
     private static boolean valuesEqual(ScriptValue left, ScriptValue right, Execution execution, Token token) {
-        if (!left.type().isList()) return left.value().equals(right.value());
         execution.step(token);
         if (left == right) return true;
-        List<ScriptValue> a = left.list(), b = right.list();
-        if (a.size() != b.size()) return false;
-        for (int i = 0; i < a.size(); i++) if (!valuesEqual(a.get(i), b.get(i), execution, token)) return false;
-        return true;
+        if (left.type().isList()) {
+            List<ScriptValue> a = left.list(), b = right.list();
+            if (a.size() != b.size()) return false;
+            for (int i = 0; i < a.size(); i++) if (!valuesEqual(a.get(i), b.get(i), execution, token)) return false;
+            return true;
+        }
+        if (left.type().isMap()) {
+            if (left.map().size() != right.map().size()) return false;
+            for (var entry : left.map().entrySet()) {
+                execution.step(token);
+                var other = right.map().get(entry.getKey());
+                if (other == null || !valuesEqual(entry.getValue(), other, execution, token)) return false;
+            }
+            return true;
+        }
+        if (left.type().isSet()) {
+            if (left.set().size() != right.set().size()) return false;
+            for (var value : left.set()) { execution.step(token); if (!right.set().contains(value)) return false; }
+            return true;
+        }
+        if (left.type().kind() == ScriptType.Kind.OPTIONAL) {
+            var a = left.optional(); var b = right.optional();
+            return a.isEmpty() ? b.isEmpty() : b.isPresent() && valuesEqual(a.get(), b.get(), execution, token);
+        }
+        return left.value().equals(right.value());
     }
+
     private record AsText(Expression operand, Token token) implements Expression {
         public ScriptType type() { return ScriptType.TEXT; }
         public int depth() { return operand.depth() + 1; }
@@ -204,6 +225,56 @@ public final class TextFrontend {
         public ScriptValue evaluate(Execution execution) {
             execution.step();
             return new ScriptValue(type, elements.stream().map(element -> element.evaluate(execution)).toList());
+        }
+    }
+    private record MapSetValue(ScriptType type, List<Expression> elements, Token token) implements Expression {
+        public int depth() { return 1 + elements.stream().mapToInt(Expression::depth).max().orElse(0); }
+        public ScriptValue evaluate(Execution execution) {
+            execution.step(token);
+            if (type.isMap()) {
+                var values = new java.util.LinkedHashMap<ScriptValue, ScriptValue>();
+                for (int i = 0; i < elements.size(); i += 2) {
+                    var key = elements.get(i).evaluate(execution); var value = elements.get(i + 1).evaluate(execution);
+                    execution.step(token);
+                    if (values.putIfAbsent(key, value) != null) throw token.error("Duplicate map key; use put to replace a value");
+                }
+                return new ScriptValue(type, values);
+            }
+            var values = new java.util.LinkedHashSet<ScriptValue>();
+            for (var element : elements) { execution.step(token); values.add(element.evaluate(execution)); }
+            return new ScriptValue(type, values);
+        }
+    }
+    private record CollectionOperation(String name, ScriptType type, List<Expression> arguments, Token token) implements Expression {
+        public int depth() { return 1 + arguments.stream().mapToInt(Expression::depth).max().orElse(0); }
+        public ScriptValue evaluate(Execution execution) {
+            execution.step(token);
+            var args = arguments.stream().map(value -> value.evaluate(execution)).toList();
+            var collection = args.get(0);
+            if (name.equals("length")) return new ScriptValue(ScriptType.INTEGER, (long) (collection.type().isMap() ? collection.map().size() : collection.set().size()));
+            if (collection.type().isMap()) {
+                var values = collection.map();
+                if (name.equals("get")) return new ScriptValue(type, java.util.Optional.ofNullable(values.get(args.get(1))));
+                if (name.equals("contains_key")) return new ScriptValue(type, values.containsKey(args.get(1)));
+                for (int i = 0; i < values.size(); i++) execution.step(token);
+                if (name.equals("keys")) return new ScriptValue(type, List.copyOf(values.keySet()));
+                if (name.equals("values")) return new ScriptValue(type, List.copyOf(values.values()));
+                var copy = new java.util.LinkedHashMap<>(values);
+                if (name.equals("put")) {
+                    if (!copy.containsKey(args.get(1)) && copy.size() >= MAX_COLLECTION) throw token.error("Map exceeds 256 entries");
+                    copy.put(args.get(1), args.get(2));
+                } else copy.remove(args.get(1));
+                return new ScriptValue(type, copy);
+            }
+            var values = collection.set();
+            if (name.equals("contains")) return new ScriptValue(type, values.contains(args.get(1)));
+            for (int i = 0; i < values.size(); i++) execution.step(token);
+            var copy = new java.util.LinkedHashSet<>(values);
+            if (name.equals("add")) {
+                if (!copy.contains(args.get(1)) && copy.size() >= MAX_COLLECTION) throw token.error("Set exceeds 256 elements");
+                copy.add(args.get(1));
+            } else copy.remove(args.get(1));
+            return new ScriptValue(type, copy);
         }
     }
     private record Index(Expression collection, Expression index, Token token) implements Expression {
@@ -224,6 +295,7 @@ public final class TextFrontend {
             if (value == null) return new ScriptValue(ScriptType.INTEGER, (long) values.size());
             if (values.size() >= MAX_COLLECTION) throw token.error("List exceeds 256 elements");
             ScriptValue added = value.evaluate(execution);
+            for (int i = 0; i < values.size(); i++) execution.step(token);
             List<ScriptValue> result = new ArrayList<>(values.size() + 1); result.addAll(values); result.add(added);
             return new ScriptValue(type(), List.copyOf(result));
         }
@@ -296,7 +368,8 @@ public final class TextFrontend {
     private record For(Binding binding, Expression collection, List<Statement> body, Token token) implements Statement {
         public void prepare(Execution execution) {
             execution.step(token);
-            for (ScriptValue value : collection.evaluate(execution).list()) {
+            ScriptValue snapshot = collection.evaluate(execution);
+            for (ScriptValue value : snapshot.type().isSet() ? snapshot.set() : snapshot.list()) {
                 execution.step(token); execution.values.put(binding, value);
                 try { for (Statement statement : body) statement.prepare(execution); }
                 catch (LoopJump jump) { if (!jump.continueLoop) break; }
@@ -408,6 +481,8 @@ public final class TextFrontend {
             case Binary binary -> usesName(binary.left()) || usesName(binary.right());
             case AsText conversion -> usesName(conversion.operand());
             case ListValue list -> list.elements().stream().anyMatch(TextFrontend::usesName);
+            case MapSetValue collection -> collection.elements().stream().anyMatch(TextFrontend::usesName);
+            case CollectionOperation operation -> operation.arguments().stream().anyMatch(TextFrontend::usesName);
             case Index item -> usesName(item.collection()) || usesName(item.index());
             case ListOperation operation -> usesName(operation.collection()) || operation.value() != null && usesName(operation.value());
             case Call ignored -> true;
@@ -418,8 +493,12 @@ public final class TextFrontend {
     }
     private static Object constantDescription(ScriptValue value, Execution budget, Token token) {
         budget.step(token);
-        Object content = !value.type().isList() ? value.value()
-            : value.list().stream().map(element -> constantDescription(element, budget, token)).toList();
+        Object content;
+        if (value.type().isList()) content = value.list().stream().map(element -> constantDescription(element, budget, token)).toList();
+        else if (value.type().isMap()) content = value.map().entrySet().stream().map(entry -> List.of(constantDescription(entry.getKey(), budget, token), constantDescription(entry.getValue(), budget, token))).toList();
+        else if (value.type().isSet()) content = value.set().stream().map(element -> constantDescription(element, budget, token)).toList();
+        else if (value.type().kind() == ScriptType.Kind.OPTIONAL) content = value.optional().stream().map(element -> constantDescription(element, budget, token)).toList();
+        else content = value.value();
         return List.of(value.type().name(), content);
     }
     private static Object functionDescription(Function function) {
@@ -455,6 +534,8 @@ public final class TextFrontend {
             case Binary binary -> List.of("binary", binary.operator().text(), expressionDescription(binary.left()), expressionDescription(binary.right()));
             case AsText conversion -> List.of("text", expressionDescription(conversion.operand()));
             case ListValue list -> List.of("list", list.type().name(), list.elements().stream().map(TextFrontend::expressionDescription).toList());
+            case MapSetValue collection -> List.of("collection", collection.type().name(), collection.elements().stream().map(TextFrontend::expressionDescription).toList());
+            case CollectionOperation operation -> List.of("collection-operation", operation.name(), operation.type().name(), operation.arguments().stream().map(TextFrontend::expressionDescription).toList());
             case Index item -> List.of("index", expressionDescription(item.collection()), expressionDescription(item.index()));
             case ListOperation operation -> List.of(operation.value() == null ? "length" : "append", expressionDescription(operation.collection()), operation.value() == null ? List.of() : expressionDescription(operation.value()));
             case NativeCall call -> List.of("native-call", call.descriptor().id(), call.type().name(), call.arguments().stream().map(TextFrontend::expressionDescription).toList());
@@ -551,8 +632,19 @@ public final class TextFrontend {
         private ScriptType listType(ScriptType element, Token token) {
             try { return ScriptType.list(element); } catch (IllegalArgumentException error) { throw token.error(error.getMessage()); }
         }
+        private ScriptType mapSetType(ScriptType first, ScriptType second, Token token) {
+            try { return second == null ? ScriptType.set(first) : ScriptType.map(first, second); }
+            catch (IllegalArgumentException error) { throw token.error(error.getMessage()); }
+        }
         private ScriptType declaredType() {
             Token token = require(Kind.NAME, "Expected text, integer, boolean or list<type>");
+            if (token.text().equals("map") || token.text().equals("set")) {
+                if (++expressionDepth > MAX_DEPTH) throw token.error("Type nesting exceeds 32");
+                expect("<"); ScriptType first = declaredType(); ScriptType second = null;
+                if (token.text().equals("map")) { expect(","); second = declaredType(); }
+                expect(">"); expressionDepth--; advanced = true;
+                return mapSetType(first, second, token);
+            }
             if (token.text().equals("optional")) {
                 if (++expressionDepth > MAX_DEPTH) throw token.error("Type nesting exceeds 32");
                 expect("<"); ScriptType element = declaredType(); expect(">"); expressionDepth--;
@@ -638,7 +730,7 @@ public final class TextFrontend {
             }
             if (start.text().equals("for")) {
                 Token name = identifier("Expected a loop variable"); expect("in"); Expression collection = expression();
-                requireList(collection, start);
+                if (!collection.type().isList() && !collection.type().isSet()) throw start.error("for expects a list or set; iterate maps through keys or values");
                 Binding binding = new Binding(name.text(), collection.type().element(), name, bindings++, false);
                 scopes.push(new HashMap<>()); scopes.peek().put(name.text(), binding);
                 loopDepth++; List<Statement> body = block(); loopDepth--; scopes.pop(); advanced = true;
@@ -738,6 +830,66 @@ public final class TextFrontend {
         }
         private Expression primary() {
             Token token = take();
+            if (token.text().equals("{")) {
+                if (matches("}")) throw token.error("Empty maps require map<key,value>()");
+                List<Expression> elements = new ArrayList<>(); ScriptType key = null, valueType = null;
+                do {
+                    if (elements.size() >= MAX_COLLECTION * 2) throw token.error("Map exceeds 256 entries");
+                    Expression keyValue = expression(); expect(":"); Expression value = expression();
+                    if (key == null) { key = keyValue.type(); valueType = value.type(); }
+                    requireType(keyValue, key, token, "Map keys must have the same type");
+                    requireType(value, valueType, token, "Map values must have the same type");
+                    elements.add(keyValue); elements.add(value);
+                    if (!matches(",")) break; take();
+                } while (true);
+                expect("}"); advanced = true;
+                return node(new MapSetValue(mapSetType(key, valueType, token), List.copyOf(elements), token), token);
+            }
+            if ((token.text().equals("map") || token.text().equals("set")) && matches("<") && scopes.stream().noneMatch(scope -> scope.containsKey(token.text()))) {
+                expect("<"); ScriptType first = declaredType(); ScriptType second = null;
+                if (token.text().equals("map")) { expect(","); second = declaredType(); }
+                expect(">"); expect("("); expect(")"); advanced = true;
+                return node(new MapSetValue(mapSetType(first, second, token), List.of(), token), token);
+            }
+            if (token.text().equals("set") && matches("(") && !functions.containsKey("set")) {
+                take(); List<Expression> elements = new ArrayList<>(); ScriptType element = null;
+                if (matches(")")) throw token.error("Empty sets require set<type>()");
+                do {
+                    if (elements.size() >= MAX_COLLECTION) throw token.error("Set exceeds 256 elements");
+                    Expression value = expression(); if (element == null) element = value.type();
+                    requireType(value, element, token, "Set elements must have the same type"); elements.add(value);
+                    if (!matches(",")) break; take();
+                } while (true);
+                expect(")"); advanced = true;
+                return node(new MapSetValue(mapSetType(element, null, token), List.copyOf(elements), token), token);
+            }
+            if (List.of("put", "get", "contains_key", "keys", "values", "remove", "add", "contains", "length").contains(token.text()) && matches("(") && !functions.containsKey(token.text())) {
+                take(); Expression collection = expression();
+                if (collection.type().isList() && token.text().equals("length")) {
+                    expect(")"); advanced = true; return node(new ListOperation(collection, null, token), token);
+                }
+                boolean map = collection.type().isMap(), set = collection.type().isSet();
+                if (!map && !set) throw token.error("Expected a map or set value");
+                String name = token.text();
+                if (map && List.of("add", "contains").contains(name) || set && List.of("put", "get", "contains_key", "keys", "values").contains(name)) throw token.error("Operation does not support this collection type");
+                List<Expression> args = new ArrayList<>(); args.add(collection);
+                if (!List.of("keys", "values", "length").contains(name)) {
+                    expect(","); Expression key = expression();
+                    requireType(key, map ? collection.type().key() : collection.type().element(), token, "Collection key or element has the wrong type"); args.add(key);
+                }
+                if (name.equals("put")) {
+                    expect(","); Expression value = expression(); requireType(value, collection.type().element(), token, "Map value has the wrong type"); args.add(value);
+                }
+                expect(")"); ScriptType result = switch (name) {
+                    case "length" -> ScriptType.INTEGER;
+                    case "contains", "contains_key" -> ScriptType.BOOLEAN;
+                    case "get" -> ScriptType.optional(collection.type().element());
+                    case "keys" -> listType(collection.type().key(), token);
+                    case "values" -> listType(collection.type().element(), token);
+                    default -> collection.type();
+                };
+                advanced = true; return node(new CollectionOperation(name, result, List.copyOf(args), token), token);
+            }
             if (token.text().equals("[")) {
                 if (matches("]")) throw token.error("Empty lists require list<type>()");
                 List<Expression> elements = new ArrayList<>(); ScriptType element = null;

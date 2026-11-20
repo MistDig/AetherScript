@@ -2,6 +2,14 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.18] - 2026-11-20
+
+- Add bounded immutable typed maps and sets, with deterministic iteration, typed lookup, and explicit updates.
+- Bind compiler instances to a frozen catalogue of typed provider callables.
+- Document canonical collection syntax and errors in the machine-readable authoring contract.
+
+- Verified 302 Java tests, packaged MCP authoring, SQLite packaging, historical IR compatibility, wiki examples, and the documentation build.
+
 ## [0.0.17] - 2026-11-17
 
 - Connect the supported native language calls to fresh browser-approved MCP grants. AI can discover capabilities, validate, create and edit native scripts and activate them within all-script or selected-ID permissions. Persist execution approval for new native features; explicit console ceilings remain authoritative.

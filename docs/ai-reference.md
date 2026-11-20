@@ -2,9 +2,13 @@
 
 ## Current capabilities
 
-This document describes the current 0.0.17 implementation; verification remains attributed to its recorded version. It supports native .aether message commands, typed positional arguments, immutable and mutable locals, bounded loops, typed functions, immutable homogeneous lists, arithmetic, boolean conditions, explicit reload, revisions and rollback. A locally approved native player-command slice adds location snapshots, own-player/feature persistent homes, bounded delay and self teleport. Events, inventories, item grants, economy, quests and general persistent-value bindings remain planned. Do not invent syntax or promise unsupported gameplay.
+This document describes the 0.0.18 language foundation; verification remains attributed to its recorded version. It supports native .aether message commands, typed positional arguments, immutable and mutable locals, bounded loops, typed functions, immutable homogeneous lists/maps/sets, arithmetic, boolean conditions, explicit reload, revisions and rollback. A locally approved native player-command slice adds location snapshots, own-player/feature persistent homes, bounded delay and self teleport. Events, inventories, item grants, economy, quests and general persistent-value bindings remain planned. Do not invent syntax or promise unsupported gameplay.
 
 Use tool discovery from the connected app as the authority for available tools. Hosted and local gateways expose different tools. A hosted service version may differ from the plugin release version.
+
+## AI authoring priority
+
+AI authors should use canonical syntax, the versioned machine-readable authoring contract and precise source-located diagnostics. Human understanding of the DSL is not a prerequisite. AI-first means dependable generation and validation; it does not mean MCP-first delivery. The [17 November month plan](https://github.com/MistDig/AetherScript/blob/main/docs/ecosystem/month-goal-2026-11-17.md) puts language, core Minecraft APIs and addon foundations first, with MCP expansion last. Existing validators inherit shared core language changes; this batch adds no MCP tools or relay behavior. Discover the installed server contract rather than assuming newer syntax is installed.
 
 ## Tools by connection mode
 
@@ -74,7 +78,7 @@ A player invokes /ais run greet "Alex Smith". Administrator console commands omi
 
 Declare arg name: text, arg count: integer = 1 or arg enabled: boolean = true at the start of a command. Required arguments precede defaults. At most 16 arguments, each at most 2048 UTF-16 units. Integer inputs are signed 64-bit decimal strings; booleans are exactly true or false. Quoted console arguments can contain spaces.
 
-let creates an immutable inferred scalar or homogeneous list value. if requires a boolean. send requires text. Use text(value) for explicit scalar conversion; lists cannot be converted directly. Operators include +, -, *, /, %, comparisons, equality, !, && and ||. Braces delimit blocks; put statements on separate lines. Comments begin //.
+let creates an immutable inferred typed value. if requires a boolean. send requires text. Use text(value) for explicit scalar conversion; lists cannot be converted directly. Operators include +, -, *, /, %, comparisons, equality, !, && and ||. Braces delimit blocks; put statements on separate lines. Comments begin //.
 Commands with arguments, var/set, loops or function declarations evaluate with fresh local state per invocation. Legacy scripts using only let, if and send without arguments preserve preparation-time evaluation and semantic hashes. Both branches are type-checked. Message-only evaluation buffers output, so arithmetic errors, budget failures and invalid arguments fail before message delivery. Host-backed commands stream sends as execution reaches them; later failure does not undo completed effects.
 Source limit is 64 KiB locally. The hosted tool's source schema allows at most 16000 characters and its serialized request has a smaller transport envelope than the compiler's source limit. Keep remote scripts comfortably within both limits.
 Messages are plain text, at most 2048 UTF-16 units each and at most 32 emitted messages per invocation. Conditional or zero-iteration paths may emit none. No arbitrary host objects, Java calls or general console execution.
@@ -86,7 +90,7 @@ var count = 3 declares an inferred mutable local. set count = count - 1 updates 
 
 while condition { ... } requires a boolean. repeat count { ... } evaluates a nonnegative integer count once. break exits the nearest enclosing loop; continue skips to its next iteration. These keywords are valid only inside loops.
 
-Declare fn name(parameter: integer): integer { ... } between the feature header and command. Parameters and results declare text, integer, boolean, `list<elementType>`, uuid, location, unit or `optional<T>` types. Call functions in expressions, for example text(double(3)). Every path of a non-unit function must return a matching value with `return expression`; a unit function may fall through or use bare `return`. Functions can call earlier declarations or themselves, but cannot call later declarations or capture command locals. Trailing parameters may declare typed constant defaults, for example fn double(value: integer = 2): integer { return value * 2 }. Required parameters precede defaults. Defaults cannot reference names or call user functions; immutable scalar/list constants are shared safely across fresh frames. Limits are 32 functions, 16 parameters per function and 32 active function calls. Loops, expressions and nested calls share one 8192-step invocation budget and one 32-message output budget.
+Declare fn name(parameter: integer): integer { ... } between the feature header and command. Parameters and results declare text, integer, boolean, `list<elementType>`, `map<K,V>`, `set<T>`, uuid, location, unit or `optional<T>` types. Call functions in expressions, for example text(double(3)). Every path of a non-unit function must return a matching value with `return expression`; a unit function may fall through or use bare `return`. Functions can call earlier declarations or themselves, but cannot call later declarations or capture command locals. Trailing parameters may declare typed constant defaults, for example fn double(value: integer = 2): integer { return value * 2 }. Required parameters precede defaults. Defaults cannot reference names or call user functions; immutable typed constants are shared safely across fresh frames. Limits are 32 functions, 16 parameters per function and 32 active function calls. Loops, expressions and nested calls share one 8192-step invocation budget and one 32-message output budget.
 
 Save as countdown.aether:
 
@@ -113,11 +117,11 @@ PersistentVariables provides the JSON host backend; SQLiteVariables provides a s
 
 Lists contain values of one type: `[1, 2, 3]`, `["red", "blue"]` or `[[1], [2]]`. Write an empty list with its element type: `list<integer>()` or `list<list<text>>()`. List types such as `list<integer>` are accepted for function parameters and results. Command arguments still accept only `text`, `integer` and `boolean`.
 
-`values[0]` reads the first element; indices must be integers within bounds. `length(values)` returns an integer. `append(values, value)` returns a new list with a matching element type. Lists are immutable: use `var values = list<integer>()` followed by `set values = append(values, 1)` to replace a local list value. There is no indexed assignment or arbitrary host-array access. Lists contain at most 256 elements each and nest at most eight list types deep.
+`values[0]` reads the first element; indices must be integers within bounds. `length(values)` returns an integer. `append(values, value)` returns a new list with a matching element type. Lists are immutable: use `var values = list<integer>()` followed by `set values = append(values, 1)` to replace a local list value. There is no indexed assignment or arbitrary host-array access. Lists contain at most 256 elements each and share an eight-level nesting limit with maps, sets, and optionals.
 
 `==` and `!=` compare matching list types structurally, including nested elements. List concatenation with `+` and `text(listValue)` are rejected. Convert individual scalar elements with `text(value)` when building messages. Feature functions named `length` or `append` take precedence over these built-ins.
 
-`for value in values { ... }` evaluates its list once and visits its elements in order. The loop variable is immutable and scoped to the body; it may shadow an outer name. `break` and `continue` target the nearest loop. Iteration and structural equality share the existing 8192-step invocation budget with expressions and function calls. Lists provide no maps, sets, records, closures or modules.
+`for value in values { ... }` evaluates its list once and visits its elements in order. The loop variable is immutable and scoped to the body; it may shadow an outer name. `break` and `continue` target the nearest loop. Iteration and structural equality share the existing 8192-step invocation budget with expressions and function calls. Records, closures and modules remain unavailable. Maps and sets are described below.
 
 Save as `scores.aether`:
 
@@ -141,9 +145,43 @@ command scores permission "aetherscript.example.scores" sender any {
 
 Test with `{"id":"scores","expectedMessages":["6"]}`. Each invocation emits `6` and starts with fresh local state.
 
+## Immutable maps and sets (0.0.18 foundation)
+
+Use `map<keyType, valueType>` and `set<elementType>` in typed signatures. A nonempty map is `{"red": 1, "blue": 2}`; an empty map is `map<text, integer>()`. A nonempty set is `set(1, 2, 1)`; an empty set is `set<integer>()`. Sets deduplicate and retain first insertion order. Map keys and set elements must be `integer`, `text`, `boolean`, `uuid` or `location`. Map values may use supported nested value types. Decimal numbers, records and collection command arguments are not supported; CLI arguments remain text/integer/boolean.
+
+| Expression | Result |
+| --- | --- |
+| `put(entries, key, value)` | New map; replacement preserves the key's position. |
+| `get(entries, key)` | `optional<valueType>`; absent keys return empty. Check `is_some` before `unwrap`. |
+| `contains_key(entries, key)` | Boolean membership. |
+| `keys(entries)` / `values(entries)` | Lists in map insertion order. |
+| `remove(entries, key)` | New map without the key. |
+| `add(members, value)` | New set; an existing member keeps its position. |
+| `contains(members, value)` | Boolean membership. |
+| `remove(members, value)` | New set without the member. |
+| `length(collection)` | Integer size for list, map or set. |
+
+Collections are immutable; replace a mutable local with `set entries = put(entries, "green", 3)`. Removing then adding a key/member puts it last. Duplicate map-literal keys fail with a source location during evaluation. `for member in members { ... }` visits a set in insertion order; iterate maps through `keys(entries)` or `values(entries)`. Direct map iteration is rejected. Matching maps/sets compare with `==`/`!=` independent of insertion order; lists remain ordered. Nested collection and optional equality, membership and collection copies consume the shared 8192-step invocation budget. Each collection has at most 256 entries/elements and collection type nesting is limited to eight. Limits apply to nested list/map/set/optional types. No indexed map assignment, collection concatenation or `text(collection)` conversion is provided. Feature functions with built-in names take precedence; use unambiguous names in generated code.
+
+```aether
+feature palette version "1.0.0"
+command palette permission "aetherscript.example.palette" sender any {
+  var counts = map<text, integer>()
+  set counts = put(counts, "red", 2)
+  let selected = set("red", "blue", "red")
+  for name in selected {
+    if contains_key(counts, name) {
+      send name + ": " + text(unwrap(get(counts, name)))
+    }
+  }
+}
+```
+
+Expected messages: `["red: 2"]`. This example is a specification for this batch; current-build verification is recorded separately by release evidence.
+
 ## Locally approved host commands
 
-The fixed callable registry exposes only these operations. Requirements are inferred from native source, including calls inside helpers. No arbitrary Java/Bukkit objects, reflection, server commands or filesystem access are exposed.
+The default callable registry exposes these operations. The public compiler accepts `FeatureParser(CallableRegistry)` and freezes a registry snapshot for compilation. This is a compiler extension seam, not a public addon loader, event or serializer SDK. Requirements are inferred from native source, including calls inside helpers. No arbitrary Java/Bukkit objects, reflection, server commands or filesystem access are exposed.
 
 | Call | Result | Execution capability |
 | --- | --- | --- |

@@ -19,9 +19,13 @@ public final class FeatureParser {
     public static final ObjectMapper JSON = new ObjectMapper(JsonFactory.builder()
         .streamReadConstraints(StreamReadConstraints.builder().maxNestingDepth(MAX_DEPTH).maxStringLength(MAX_BYTES).maxNumberLength(64).build())
         .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION).build());
+    private final CallableRegistry callables;
+    public FeatureParser() { this(StandardCallables.create()); }
+    /** Compiler SDK entry point. Hosting a provider and granting its authority remain explicit host responsibilities. */
+    public FeatureParser(CallableRegistry callables) { this.callables = Objects.requireNonNull(callables).snapshot(); }
 
     public CompiledFeature parse(byte[] source, String format) {
-        if (format.equals("aether")) return new TextFrontend().parse(source);
+        if (format.equals("aether")) return new TextFrontend(callables).parse(source);
         Map<String, int[]> locations = new HashMap<>();
         if (source.length > MAX_BYTES) throw fail("$", "source exceeds 65536 bytes");
         try {
