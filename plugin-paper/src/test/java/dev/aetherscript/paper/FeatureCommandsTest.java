@@ -107,4 +107,14 @@ class FeatureCommandsTest {
         assertSame(before, registry.snapshot()); assertEquals(old, bindings);
         assertTrue(bindings.get("first").isRegistered());
     }
+    @Test void eventOnlyFeaturesDoNotRegisterSyntheticCommands() {
+        CompiledFeature template = feature("__events", "player");
+        CompiledFeature event = new CompiledFeature(template.definition(), "events", "ir", new CompiledFeature.Program() {
+            public boolean eventOnly() { return true; }
+            public List<Feature.MessageAction> evaluate(List<String> arguments) { throw new AssertionError(); }
+        });
+        owner.activate(0, Map.of("demo", event));
+        assertTrue(bindings.isEmpty());
+        assertSame(event, registry.snapshot().features().get("demo"));
+    }
 }

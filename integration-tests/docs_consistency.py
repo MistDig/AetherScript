@@ -44,7 +44,8 @@ for name in re.findall(r'add\(registry, "[^"]+", "([^"]+)"',catalog):
  assert name in reference and name in language, f"Missing documented host callable {name}"
 for name in ("uuid","location","unit","optional<elementType>"):
  assert name in guide["valueTypes"], f"Missing type contract {name}"
-assert set(guide["capabilityPolicy"]["browserApprovedExecutionCeiling"]) == set(guide["capabilities"])
+assert set(guide["capabilityPolicy"]["browserApprovedExecutionCeiling"]) == set(guide["capabilities"]) - set(guide["events"]["capabilities"])
+assert set(guide["events"]["capabilities"]) <= set(guide["capabilityPolicy"]["localOwnerApproval"])
 assert guide["capabilityPolicy"]["legacyRemoteExecutionCeiling"] == ["runtime.message.send"]
 for text in (reference, commands, (root/"docs/wiki/MCP-Reference.md").read_text(encoding="utf8")):
  assert "message-only" in text.lower(), "Remote native capability ceiling must be explicit"

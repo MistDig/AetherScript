@@ -1,4 +1,4 @@
-[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.19)
+[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.20)
 
 ---
 
@@ -241,6 +241,44 @@ Homes are stored in `plugins/AetherScript/player-state/variables.sqlite` and sur
 
 `ais permit` replaces the feature's approved set (and always includes `runtime.message.send`); it is not additive. `ais restrict homes` restores message-only execution, retires incompatible active commands and cancels affected work. Manual console approval does not activate source: reload explicitly; an authorized AI apply activates through the durable pipeline. Policy lives in `plugins/AetherScript/script-capabilities.json` and survives restart. If policy storage is corrupt, execution falls back to a message-only ceiling until the owner repairs it. Fresh browser approval can supply execution capabilities for autonomous native apply; explicit console policy remains the ceiling. Native or player-only MCP tests use the owner-selected online player, who must hold the declared command permission. The AI cannot choose the actor. Tests cause real sends, state writes, waits and teleports. When `aether_scripts_test` returns `pending: true` and `testId`, poll `aether_scripts_test_status` with `{id,testId}` and report actual messages, errors and effects. Pure `sender any` message tests without an actor remain synthetic. Offline `aether_test` stays synthetic and rejects host execution with `HOST_CONTEXT_REQUIRED`.
 
+## Synchronous native events (0.0.20)
+
+Native files support `on join`, `on quit`, `on block_break` and `on block_place`. A feature may contain only events, or an optional command followed by handlers. Each handler requires an explicit `permission`; `"*"` includes every player. Optional `bypass "permission.node"` skips holders of that node.
+
+Every handler receives immutable `player_name`, `player_uuid` and `world` text values. Block events additionally receive `block_type` text (the material name) and signed integer `x`, `y`, `z`. Event bodies support `let`, `send`, `if`/`else` and pure scalar expressions. Collection operations are rejected. Only block handlers support `cancel`. Host calls, delay, state operations, arguments, mutation, loops and user function calls are rejected in handlers. At most 16 handlers are allowed per feature; each evaluation has an 8192-step and 32-message cap.
+
+Paper invokes handlers synchronously on its main thread. Block listeners use HIGHEST priority and skip events already cancelled by another plugin. AetherScript cancellation only sets the event's cancelled state; it never clears another cancellation. Active-revision subscriptions are replaced or removed during reload, rollback, disable and shutdown. Each handler infers `runtime.event.<id>`; `cancel` additionally requires `runtime.event.cancel`. The owner must approve these locally with console `ais permit`; browser capability choices and legacy remote grants remain unchanged and do not authorize events. Sending also requires `runtime.message.send`. This release introduces no MCP tools. Command-test tools do not simulate event dispatch; test actual gameplay on Paper.
+
+### Starter world protection
+
+Save this as `scripts/starter-protection.aether`:
+
+```text
+feature starter-protection version "1.0.0"
+on block_break permission "*" bypass "aetherscript.protection.bypass" {
+  if world == "world" {
+    send "Block breaking is protected here."
+    cancel
+  }
+}
+on block_place permission "*" bypass "aetherscript.protection.bypass" {
+  if world == "world" {
+    send "Block placing is protected here."
+    cancel
+  }
+}
+```
+
+Run these commands in the server console:
+
+```text
+ais permit starter-protection runtime.message.send runtime.event.block_break runtime.event.block_place runtime.event.cancel
+ais validate starter-protection
+ais reload starter-protection
+```
+
+ Non-builders cannot break or place any material in `world`; other worlds are unaffected. Grant `aetherscript.protection.bypass` through your permissions system to builders who should edit there. Permission plugins determine wildcard/operator inheritance, so verify both builder and guest accounts. No extra script permission is needed by guests. The packaged example is opt-in: copying it into `scripts/` and reloading activates it.
+
 ## Typed per-player storage (0.0.19)
 
 `state_save(key, value)` durably saves a typed value and returns `unit`. `state_load(key, fallback)` returns the saved value with the exact type of `fallback`, or the fallback when the key is absent. Both require `state.own` and a player invocation. Keys match `[a-z][a-z0-9_]{0,63}` and are isolated by feature ID and invoking player UUID. A saved type mismatch fails with `STATE_TYPE_MISMATCH`; changing a fallback does not migrate existing data. Immutable nested lists, maps, sets, UUIDs, locations and optionals retain their types. Values exclude `unit`, including nested `unit`. Encoded values are capped at 4096 ASCII bytes and 4096 nodes; exceeding codec bounds fails with `STATE_VALUE_LIMIT`. The same key cannot change type. Legacy location keys and typed keys cannot be read or overwritten through the other API; incompatible or corrupt encoding fails with `STATE_TYPE_MISMATCH`. The existing `state_get_location` and `state_put_location` calls remain supported.
@@ -311,10 +349,10 @@ The engine caps active features at 128, tracked histories at 128 and scripts-dir
 
 Copy an example to `scripts/welcome.aether` or `scripts/welcome.yml`. Set both feature ID and command name to `welcome`, choose the explicit permission `aetherscript.example.welcome`, and write your message. Validate, reload and invoke `/ais run welcome`.
 
-[Working examples](https://github.com/MistDig/AetherScript/tree/v0.0.19/examples) · [Structured JSON Schema](https://github.com/MistDig/AetherScript/blob/v0.0.19/schema/feature-v1.schema.json) · [Grammar and architecture decision](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/language-decision.md) · [Capability matrix](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/capabilities.csv)
+[Working examples](https://github.com/MistDig/AetherScript/tree/v0.0.20/examples) · [Structured JSON Schema](https://github.com/MistDig/AetherScript/blob/v0.0.20/schema/feature-v1.schema.json) · [Grammar and architecture decision](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/language-decision.md) · [Capability matrix](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/capabilities.csv)
 
 State writes have an acceptance check immediately before commit. Cancellation rejects work not yet accepted; an accepted write may finish after logout, revocation, timeout or shutdown. Accepted and completed writes are not rolled back.
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.19
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.20

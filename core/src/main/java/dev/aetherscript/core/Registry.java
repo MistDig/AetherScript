@@ -14,7 +14,7 @@ public final class Registry {
         Set<String> names = new HashSet<>();
         features.forEach((id, f) -> {
             if (!id.equals(f.definition().id())) throw new ValidationException("$.id", "ID mismatch");
-            if (!names.add(f.definition().command().name())) throw new ValidationException("$.commands", "duplicate command name");
+            if ((f.program() == null || !f.program().eventOnly()) && !names.add(f.definition().command().name())) throw new ValidationException("$.commands", "duplicate command name");
         });
         current = new Snapshot(Math.incrementExact(current.generation()), features);
         return current;
@@ -26,7 +26,7 @@ public final class Registry {
     public boolean run(String id, List<String> arguments, boolean player, Predicate<String> permitted, Consumer<String> send) {
         Snapshot captured = current;
         CompiledFeature feature = captured.features().get(id);
-        if (feature == null) return false;
+        if (feature == null || feature.program() != null && feature.program().eventOnly()) return false;
         Feature.Command command = feature.definition().command();
         if ((!player && command.sender().equals("player")) || !permitted.test(command.permission())) return false;
         List<String> checked = InvocationArguments.checked(arguments);

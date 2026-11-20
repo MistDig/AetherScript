@@ -20,6 +20,7 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
     private volatile String startupError = "";
     private FeatureManager manager;
     private FeatureCommands featureCommands;
+    private volatile EventRuntime events;
     private volatile ScriptCapabilityPolicy scriptPolicy = ScriptCapabilityPolicy.messageOnly();
     private volatile GameplayRuntime gameplay;
     private AuditLog audit;
@@ -51,6 +52,9 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
                     && !Files.exists(data.resolve("scripts/hello-ai.aether"), LinkOption.NOFOLLOW_LINKS)
                     && !Files.exists(data.resolve("scripts/hello-ai.yaml"), LinkOption.NOFOLLOW_LINKS))
                     copyDefault("hello-ai.yml", data.resolve("scripts/hello-ai.yml"));
+                Path examples = data.resolve("examples"); Files.createDirectories(examples);
+                if (!examples.toRealPath().equals(examples) || Files.isSymbolicLink(examples)) throw new IOException("Unsafe examples directory");
+                copyDefault("examples/starter-protection.aether", examples.resolve("starter-protection.aether"));
                 EngineSettings settings = EngineSettings.load(data.resolve("config.yml"));
                 audit = new AuditLog(data.resolve("audit/local.jsonl"));
                 try { scriptPolicy = new ScriptCapabilityPolicy(data.resolve("script-capabilities.json"), executionCapabilities()); }
@@ -58,6 +62,10 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
                 gameplay = onMain(() -> new GameplayRuntime(this, registry, io, new RemoteScripts.Main() {
                     public <T> T call(Callable<T> action) throws Exception { return onMain(action); }
                 }, () -> scriptPolicy, () -> ready, data.resolve("player-state")));
+                events = onMain(() -> {
+                    EventRuntime listener = new EventRuntime(registry, () -> scriptPolicy, () -> ready, getLogger()::warning);
+                    getServer().getPluginManager().registerEvents(listener, this); return listener;
+                });
                 manager = new FeatureManager(new ScriptStore(data.resolve("scripts")), new RevisionStore(data.resolve("storage"), settings.retainVersions()), feature -> scriptPolicy.validate(feature));
                 var startup = manager.startup();
                 apply(null, "server", "startup", UUID.randomUUID().toString(), registry.snapshot(), startup);
@@ -88,6 +96,7 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
     }
     @Override public void onDisable() {
         running = false; ready = false;
+        if (events != null) events.close();
         if (gameplay != null) gameplay.close();
         if (featureCommands != null) featureCommands.close();
         connectionServices.values().forEach(RemoteScripts::revoke); connectionServices.clear();
@@ -122,6 +131,12 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
     }
     private String principal(CommandSender sender) { return sender instanceof Player p ? "player:" + p.getUniqueId() : "local:" + sender.getName(); }
     private static Set<String> executionCapabilities() {
+        Set<String> capabilities = new TreeSet<>(remoteCapabilities());
+        capabilities.addAll(CompiledFeature.EVENT_CAPABILITIES);
+        return Set.copyOf(capabilities);
+    }
+    /** Relay protocol v2 retains its established capability allowlist. */
+    private static Set<String> remoteCapabilities() {
         Set<String> capabilities = new TreeSet<>(Set.of(ScriptCapabilityPolicy.MESSAGE));
         StandardCallables.create().descriptors().forEach(call -> capabilities.addAll(call.requiredCapabilities()));
         return Set.copyOf(capabilities);
@@ -129,7 +144,7 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
     private boolean runFeature(String id, List<String> arguments, CommandSender sender) {
         if (!ready) return false;
         CompiledFeature feature = registry.snapshot().features().get(id);
-        if (feature == null) return false;
+        if (feature == null || feature.program() != null && feature.program().eventOnly()) return false;
         Feature.Command command = feature.definition().command();
         if (!sender.hasPermission(command.permission()) || command.sender().equals("player") && !(sender instanceof Player)) return false;
         scriptPolicy.validate(feature);
@@ -191,7 +206,7 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
                     if (targets.size() > 128) throw new IllegalArgumentException(); targets.forEach(FeatureParser::requireId);
                     List<Map<String, String>> players = getServer().getOnlinePlayers().stream().sorted(Comparator.comparing(Player::getName)).limit(128)
                         .map(player -> Map.of("uuid", player.getUniqueId().toString(), "name", player.getName())).toList();
-                    shared.enroll(targets, executionCapabilities(), players); say(sender, "Creating a private browser approval link; no relay configuration is required.");
+                    shared.enroll(targets, remoteCapabilities(), players); say(sender, "Creating a private browser approval link; no relay configuration is required.");
                 } catch (RuntimeException invalid) { say(sender, "Use /ais connect [feature-id[,feature-id]]; feature IDs must be exact."); }
             } else if (op.equals("connections")) {
                 if (selected != null) { say(sender, "Use /ais connections"); return true; }

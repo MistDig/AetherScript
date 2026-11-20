@@ -29,6 +29,7 @@ final class FeatureCommands implements AutoCloseable {
         if (registry.snapshot().generation() != expected) throw new IllegalStateException("STALE_PLAN");
         Map<String, OwnedCommand> next = new LinkedHashMap<>();
         target.forEach((id, feature) -> {
+            if (feature.program() != null && feature.program().eventOnly()) return;
             String name = feature.definition().command().name();
             if (next.putIfAbsent(name, new OwnedCommand(name, id, feature.definition().command().permission())) != null)
                 throw new ValidationException("$.commands", "duplicate command name");

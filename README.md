@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/assets/aetherscript-banner.png" alt="AetherScript — little scripts, big possibilities" width="1200"></p>
 
-<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.19"><b>Download 0.0.19</b></a> · <a href="https://mistdig.github.io/AetherScript/">Explore the docs</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
+<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.20"><b>Download 0.0.20</b></a> · <a href="https://mistdig.github.io/AetherScript/">Explore the docs</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
 
 [![Build](https://github.com/MistDig/AetherScript/actions/workflows/ci.yml/badge.svg)](https://github.com/MistDig/AetherScript/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/MistDig/AetherScript)](https://github.com/MistDig/AetherScript/releases)
@@ -10,11 +10,15 @@ An open-source Minecraft scripting engine with **live hot reloading**, saved wor
 
 ## Language foundation and the month goal
 
-The [17 November–17 December plan](docs/ecosystem/month-goal-2026-11-17.md) prioritizes the language, core Minecraft APIs and addon foundations, then gameplay adapters and reliability, with MCP expansion last. AI authors get canonical syntax, a machine-readable contract and precise errors; humans need not learn the DSL to request features. The one-month goal is a broad plugin language, with explicit acceptance gates rather than a guarantee of Java API parity. Release 0.0.19 adds typed per-player SQLite save/load, including nested immutable collections; final release verification is recorded in the changelog. Existing MCP validation uses the shared core, with no new tools or relay changes.
+The [17 November–17 December plan](docs/ecosystem/month-goal-2026-11-17.md) prioritizes the language, core Minecraft APIs and addon foundations, then gameplay adapters and reliability, with MCP expansion last. AI authors get canonical syntax, a machine-readable contract and precise errors; humans need not learn the DSL to request features. The one-month goal is a broad plugin language, with explicit acceptance gates rather than a guarantee of Java API parity. Release 0.0.20 adds synchronous player join/quit and cancellable block break/place handlers. Typed per-player SQLite save/load includes nested immutable collections; verification is recorded in the changelog. Existing MCP validation uses the shared core, with no new tools or relay changes.
+
+## Native events in 0.0.20
+
+Use synchronous `on join`, `on quit`, `on block_break` and `on block_place` handlers with immutable event fields and explicit permissions. Event capabilities require local console approval; existing browser grants remain unchanged. Block handlers can cancel the action before Paper returns. The opt-in [starter-protection example](examples/starter-protection.aether) protects all blocks in `world` for guests while builders holding `aetherscript.protection.bypass` can edit. See the [language guide](docs/wiki/Language-Reference.md#synchronous-native-events-0020) and the [release plan](RELEASE-PLAN.md) for the current scope and remaining work.
 
 ## Native commands and approved tests introduced in 0.0.17
 
-Native player commands can read immutable locations, persist homes, wait a bounded number of server ticks and teleport the invoking player. Install [homes.aether](examples/homes.aether) locally with console approval, or authorize your AI in the browser to create and activate native commands; see the [homes guide](https://mistdig.github.io/AetherScript/guide/language.html#owner-approved-homes-commands-current-implementation). Fresh 0.0.17 browser approval selects all or selected native IDs, an execution capability set and optionally one test-player UUID. The AI can create, edit and activate native features within that grant. The execution set persists for installed features after AI disconnect. Console `ais permit` and `ais restrict` remain manual overrides that browser grants cannot exceed. Legacy personal-relay and older browser grants stay message-only until fresh approval. This command-only slice does not complete the planned event, UI, general gameplay or optional model ecosystem. Verification claims below retain their original versions.
+Native player commands can read immutable locations, persist homes, wait a bounded number of server ticks and teleport the invoking player. Install [homes.aether](examples/homes.aether) locally with console approval, or authorize your AI in the browser to create and activate native commands; see the [homes guide](https://mistdig.github.io/AetherScript/guide/language.html#owner-approved-homes-commands-current-implementation). Fresh 0.0.17 browser approval selects all or selected native IDs, an execution capability set and optionally one test-player UUID. The AI can create, edit and activate native features within that grant. The execution set persists for installed features after AI disconnect. Console `ais permit` and `ais restrict` remain manual overrides that browser grants cannot exceed. Legacy personal-relay and older browser grants stay message-only until fresh approval. The native event foundation below complements commands. UI, broader gameplay and the optional model ecosystem remain planned. Verification claims below retain their original versions.
 
 ## Connect through your browser
 
@@ -61,7 +65,7 @@ command helloai permission "aetherscript.example.hello" sender any {
 
 Save this as `scripts/hello-ai.aether`, using one source file for that feature ID. Validate, reload and run it with the existing `/ais` commands. The [language guide](https://mistdig.github.io/AetherScript/guide/language.html) covers types, scope, operators and preparation limits.
 
-The [documentation website](https://mistdig.github.io/AetherScript/) includes local search, sidebar guides, dark mode and mobile navigation. The [ecosystem inventory](docs/ecosystem/README.md) tracks the brief's concrete capabilities, evidence and dependency order. The [halfway milestone](docs/ecosystem/halfway-milestone.md) tracks M1–M3. Scalar runtime locals, loops, functions and owned direct commands are implemented foundations. Lists and the narrow location/state/delay/self-teleport bindings are available; The current foundation adds immutable maps/sets, a public compiler registry-injection seam and typed per-player persistence; records, events, broader gameplay, schema migrations, menus and the complete addon loader/event/serializer SDK remain open.
+The [documentation website](https://mistdig.github.io/AetherScript/) includes local search, sidebar guides, dark mode and mobile navigation. The [ecosystem inventory](docs/ecosystem/README.md) tracks the brief's concrete capabilities, evidence and dependency order. The [halfway milestone](docs/ecosystem/halfway-milestone.md) tracks M1–M3. Scalar runtime locals, loops, functions and owned direct commands are implemented foundations. Lists and the narrow location/state/delay/self-teleport bindings are available; The current foundation adds immutable maps/sets, a public compiler registry-injection seam and typed per-player persistence; records, broader gameplay, schema migrations, menus and the complete addon loader/event/serializer SDK remain open.
 
 ## What the engine does
 
@@ -71,11 +75,11 @@ The [documentation website](https://mistdig.github.io/AetherScript/) includes lo
 - Clear editable-file versus running-version status, field/line/column errors, history and bounded diffs.
 - A separate MCP gateway with offline validation/exact message tests, opt-in loopback status and scoped remote `.aether` authoring.
 
-This experimental implementation supports sender messages, preparation-time legacy logic, invocation-time control flow and a locally approved player-command host slice. A typed, versioned persistent-variable service exists in core, with atomic JSON and a separate SQLite backend; Paper binds typed per-player values and own-location storage for homes. Events, block health, gameplay APIs and UI remain in the [dependency backlog](docs/ecosystem/backlog.md). Published versions begin at 0.0.1; milestone labels describe engineering phases.
+This experimental implementation supports sender messages, preparation-time legacy logic, invocation-time control flow and a locally approved player-command host slice. A typed, versioned persistent-variable service exists in core, with atomic JSON and a separate SQLite backend; Paper binds typed per-player values and own-location storage for homes. Block health, broader gameplay APIs and UI remain in the [dependency backlog](docs/ecosystem/backlog.md). Published versions begin at 0.0.1; milestone labels describe engineering phases.
 
 ## Get started
 
-1. Stop Paper, back up existing AetherScript data, and install **AetherScript-0.0.19.jar** from the release. Keep only one plugin JAR installed.
+1. Stop Paper, back up existing AetherScript data, and install **AetherScript-0.0.20.jar** from the release. Keep only one plugin JAR installed.
 2. Start with Java 25 and wait for `Ready. Restored ...`. A new install creates and activates `plugins/AetherScript/scripts/hello-ai.yml`.
 3. Run `/ais run hello-ai`. Players need `aetherscript.example.hello` (operators by default).
 4. Edit its quoted `text`, save, then `/ais validate hello-ai` and `/ais reload hello-ai`.

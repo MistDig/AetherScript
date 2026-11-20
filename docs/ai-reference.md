@@ -2,7 +2,7 @@
 
 ## Current capabilities
 
-This document describes the 0.0.19 language foundation; verification remains attributed to its recorded version. It supports native .aether message commands, typed positional arguments, immutable and mutable locals, bounded loops, typed functions, immutable homogeneous lists/maps/sets, arithmetic, boolean conditions, explicit reload, revisions and rollback. A locally approved native player-command slice adds location snapshots, own-player/feature persistent homes, bounded delay and self teleport. Events, inventories, item grants, economy and quest systems remain planned. Do not invent syntax or promise unsupported gameplay.
+This document describes the 0.0.20 language foundation; verification remains attributed to its recorded version. It supports native .aether message commands, typed positional arguments, immutable and mutable locals, bounded loops, typed functions, immutable homogeneous lists/maps/sets, arithmetic, boolean conditions, explicit reload, revisions and rollback. A locally approved native player-command slice adds location snapshots, own-player/feature persistent homes, bounded delay and self teleport. Native player join/quit and cancellable block break/place handlers are available. Inventories, item grants, economy and quest systems remain planned. Do not invent syntax or promise unsupported gameplay.
 
 Use tool discovery from the connected app as the authority for available tools. Hosted and local gateways expose different tools. A hosted service version may differ from the plugin release version.
 
@@ -251,3 +251,42 @@ Use this current reference, discovered tool schemas and the bundled authoring co
 State writes have an acceptance check immediately before commit. Cancellation rejects work not yet accepted; an accepted write may finish after logout, revocation, timeout or shutdown. Accepted and completed writes are not rolled back.
 
 Test jobs retain at most 32 results globally and 8 per connection for up to 180 seconds; execution has a 120-second deadline. Captured message JSON is limited to 12 KiB and receipts to 6 KiB. `outputTruncated` or `receiptsTruncated` signals incomplete capture; truncated messages never count as a successful exact match. These capture limits do not undo effects already performed.
+
+## Synchronous native events (0.0.20)
+
+Native files support `on join`, `on quit`, `on block_break` and `on block_place`. A feature may contain only events, or an optional command followed by handlers. Each handler requires an explicit `permission`; `"*"` includes every player. Optional `bypass "permission.node"` skips holders of that node.
+
+Every handler receives immutable `player_name`, `player_uuid` and `world` text values. Block events additionally receive `block_type` text (the material name) and signed integer `x`, `y`, `z`. Event bodies support `let`, `send`, `if`/`else` and pure scalar expressions. Collection operations are rejected. Only block handlers support `cancel`. Host calls, delay, state operations, arguments, mutation, loops and user function calls are rejected in handlers. At most 16 handlers are allowed per feature; each evaluation has an 8192-step and 32-message cap.
+
+Paper invokes handlers synchronously on its main thread. Block listeners use HIGHEST priority and skip events already cancelled by another plugin. AetherScript cancellation only sets the event's cancelled state; it never clears another cancellation. Active-revision subscriptions are replaced or removed during reload, rollback, disable and shutdown. Each handler infers `runtime.event.<id>`; `cancel` additionally requires `runtime.event.cancel`. The owner must approve these locally with console `ais permit`; browser capability choices and legacy remote grants remain unchanged and do not authorize events. Sending also requires `runtime.message.send`. This release introduces no MCP tools. Command-test tools do not simulate event dispatch; test actual gameplay on Paper.
+
+### Starter world protection
+
+Save this as `scripts/starter-protection.aether`:
+
+```text
+feature starter-protection version "1.0.0"
+on block_break permission "*" bypass "aetherscript.protection.bypass" {
+  if world == "world" {
+    send "Block breaking is protected here."
+    cancel
+  }
+}
+on block_place permission "*" bypass "aetherscript.protection.bypass" {
+  if world == "world" {
+    send "Block placing is protected here."
+    cancel
+  }
+}
+```
+
+Run these commands in the server console:
+
+```text
+ais permit starter-protection runtime.message.send runtime.event.block_break runtime.event.block_place runtime.event.cancel
+ais validate starter-protection
+ais reload starter-protection
+```
+
+ Non-builders cannot break or place any material in `world`; other worlds are unaffected. Grant `aetherscript.protection.bypass` through your permissions system to builders who should edit there. Permission plugins determine wildcard/operator inheritance, so verify both builder and guest accounts. No extra script permission is needed by guests. The packaged example is opt-in: copying it into `scripts/` and reloading activates it.
+

@@ -14,7 +14,7 @@ AetherScript is an open-source Minecraft scripting engine for **Paper 26.3**, wi
 **0.0.2 adds a safety net:** successful revisions are saved, invalid edits leave your working script running, and diagnostics tell you which file to fix. One editable file. Five saved versions by default.
 
 > [!NOTE]
-> This is an experimental, **message-only release**. Write a command in [native AetherScript](https://github.com/MistDig/AetherScript/wiki/AI-Authoring), YAML or JSON. Gameplay events and block health are planned. Scoped remote authoring is opt-in; the server console selects the feature IDs an agent can manage.
+> This is an experimental implementation. YAML/JSON retain message-only actions. Write a command in [native AetherScript](https://github.com/MistDig/AetherScript/wiki/AI-Authoring), YAML or JSON. Native player join/quit and cancellable block break/place handlers are available; block health remains planned. Scoped remote authoring is opt-in; the server console selects the feature IDs an agent can manage.
 
 ## Pick your path
 

@@ -28,11 +28,24 @@ const tick = setInterval(() => {
   client.write('flying', { flags: { onGround: true, hasHorizontalCollision: false } })
   client.write('tick_end', {})
 }, 50)
+let sequence = 0
 readline.createInterface({ input: process.stdin }).on('line', line => {
   try {
     const request = JSON.parse(line)
     if (request.op === 'quit') { client.end('test complete'); return }
     if (request.op === 'position') { emit('position_snapshot', { id: request.id, ...position }); return }
+    if (ready && (request.op === 'break' || request.op === 'place')) {
+      const { x, y, z } = request
+      if (![x, y, z].every(Number.isSafeInteger)) throw Error('Expected integer block coordinates')
+      const location = { x, y, z }
+      if (request.op === 'break') {
+        client.write('block_dig', { status: 0, location, face: 1, sequence: ++sequence })
+      } else {
+        client.write('block_place', { hand: 'main_hand', location, direction: 1, cursorX: 0.5,
+          cursorY: 1, cursorZ: 0.5, insideBlock: false, worldBorderHit: false, sequence: ++sequence })
+      }
+      return
+    }
     if (request.op !== 'command' || !ready || typeof request.command !== 'string' || request.command.length > 256 || /[\r\n]/.test(request.command)) throw Error('Invalid command request or client not ready')
     client.chat('/' + request.command.replace(/^\//, ''))
     emit('command_sent', { id: request.id, command: request.command })

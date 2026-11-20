@@ -2,6 +2,13 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.20] - 2026-11-20
+
+- Add native synchronous player join/quit and block break/place handlers with typed immutable event snapshots, explicit permission gates and bounded pure evaluation.
+- Add block cancellation and revision-owned event subscriptions; preserve prior cancellation by other plugins and keep delayed/host effects outside synchronous handlers.
+- Add an opt-in starter-protection example, machine-readable event contract and human/AI authoring guides.
+- Verification is pending the final build and real-server checks; completed results will be recorded before release.
+
 ## [0.0.19] - 2026-11-20
 
 - Add typed per-player storage with `state_save(key, value)` and `state_load(key, fallback)`, including immutable nested maps, sets and lists.

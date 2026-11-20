@@ -8,9 +8,9 @@ CAPS = 'player.location.read,state.own,scheduler.delay,player.teleport.self'
 class Bot:
     def __init__(self, client_dir, name, output):
         self.events, self.q, self.name = [], queue.Queue(), name
-        script = Path(client_dir)/'home_client.js'
-        if not script.exists(): script = Path(client_dir)/'home_client.cjs'
+        script = Path(__file__).resolve().parent/'client/home_client.cjs'
         self.p = subprocess.Popen(['node', str(script.resolve()), '25568', name], cwd=client_dir,
+            env=dict(os.environ, NODE_PATH=str(Path(client_dir).resolve()/'node_modules')),
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8', creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
         self.errors = []
         def errors():
@@ -55,7 +55,7 @@ class Bot:
             try: self.request(op='quit'); self.p.wait(timeout=5)
             except (OSError,subprocess.TimeoutExpired): self.p.kill(); self.p.wait(timeout=5)
 
-def verify(command, start, stop, server, repo, java, evidence, client_dir):
+def verify(command, start, stop, server, repo, java, evidence, client_dir, events=False):
     server,repo,client_dir=map(Path,(server,repo,client_dir))
     proxy_jar=client_dir/'ViaProxy-3.4.14.jar'
     if hashlib.sha256(proxy_jar.read_bytes()).hexdigest()!=PROXY_SHA256: raise AssertionError('Unexpected ViaProxy checksum')
@@ -106,6 +106,10 @@ def verify(command, start, stop, server, repo, java, evidence, client_dir):
             except OSError: pass
             time.sleep(.25)
         else: raise AssertionError('Proxy readiness timeout: '+(server/'homes-proxy.log').read_text()[-1500:])
+        if events:
+            from event_workflow import verify_protection
+            verify_protection(command, check, connect, tp, passed, repo, scripts)
+            return
         a,b=connect('AetherHomeA'),connect('AetherHomeB')
         command('op AetherHomeA','operator'); command('op AetherHomeB','operator')
         progress = 'player-progress'

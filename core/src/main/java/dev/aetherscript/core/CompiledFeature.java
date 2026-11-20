@@ -7,7 +7,39 @@ public record CompiledFeature(Feature definition, String sourceHash, String irHa
     public CompiledFeature(Feature definition, String sourceHash, String irHash) {
         this(definition, sourceHash, irHash, null);
     }
+    public record EventData(String kind, java.util.Map<String, ScriptValue> fields) {
+        public EventData {
+            fields = java.util.Map.copyOf(fields);
+            java.util.Map<String, ScriptType> expected = eventFields(kind);
+            if (!fields.keySet().equals(expected.keySet())) throw new IllegalArgumentException("Event fields do not match " + kind);
+            for (var field : expected.entrySet()) {
+                if (!field.getValue().equals(fields.get(field.getKey()).type())) throw new IllegalArgumentException("Wrong event field type: " + field.getKey());
+            }
+        }
+    }
+    public record EventResult(List<Feature.MessageAction> messages, boolean cancelled) {
+        public EventResult { messages = List.copyOf(messages); }
+    }
+    public interface EventHandler {
+        String kind();
+        String permission();
+        String bypassPermission();
+        EventResult evaluate(EventData data);
+    }
+    public static final java.util.Set<String> EVENT_CAPABILITIES = java.util.Set.of("runtime.event.join", "runtime.event.quit", "runtime.event.block_break", "runtime.event.block_place", "runtime.event.cancel");
+    public static java.util.Map<String, ScriptType> eventFields(String kind) {
+        if (!java.util.Set.of("join", "quit", "block_break", "block_place").contains(kind)) throw new IllegalArgumentException("Unsupported event: " + kind);
+        var fields = new java.util.LinkedHashMap<String, ScriptType>();
+        fields.put("player_name", ScriptType.TEXT); fields.put("player_uuid", ScriptType.TEXT); fields.put("world", ScriptType.TEXT);
+        if (kind.startsWith("block_")) {
+            fields.put("block_type", ScriptType.TEXT);
+            fields.put("x", ScriptType.INTEGER); fields.put("y", ScriptType.INTEGER); fields.put("z", ScriptType.INTEGER);
+        }
+        return java.util.Collections.unmodifiableMap(fields);
+    }
     public interface Program {
+        default List<EventHandler> eventHandlers() { return List.of(); }
+        default boolean eventOnly() { return false; }
         List<Feature.MessageAction> evaluate(List<String> arguments);
         /** Host-aware invocation; legacy programs retain their buffered message behavior. */
         default List<Feature.MessageAction> evaluate(List<String> arguments, InvocationContext context) {

@@ -400,6 +400,9 @@ public final class TextFrontend {
             execution.messages.add(new Feature.MessageAction(text));
         }
     }
+    private record Cancel(Token token) implements Statement {
+        public void prepare(Execution execution) { execution.step(token); execution.eventCancelled = true; }
+    }
     private record Condition(Expression condition, List<Statement> yes, List<Statement> no) implements Statement {
         public void prepare(Execution execution) {
             execution.step();
@@ -413,6 +416,7 @@ public final class TextFrontend {
         Execution() { this(null); }
         Execution(InvocationContext context) { this.context = context; }
         private int steps, callDepth;
+        private boolean eventCancelled;
         void step() {
             step(null);
         }
@@ -423,6 +427,27 @@ public final class TextFrontend {
                 throw new ValidationException("$", "Execution budget exceeded (8192 steps)", 1, 1);
             }
         }
+    }
+
+    private record NativeEventHandler(String kind, String permission, String bypassPermission, Map<String, Binding> fields, List<Statement> body) implements CompiledFeature.EventHandler {
+        public CompiledFeature.EventResult evaluate(CompiledFeature.EventData data) {
+            if (!kind.equals(data.kind())) throw new IllegalArgumentException("Event kind does not match handler");
+            Execution execution = new Execution();
+            fields.forEach((name, binding) -> execution.values.put(binding, data.fields().get(name)));
+            for (Statement statement : body) statement.prepare(execution);
+            return new CompiledFeature.EventResult(execution.messages, execution.eventCancelled);
+        }
+    }
+    private record EventProgram(CompiledFeature command, List<NativeEventHandler> handlers, String sourceHash) implements CompiledFeature.Program {
+        public boolean eventOnly() { return command == null; }
+        public List<CompiledFeature.EventHandler> eventHandlers() { return List.copyOf(handlers); }
+        public List<Feature.MessageAction> evaluate(List<String> arguments) { return evaluate(arguments, null); }
+        public List<Feature.MessageAction> evaluate(List<String> arguments, InvocationContext context) {
+            if (command == null) throw new ValidationException("$", "Event-only features have no command");
+            return command.program() == null ? command.definition().command().actions() : command.program().evaluate(arguments, context);
+        }
+        @Override public boolean equals(Object other) { return other instanceof EventProgram program && sourceHash.equals(program.sourceHash); }
+        @Override public int hashCode() { return sourceHash.hashCode(); }
     }
 
     private record RuntimeProgram(List<Argument> arguments, List<Statement> body, String sourceHash, boolean hostRequired) implements CompiledFeature.Program {
@@ -514,6 +539,7 @@ public final class TextFrontend {
     }
     private static List<Object> statementsDescription(List<Statement> statements) {
         return statements.stream().map(statement -> switch (statement) {
+            case Cancel cancel -> (Object) List.of("cancel");
             case UnitCall call -> (Object) List.of("unit-call", expressionDescription(call.expression()));
             case Let let -> (Object) List.of("let", let.binding().slot(), expressionDescription(let.initializer()));
             case Send send -> (Object) List.of("send", expressionDescription(send.expression()));
@@ -554,6 +580,7 @@ public final class TextFrontend {
         private final CallableRegistry callables;
         private final java.util.Set<String> capabilities = new java.util.TreeSet<>(List.of("runtime.message.send"));
         private boolean advanced, hostRequired;
+        private String eventKind;
         private int index, nodes, statements, blockDepth, expressionDepth, bindings, loopDepth;
         Parser(List<Token> tokens, CallableRegistry callables) { this.tokens = tokens; this.callables = callables; }
         CompiledFeature compile(byte[] original) {
@@ -561,6 +588,7 @@ public final class TextFrontend {
             expect("version"); Token versionToken = require(Kind.STRING, "Feature version must be double-quoted text");
             bounded(versionToken, 64, "Feature version"); lineEnd();
             while (matches("fn")) { function(); newlines(); }
+            if (matches("on")) return events(null, id, versionToken.text(), original);
             expect("command"); Token commandToken = peek(); String name = logicalId();
             expect("permission"); Token permission = require(Kind.STRING, "Permission must be explicit double-quoted text");
             if (permission.text().length() > 128 || !permission.text().matches("[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)+"))
@@ -568,13 +596,13 @@ public final class TextFrontend {
             expect("sender"); Token sender = require(Kind.NAME, "Expected sender any or player");
             if (!List.of("any", "player").contains(sender.text())) throw sender.error("Sender must be any or player");
             List<Statement> body = block(); newlines();
-            if (peek().kind() != Kind.END) throw peek().error("Expected end of file. This slice supports one command per feature.");
+            if (peek().kind() != Kind.END && !matches("on")) throw peek().error("Expected end of file or an on event declaration; only one command is supported.");
             if (arguments.isEmpty() && !advanced) {
                 Execution execution = new Execution();
                 for (Statement statement : body) statement.prepare(execution);
                 if (execution.messages.isEmpty()) throw commandToken.error("The selected branch must send at least one message");
                 Feature feature = definition(id, versionToken.text(), name, permission.text(), sender.text(), execution.messages);
-                return compiled(feature, original, null, feature);
+                return events(compiled(feature, original, null, feature), id, versionToken.text(), original);
             }
             int messages = maximumMessages(body);
             if (!advanced && (messages == 0 || messages > FeatureParser.MAX_ACTIONS))
@@ -586,7 +614,40 @@ public final class TextFrontend {
                     argument.defaultValue() == null ? List.of() : List.of(argument.defaultValue().value()))).toList(),
                 statementsDescription(body));
             if (advanced) semantic = List.of(semantic, functions.values().stream().map(TextFrontend::functionDescription).toList());
-            return compiled(feature, original, program, semantic);
+            return events(compiled(feature, original, program, semantic), id, versionToken.text(), original);
+        }
+        private CompiledFeature events(CompiledFeature command, String id, String version, byte[] original) {
+            if (peek().kind() == Kind.END && command != null) return command;
+            List<NativeEventHandler> handlers = new ArrayList<>();
+            while (matches("on")) {
+                Token start = take();
+                if (handlers.size() >= 16) throw start.error("A feature supports at most 16 event handlers");
+                Token kind = require(Kind.NAME, "Expected join, quit, block_break or block_place");
+                Map<String, ScriptType> fields;
+                try { fields = CompiledFeature.eventFields(kind.text()); }
+                catch (IllegalArgumentException failure) { throw kind.error(failure.getMessage()); }
+                expect("permission"); Token permission = require(Kind.STRING, "Event permission must be explicit double-quoted text");
+                if (!permission.text().equals("*") && (permission.text().length() > 128 || !permission.text().matches("[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)+")))
+                    throw permission.error("Permission must be an explicit dotted node without wildcards, at most 128 characters");
+                String bypass = null;
+                if (matches("bypass")) {
+                    take(); Token node = require(Kind.STRING, "Bypass permission must be double-quoted text");
+                    if (node.text().length() > 128 || !node.text().matches("[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)+")) throw node.error("Bypass permission must be an explicit dotted node without wildcards");
+                    bypass = node.text();
+                }
+                capabilities.add("runtime.event." + kind.text());
+                Map<String, Binding> eventBindings = new java.util.LinkedHashMap<>();
+                fields.forEach((name, type) -> eventBindings.put(name, new Binding(name, type, kind, bindings++, false)));
+                scopes.push(eventBindings); eventKind = kind.text();
+                List<Statement> body = block();
+                eventKind = null; scopes.pop(); newlines();
+                handlers.add(new NativeEventHandler(kind.text(), permission.text(), bypass, Map.copyOf(eventBindings), body));
+            }
+            if (peek().kind() != Kind.END) throw peek().error("Expected on event declaration or end of file");
+            Feature definition = command == null ? definition(id, version, id, "aetherscript.events", "player", List.of()) : new Feature(1, id, version, List.copyOf(capabilities), command.definition().command());
+            var program = new EventProgram(command, List.copyOf(handlers), FeatureParser.hash(original));
+            return compiled(definition, original, program, List.of("aether-events-v1", command == null ? List.of() : command.irHash(),
+                definition, handlers.stream().map(handler -> List.of(handler.kind(), handler.permission(), handler.bypassPermission() == null ? "" : handler.bypassPermission(), statementsDescription(handler.body()))).toList()));
         }
         private void function() {
             Token start = take(); advanced = true;
@@ -677,6 +738,7 @@ public final class TextFrontend {
                 if (peek().kind() == Kind.END) throw peek().error("Unclosed block. Add a closing brace.");
                 if (++statements > MAX_STATEMENTS) throw peek().error("Statement limit exceeded (256)");
                 if (matches("arg")) {
+                    if (eventKind != null) throw peek().error("Event handlers cannot declare command arguments");
                     if (currentFunction != null || blockDepth != 1 || !result.isEmpty()) throw peek().error("Declare arguments at the start of the command block");
                     argument();
                 } else result.add(statement());
@@ -713,6 +775,13 @@ public final class TextFrontend {
         }
         private Statement statement() {
             Token start = take();
+            if (eventKind != null && !List.of("let", "send", "if", "cancel").contains(start.text()))
+                throw start.error("Synchronous event handlers support only let, send, if and cancel");
+            if (start.text().equals("cancel")) {
+                if (eventKind == null || !eventKind.startsWith("block_")) throw start.error("cancel requires a cancellable block_break or block_place handler");
+                capabilities.add("runtime.event.cancel");
+                lineEnd(); return new Cancel(start);
+            }
             if (start.text().equals("let") || start.text().equals("var")) {
                 Token name = require(Kind.NAME, "Expected a local variable name after let");
                 if (RESERVED.contains(name.text())) throw name.error("This keyword cannot be a variable name");
@@ -830,6 +899,8 @@ public final class TextFrontend {
         }
         private Expression primary() {
             Token token = take();
+            if (eventKind != null && (List.of("[", "{", "list", "map", "set").contains(token.text())))
+                throw token.error("Synchronous event handlers support only scalar expressions");
             if (token.text().equals("{")) {
                 if (matches("}")) throw token.error("Empty maps require map<key,value>()");
                 List<Expression> elements = new ArrayList<>(); ScriptType key = null, valueType = null;
@@ -931,6 +1002,7 @@ public final class TextFrontend {
             }
             if (token.kind() == Kind.NAME) {
                 if (matches("(")) {
+                    if (eventKind != null) throw token.error("Function and host calls are unavailable in synchronous event handlers");
                     Function function = functions.get(token.text());
                     if (function == null && callables.descriptor(token.text()) != null) {
                         var descriptor = callables.descriptor(token.text()); take(); List<Expression> values = new ArrayList<>();

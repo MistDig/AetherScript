@@ -119,6 +119,7 @@ final class GameplayRuntime implements AutoCloseable, Listener {
         expireTests();
         if (closed || !ready.getAsBoolean()) throw error("RUNTIME_NOT_READY");
         Objects.requireNonNull(actor); Objects.requireNonNull(connectionId); Objects.requireNonNull(connectionAlive);
+        if (feature.program() != null && feature.program().eventOnly()) throw error("EVENT_ONLY_FEATURE: trigger a real server event");
         List<String> checked = InvocationArguments.checked(arguments);
         if (expected.size() > 128) throw error("INVALID_EXPECTED_MESSAGES");
         if (tests.size() >= 32 || tests.values().stream().filter(j -> j.connection.equals(connectionId)).count() >= 8) throw error("TEST_BUSY");

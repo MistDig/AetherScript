@@ -1,5 +1,7 @@
 # AetherScript language milestone through December 17
 
+The [release tracker](../../RELEASE-PLAN.md) records the current order, acceptance examples and shipped milestones.
+
 The goal is to build complete Paper plugins from reusable typed APIs and extend those APIs with an addon SDK. AI authoring uses canonical syntax, machine-readable contracts, runnable examples, and precise diagnostics. Expanded MCP integration follows the language milestones.
 
 | Order | Deliverable | Acceptance example |

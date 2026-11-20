@@ -8,7 +8,7 @@ Test jobs retain at most 32 results globally and 8 per connection for up to 180 
 
 ## Current capabilities
 
-This document describes the 0.0.18 language foundation; verification remains attributed to its recorded version. It supports native .aether message commands, typed positional arguments, immutable and mutable locals, bounded loops, typed functions, immutable homogeneous lists/maps/sets, arithmetic, boolean conditions, explicit reload, revisions and rollback. A locally approved native player-command slice adds location snapshots, own-player/feature persistent homes, bounded delay and self teleport. Events, inventories, item grants, economy, quests and general persistent-value bindings remain planned. Do not invent syntax or promise unsupported gameplay.
+This document describes the 0.0.20 language foundation; verification remains attributed to its recorded version. It supports native .aether message commands, typed positional arguments, immutable and mutable locals, bounded loops, typed functions, immutable homogeneous lists/maps/sets, arithmetic, boolean conditions, explicit reload, revisions and rollback. A locally approved native player-command slice adds location snapshots, own-player/feature persistent homes, bounded delay and self teleport. Native player join/quit and cancellable block break/place handlers are available. Inventories, item grants, economy and quest systems remain planned. Do not invent syntax or promise unsupported gameplay.
 
 Use tool discovery from the connected app as the authority for available tools. Hosted and local gateways expose different tools. A hosted service version may differ from the plugin release version.
 
@@ -117,7 +117,7 @@ command countdown permission "aetherscript.example.countdown" sender any {
 
 Test with {"id":"countdown","expectedMessages":["Count 3","Count 2","Count 1","Done"]}. Run /ais run countdown twice; both invocations start at 3.
 
-PersistentVariables provides the JSON host backend; SQLiteVariables provides a separate transactional SQLite backend. Paper binds the narrow own-location operations below to SQLite on its bounded I/O worker. `var` remains invocation-local. Other hosts select their backend; no automatic JSON-to-SQLite migration is performed. Real command registration and this runtime slice do not establish completion of the broader gameplay ecosystem.
+PersistentVariables provides the JSON host backend; SQLiteVariables provides a separate transactional SQLite backend. Paper binds typed per-player save/load and the own-location operations below to SQLite on its bounded I/O worker. `var` remains invocation-local. Other hosts select their backend; no automatic JSON-to-SQLite migration is performed. Real command registration and this runtime slice do not establish completion of the broader gameplay ecosystem.
 
 ## Immutable lists
 
@@ -150,6 +150,33 @@ command scores permission "aetherscript.example.scores" sender any {
 ```
 
 Test with `{"id":"scores","expectedMessages":["6"]}`. Each invocation emits `6` and starts with fresh local state.
+
+## Typed per-player storage (0.0.19)
+
+`state_save(key, value)` durably saves a typed value and returns `unit`. `state_load(key, fallback)` returns the saved value with the exact type of `fallback`, or the fallback when the key is absent. Both require `state.own` and a player invocation. Keys match `[a-z][a-z0-9_]{0,63}` and are isolated by feature ID and invoking player UUID. A saved type mismatch fails with `STATE_TYPE_MISMATCH`; changing a fallback does not migrate existing data. Immutable nested lists, maps, sets, UUIDs, locations and optionals retain their types. Values exclude `unit`, including nested `unit`. Encoded values are capped at 4096 ASCII bytes and 4096 nodes; exceeding codec bounds fails with `STATE_VALUE_LIMIT`. The same key cannot change type. Legacy location keys and typed keys cannot be read or overwritten through the other API; incompatible or corrupt encoding fails with `STATE_TYPE_MISMATCH`. The existing `state_get_location` and `state_put_location` calls remain supported.
+
+Copy `examples/player-progress.aether` into the scripts directory. Approve locally with `ais permit player-progress state.own`, then validate/reload it and grant `aetherscript.example.progress` to the test players. `/progress show` initially sends `No saved progress.`. `/progress save` sends `Progress saved: score=7, quest_stage=2.`. A later `/progress show` sends `Score: 7` then `Quest stage: 2`. Another player's initial result remains `No saved progress.`. Saved progress survives reload and normal restart under the same feature ID.
+
+```aether
+feature player-progress version "1.0.0"
+command progress permission "aetherscript.example.progress" sender player {
+  arg action: text = "show"
+  if action == "save" {
+    state_save("progress", {"score": 7, "quest_stage": 2})
+    send "Progress saved: score=7, quest_stage=2."
+  } else {
+    let progress = state_load("progress", map<text, integer>())
+    if contains_key(progress, "score") {
+      send "Score: " + text(unwrap(get(progress, "score")))
+      send "Quest stage: " + text(unwrap(get(progress, "quest_stage")))
+    } else {
+      send "No saved progress."
+    }
+  }
+}
+```
+
+Storage runs on the bounded worker in `player-state/variables.sqlite`. Read/modify/write sequences can fail with `STATE_CONFLICT`; effects are ordered and do not form a transaction across calls. Cancellation rejects unaccepted writes; an accepted write can finish after cancellation. Back up player state with the server stopped. Source rollback does not roll back player data. Deletion, automatic migration, feature-global script state and a general transaction API remain planned.
 
 ## Immutable maps and sets (0.0.18 foundation)
 
@@ -228,3 +255,44 @@ The owner can inspect ais connections and revoke with ais disconnect. Approval d
 Use this current reference, discovered tool schemas and the bundled authoring contract for generation. The following full-guide appendix includes human tutorials, historical test records and explicitly planned work. Historical release examples do not add current capabilities.
 
 State writes have an acceptance check immediately before commit. Cancellation rejects work not yet accepted; an accepted write may finish after logout, revocation, timeout or shutdown. Accepted and completed writes are not rolled back.
+
+Test jobs retain at most 32 results globally and 8 per connection for up to 180 seconds; execution has a 120-second deadline. Captured message JSON is limited to 12 KiB and receipts to 6 KiB. `outputTruncated` or `receiptsTruncated` signals incomplete capture; truncated messages never count as a successful exact match. These capture limits do not undo effects already performed.
+
+## Synchronous native events (0.0.20)
+
+Native files support `on join`, `on quit`, `on block_break` and `on block_place`. A feature may contain only events, or an optional command followed by handlers. Each handler requires an explicit `permission`; `"*"` includes every player. Optional `bypass "permission.node"` skips holders of that node.
+
+Every handler receives immutable `player_name`, `player_uuid` and `world` text values. Block events additionally receive `block_type` text (the material name) and signed integer `x`, `y`, `z`. Event bodies support `let`, `send`, `if`/`else` and pure scalar expressions. Collection operations are rejected. Only block handlers support `cancel`. Host calls, delay, state operations, arguments, mutation, loops and user function calls are rejected in handlers. At most 16 handlers are allowed per feature; each evaluation has an 8192-step and 32-message cap.
+
+Paper invokes handlers synchronously on its main thread. Block listeners use HIGHEST priority and skip events already cancelled by another plugin. AetherScript cancellation only sets the event's cancelled state; it never clears another cancellation. Active-revision subscriptions are replaced or removed during reload, rollback, disable and shutdown. Each handler infers `runtime.event.<id>`; `cancel` additionally requires `runtime.event.cancel`. The owner must approve these locally with console `ais permit`; browser capability choices and legacy remote grants remain unchanged and do not authorize events. Sending also requires `runtime.message.send`. This release introduces no MCP tools. Command-test tools do not simulate event dispatch; test actual gameplay on Paper.
+
+### Starter world protection
+
+Save this as `scripts/starter-protection.aether`:
+
+```text
+feature starter-protection version "1.0.0"
+on block_break permission "*" bypass "aetherscript.protection.bypass" {
+  if world == "world" {
+    send "Block breaking is protected here."
+    cancel
+  }
+}
+on block_place permission "*" bypass "aetherscript.protection.bypass" {
+  if world == "world" {
+    send "Block placing is protected here."
+    cancel
+  }
+}
+```
+
+Run these commands in the server console:
+
+```text
+ais permit starter-protection runtime.message.send runtime.event.block_break runtime.event.block_place runtime.event.cancel
+ais validate starter-protection
+ais reload starter-protection
+```
+
+ Non-builders cannot break or place any material in `world`; other worlds are unaffected. Grant `aetherscript.protection.bypass` through your permissions system to builders who should edit there. Permission plugins determine wildcard/operator inheritance, so verify both builder and guest accounts. No extra script permission is needed by guests. The packaged example is opt-in: copying it into `scripts/` and reloading activates it.
+

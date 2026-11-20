@@ -37,6 +37,7 @@ public final class FeatureManager {
         return compiled;
     }
 
+    private static boolean eventOnly(CompiledFeature feature) { return feature.program() != null && feature.program().eventOnly(); }
     public Change startup() throws IOException {
         scripts.recoverRemoteIntents(store);
         Map<String, ScriptStore.Inspection> files = scripts.inspect(null);
@@ -49,13 +50,13 @@ public final class FeatureManager {
         Map<String, Integer> names = new HashMap<>();
         Map<String, ValidationException> unauthorized = new HashMap<>();
         files.values().stream().filter(ScriptStore.Inspection::valid).forEach(file -> {
-            try { policy.accept(file.compiled()); names.merge(file.compiled().definition().command().name(), 1, Integer::sum); }
+            try { policy.accept(file.compiled()); if (!eventOnly(file.compiled())) names.merge(file.compiled().definition().command().name(), 1, Integer::sum); }
             catch (ValidationException denied) { unauthorized.put(file.id(), denied); }
         });
         for (String id : ids) {
             var file = files.get(id); var history = store.state().features().get(id);
             boolean held = history != null && history.rollbackHeld() && history.active() != 0;
-            if (file != null && file.valid() && !held && !unauthorized.containsKey(id) && names.get(file.compiled().definition().command().name()) == 1) {
+            if (file != null && file.valid() && !held && !unauthorized.containsKey(id) && (eventOnly(file.compiled()) || names.getOrDefault(file.compiled().definition().command().name(), 0) == 1)) {
                 Map<String, CompiledFeature> candidate = new TreeMap<>(target); candidate.put(id, file.compiled());
                 try { validateTarget(candidate); target.put(id, file.compiled()); updates.put(id, file.source()); continue; }
                 catch (ValidationException e) { messages.add(id + ": editable file rejected: " + display(e.reason()) + "; edit scripts/" + file.fileName()); }

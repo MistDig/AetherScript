@@ -11,7 +11,12 @@
     "player.location.read",
     "state.own",
     "scheduler.delay",
-    "player.teleport.self"
+    "player.teleport.self",
+    "runtime.event.join",
+    "runtime.event.quit",
+    "runtime.event.block_break",
+    "runtime.event.block_place",
+    "runtime.event.cancel"
   ],
   "authoringRules": [
     "Match the feature ID to the filename.",
@@ -21,7 +26,8 @@
     "Use immutable typed lists/maps/sets and host uuid/location/optional values. Map keys and set elements are integer/text/boolean/uuid/location. Command arguments remain text/integer/boolean; decimals are unsupported.",
     "Check both branches for type errors. Use text(value) only for scalar conversion; text(listValue) is rejected.",
     "Declare typed functions after the feature header and before use. Functions have no captures; non-unit functions must return a matching value on every path. Unit functions support bare return or implicit completion.",
-    "Validate the complete edited source before requesting a local reload."
+    "Validate the complete edited source before requesting a local reload.",
+    "Use on join/quit/block_break/block_place for pure synchronous event handlers; keep permission explicit and cancellation confined to block events."
   ],
   "valueTypes": [
     "text",
@@ -190,7 +196,12 @@
       "player.location.read",
       "state.own",
       "scheduler.delay",
-      "player.teleport.self"
+      "player.teleport.self",
+      "runtime.event.join",
+      "runtime.event.quit",
+      "runtime.event.block_break",
+      "runtime.event.block_place",
+      "runtime.event.cancel"
     ],
     "hostCatalogDiscovery": "CLI --language and local/hosted aether_capabilities expose the executable host-call catalog; live discovery includes the actual connection grant.",
     "approvalWindow": "Fresh ais connect browser approval chooses supported capabilities, all or selected scripts and an optional live test player. Explicit console ais permit/restrict ceilings remain authoritative.",
@@ -246,5 +257,56 @@
       "error": "STATE_VALUE_LIMIT"
     },
     "valueTypes": "Scalars, collections and optionals; unit and nested unit rejected. Same key cannot change type; legacy location and typed keys are mutually protected."
+  },
+  "events": {
+    "introduced": "0.0.20",
+    "declaration": "on event_id permission \"node.or.*\" [bypass \"permission.node\"] { ... }",
+    "featureShape": "Optional command followed by one or more handlers; event-only features are supported. At most 16 handlers per feature.",
+    "ids": [
+      "join",
+      "quit",
+      "block_break",
+      "block_place"
+    ],
+    "snapshotFields": {
+      "all": {
+        "player_name": "text",
+        "player_uuid": "text",
+        "world": "text"
+      },
+      "block_break/block_place": {
+        "block_type": "text",
+        "x": "integer",
+        "y": "integer",
+        "z": "integer"
+      }
+    },
+    "permissions": "Explicit permission required. \"*\" applies to every player; optional bypass skips the handler when the player holds that permission. Checks use the event player.",
+    "statements": [
+      "let name = expression",
+      "send textExpression",
+      "if booleanExpression { ... } else { ... }",
+      "cancel (block_break/block_place only)"
+    ],
+    "purity": "Synchronous immutable snapshots and pure scalar expressions only. No collection operations, arguments, mutable locals, loops, functions, user function calls, host calls, waits or persistent storage.",
+    "cancellation": "Only block events can cancel. Cancellation sets true and never clears an existing cancellation. Already cancelled block events are skipped.",
+    "threading": "Paper main thread, HIGHEST priority for block handlers; bounded evaluation before the event returns.",
+    "ownership": "Subscriptions belong to the active revision and are replaced/removed with reload, rollback, disable and shutdown.",
+    "capabilities": [
+      "runtime.event.join",
+      "runtime.event.quit",
+      "runtime.event.block_break",
+      "runtime.event.block_place",
+      "runtime.event.cancel"
+    ],
+    "limits": {
+      "handlersPerFeature": 16,
+      "executionStepsPerHandler": 8192,
+      "messagesPerHandler": 32
+    },
+    "testing": "Existing command-test MCP tools do not simulate event dispatch. Validate source offline; test actual joins/quits/block actions on Paper.",
+    "exampleFile": "starter-protection.aether",
+    "example": "feature starter-protection version \"1.0.0\"\non block_break permission \"*\" bypass \"aetherscript.protection.bypass\" {\n  if world == \"world\" {\n    send \"Block breaking is protected here.\"\n    cancel\n  }\n}\non block_place permission \"*\" bypass \"aetherscript.protection.bypass\" {\n  if world == \"world\" {\n    send \"Block placing is protected here.\"\n    cancel\n  }\n}\n",
+    "authorization": "Local console ais permit/restrict only. Each handler infers runtime.event.<id>; cancel additionally infers runtime.event.cancel. Existing browser capability choices and legacy grants do not authorize events."
   }
 }

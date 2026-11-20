@@ -21,4 +21,22 @@ class AuthoringGuideTest {
         assertEquals(catalog.size(), AuthoringGuide.metadata().path("hostCallables").size());
         assertTrue(guide.path("hostAuthorization").asText().contains("message-only"));
     }
+    @Test void exportedEventFieldsAndAuthorityMatchTheRuntimeContract() {
+        var guide = AuthoringGuide.metadata();
+        var events = guide.path("events");
+        var publishedCapabilities = new java.util.HashSet<String>();
+        events.path("capabilities").forEach(node -> publishedCapabilities.add(node.asText()));
+        assertEquals(CompiledFeature.EVENT_CAPABILITIES, publishedCapabilities);
+        for (var kind : events.path("ids")) {
+            var fields = CompiledFeature.eventFields(kind.asText());
+            var described = new java.util.HashMap<String, String>();
+            events.path("snapshotFields").path("all").properties().forEach(entry -> described.put(entry.getKey(), entry.getValue().asText()));
+            if (kind.asText().startsWith("block_"))
+                events.path("snapshotFields").path("block_break/block_place").properties().forEach(entry -> described.put(entry.getKey(), entry.getValue().asText()));
+            assertEquals(fields.keySet(), described.keySet());
+            fields.forEach((name, type) -> assertEquals(type.name().toLowerCase(java.util.Locale.ROOT), described.get(name)));
+        }
+        guide.path("capabilityPolicy").path("browserApprovedExecutionCeiling").forEach(node -> assertFalse(publishedCapabilities.contains(node.asText())));
+    }
 }
+
