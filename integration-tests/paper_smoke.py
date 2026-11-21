@@ -175,7 +175,8 @@ if args.homes:
     if any(item['result'] == 'fail' for item in evidence):
         print(evidence[-1]['detail'], flush=True)
         raise SystemExit(1)
-    print(f'PASS: {len(evidence)} homes checks; translated protocol clients, not native 26.3 UI', flush=True)
+    fixture = 'gameplay event' if args.events else 'homes'
+    print(f'PASS: {len(evidence)} {fixture} checks; translated protocol clients', flush=True)
     raise SystemExit(0)
 if args.runtime_control:
     from runtime_workflow import verify

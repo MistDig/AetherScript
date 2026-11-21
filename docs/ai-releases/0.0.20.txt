@@ -262,7 +262,7 @@ Test jobs retain at most 32 results globally and 8 per connection for up to 180 
 
 Native files support `on join`, `on quit`, `on block_break` and `on block_place`. A feature may contain only events, or an optional command followed by handlers. Each handler requires an explicit `permission`; `"*"` includes every player. Optional `bypass "permission.node"` skips holders of that node.
 
-Every handler receives immutable `player_name`, `player_uuid` and `world` text values. Block events additionally receive `block_type` text (the material name) and signed integer `x`, `y`, `z`. Event bodies support `let`, `send`, `if`/`else` and pure scalar expressions. Collection operations are rejected. Only block handlers support `cancel`. Host calls, delay, state operations, arguments, mutation, loops and user function calls are rejected in handlers. At most 16 handlers are allowed per feature; each evaluation has an 8192-step and 32-message cap.
+Every handler receives immutable `player_name`, `player_uuid` and `world` text values. The `world` field is a namespaced key such as `minecraft:overworld`. Block events additionally receive `block_type` text (the material name) and signed integer `x`, `y`, `z`. Event bodies support `let`, `send`, `if`/`else` and pure scalar expressions. Collection operations are rejected. Only block handlers support `cancel`. Host calls, delay, state operations, arguments, mutation, loops and user function calls are rejected in handlers. At most 16 handlers are allowed per feature; each evaluation has an 8192-step and 32-message cap.
 
 Paper invokes handlers synchronously on its main thread. Block listeners use HIGHEST priority and skip events already cancelled by another plugin. AetherScript cancellation only sets the event's cancelled state; it never clears another cancellation. Active-revision subscriptions are replaced or removed during reload, rollback, disable and shutdown. Each handler infers `runtime.event.<id>`; `cancel` additionally requires `runtime.event.cancel`. The owner must approve these locally with console `ais permit`; browser capability choices and legacy remote grants remain unchanged and do not authorize events. Sending also requires `runtime.message.send`. This release introduces no MCP tools. Command-test tools do not simulate event dispatch; test actual gameplay on Paper.
 
@@ -273,13 +273,13 @@ Save this as `scripts/starter-protection.aether`:
 ```text
 feature starter-protection version "1.0.0"
 on block_break permission "*" bypass "aetherscript.protection.bypass" {
-  if world == "world" {
+  if world == "minecraft:overworld" {
     send "Block breaking is protected here."
     cancel
   }
 }
 on block_place permission "*" bypass "aetherscript.protection.bypass" {
-  if world == "world" {
+  if world == "minecraft:overworld" {
     send "Block placing is protected here."
     cancel
   }
@@ -294,7 +294,7 @@ ais validate starter-protection
 ais reload starter-protection
 ```
 
- Non-builders cannot break or place any material in `world`; other worlds are unaffected. Grant `aetherscript.protection.bypass` through your permissions system to builders who should edit there. Permission plugins determine wildcard/operator inheritance, so verify both builder and guest accounts. No extra script permission is needed by guests. The packaged example is opt-in: copying it into `scripts/` and reloading activates it.
+ Non-builders cannot break or place any material in `minecraft:overworld`. Other worlds are unaffected. Grant `aetherscript.protection.bypass` through your permissions system to builders who should edit there. Permission plugins determine wildcard/operator inheritance, so verify both builder and guest accounts. No extra script permission is needed by guests. The packaged example is opt-in: copying it into `scripts/` and reloading activates it.
 
 # Human wiki appendix - historical and planned sections are labeled
 
@@ -565,7 +565,7 @@ Test jobs retain at most 32 results globally and 8 per connection for up to 180 
 
 Native files support `on join`, `on quit`, `on block_break` and `on block_place`. A feature may contain only events, or an optional command followed by handlers. Each handler requires an explicit `permission`; `"*"` includes every player. Optional `bypass "permission.node"` skips holders of that node.
 
-Every handler receives immutable `player_name`, `player_uuid` and `world` text values. Block events additionally receive `block_type` text (the material name) and signed integer `x`, `y`, `z`. Event bodies support `let`, `send`, `if`/`else` and pure scalar expressions. Collection operations are rejected. Only block handlers support `cancel`. Host calls, delay, state operations, arguments, mutation, loops and user function calls are rejected in handlers. At most 16 handlers are allowed per feature; each evaluation has an 8192-step and 32-message cap.
+Every handler receives immutable `player_name`, `player_uuid` and `world` text values. The `world` field is a namespaced key such as `minecraft:overworld`. Block events additionally receive `block_type` text (the material name) and signed integer `x`, `y`, `z`. Event bodies support `let`, `send`, `if`/`else` and pure scalar expressions. Collection operations are rejected. Only block handlers support `cancel`. Host calls, delay, state operations, arguments, mutation, loops and user function calls are rejected in handlers. At most 16 handlers are allowed per feature; each evaluation has an 8192-step and 32-message cap.
 
 Paper invokes handlers synchronously on its main thread. Block listeners use HIGHEST priority and skip events already cancelled by another plugin. AetherScript cancellation only sets the event's cancelled state; it never clears another cancellation. Active-revision subscriptions are replaced or removed during reload, rollback, disable and shutdown. Each handler infers `runtime.event.<id>`; `cancel` additionally requires `runtime.event.cancel`. The owner must approve these locally with console `ais permit`; browser capability choices and legacy remote grants remain unchanged and do not authorize events. Sending also requires `runtime.message.send`. This release introduces no MCP tools. Command-test tools do not simulate event dispatch; test actual gameplay on Paper.
 
@@ -576,13 +576,13 @@ Save this as `scripts/starter-protection.aether`:
 ```text
 feature starter-protection version "1.0.0"
 on block_break permission "*" bypass "aetherscript.protection.bypass" {
-  if world == "world" {
+  if world == "minecraft:overworld" {
     send "Block breaking is protected here."
     cancel
   }
 }
 on block_place permission "*" bypass "aetherscript.protection.bypass" {
-  if world == "world" {
+  if world == "minecraft:overworld" {
     send "Block placing is protected here."
     cancel
   }
@@ -597,7 +597,7 @@ ais validate starter-protection
 ais reload starter-protection
 ```
 
- Non-builders cannot break or place any material in `world`; other worlds are unaffected. Grant `aetherscript.protection.bypass` through your permissions system to builders who should edit there. Permission plugins determine wildcard/operator inheritance, so verify both builder and guest accounts. No extra script permission is needed by guests. The packaged example is opt-in: copying it into `scripts/` and reloading activates it.
+ Non-builders cannot break or place any material in `minecraft:overworld`. Other worlds are unaffected. Grant `aetherscript.protection.bypass` through your permissions system to builders who should edit there. Permission plugins determine wildcard/operator inheritance, so verify both builder and guest accounts. No extra script permission is needed by guests. The packaged example is opt-in: copying it into `scripts/` and reloading activates it.
 
 
 # AetherScript
@@ -1158,7 +1158,7 @@ Homes are stored in `plugins/AetherScript/player-state/variables.sqlite` and sur
 
 Native files support `on join`, `on quit`, `on block_break` and `on block_place`. A feature may contain only events, or an optional command followed by handlers. Each handler requires an explicit `permission`; `"*"` includes every player. Optional `bypass "permission.node"` skips holders of that node.
 
-Every handler receives immutable `player_name`, `player_uuid` and `world` text values. Block events additionally receive `block_type` text (the material name) and signed integer `x`, `y`, `z`. Event bodies support `let`, `send`, `if`/`else` and pure scalar expressions. Collection operations are rejected. Only block handlers support `cancel`. Host calls, delay, state operations, arguments, mutation, loops and user function calls are rejected in handlers. At most 16 handlers are allowed per feature; each evaluation has an 8192-step and 32-message cap.
+Every handler receives immutable `player_name`, `player_uuid` and `world` text values. The `world` field is a namespaced key such as `minecraft:overworld`. Block events additionally receive `block_type` text (the material name) and signed integer `x`, `y`, `z`. Event bodies support `let`, `send`, `if`/`else` and pure scalar expressions. Collection operations are rejected. Only block handlers support `cancel`. Host calls, delay, state operations, arguments, mutation, loops and user function calls are rejected in handlers. At most 16 handlers are allowed per feature; each evaluation has an 8192-step and 32-message cap.
 
 Paper invokes handlers synchronously on its main thread. Block listeners use HIGHEST priority and skip events already cancelled by another plugin. AetherScript cancellation only sets the event's cancelled state; it never clears another cancellation. Active-revision subscriptions are replaced or removed during reload, rollback, disable and shutdown. Each handler infers `runtime.event.<id>`; `cancel` additionally requires `runtime.event.cancel`. The owner must approve these locally with console `ais permit`; browser capability choices and legacy remote grants remain unchanged and do not authorize events. Sending also requires `runtime.message.send`. This release introduces no MCP tools. Command-test tools do not simulate event dispatch; test actual gameplay on Paper.
 
@@ -1169,13 +1169,13 @@ Save this as `scripts/starter-protection.aether`:
 ```text
 feature starter-protection version "1.0.0"
 on block_break permission "*" bypass "aetherscript.protection.bypass" {
-  if world == "world" {
+  if world == "minecraft:overworld" {
     send "Block breaking is protected here."
     cancel
   }
 }
 on block_place permission "*" bypass "aetherscript.protection.bypass" {
-  if world == "world" {
+  if world == "minecraft:overworld" {
     send "Block placing is protected here."
     cancel
   }
@@ -1190,7 +1190,7 @@ ais validate starter-protection
 ais reload starter-protection
 ```
 
- Non-builders cannot break or place any material in `world`; other worlds are unaffected. Grant `aetherscript.protection.bypass` through your permissions system to builders who should edit there. Permission plugins determine wildcard/operator inheritance, so verify both builder and guest accounts. No extra script permission is needed by guests. The packaged example is opt-in: copying it into `scripts/` and reloading activates it.
+ Non-builders cannot break or place any material in `minecraft:overworld`. Other worlds are unaffected. Grant `aetherscript.protection.bypass` through your permissions system to builders who should edit there. Permission plugins determine wildcard/operator inheritance, so verify both builder and guest accounts. No extra script permission is needed by guests. The packaged example is opt-in: copying it into `scripts/` and reloading activates it.
 
 ## Typed per-player storage (0.0.19)
 
@@ -1986,7 +1986,7 @@ Update the Paper plugin to 0.0.8. The connector logs each rejected grant state o
     },
     "testing": "Existing command-test MCP tools do not simulate event dispatch. Validate source offline; test actual joins/quits/block actions on Paper.",
     "exampleFile": "starter-protection.aether",
-    "example": "feature starter-protection version \"1.0.0\"\non block_break permission \"*\" bypass \"aetherscript.protection.bypass\" {\n  if world == \"world\" {\n    send \"Block breaking is protected here.\"\n    cancel\n  }\n}\non block_place permission \"*\" bypass \"aetherscript.protection.bypass\" {\n  if world == \"world\" {\n    send \"Block placing is protected here.\"\n    cancel\n  }\n}\n",
+    "example": "feature starter-protection version \"1.0.0\"\non block_break permission \"*\" bypass \"aetherscript.protection.bypass\" {\n  if world == \"minecraft:overworld\" {\n    send \"Block breaking is protected here.\"\n    cancel\n  }\n}\non block_place permission \"*\" bypass \"aetherscript.protection.bypass\" {\n  if world == \"minecraft:overworld\" {\n    send \"Block placing is protected here.\"\n    cancel\n  }\n}\n",
     "authorization": "Local console ais permit/restrict only. Each handler infers runtime.event.<id>; cancel additionally infers runtime.event.cancel. Existing browser capability choices and legacy grants do not authorize events."
   }
 }
@@ -1999,12 +1999,13 @@ Update the Paper plugin to 0.0.8. The connector logs each rejected grant state o
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
-## [0.0.20] - 2026-11-20
+## [0.0.20] - 2026-11-21
 
 - Add native synchronous player join/quit and block break/place handlers with typed immutable event snapshots, explicit permission gates and bounded pure evaluation.
 - Add block cancellation and revision-owned event subscriptions; preserve prior cancellation by other plugins and keep delayed/host effects outside synchronous handlers.
 - Add an opt-in starter-protection example, machine-readable event contract and human/AI authoring guides.
-- Verification is pending the final build and real-server checks; completed results will be recorded before release.
+- Java 25 clean build passed 338 tests. Packaged MCP and CLI checks verified the event example, required capabilities and invalid-cancellation diagnostics. All 15 wiki examples, legacy IR checks, SQLite packaging and site checks passed.
+- Paper 26.3 build 245 passed 14 checks through a translated loopback client. The join handler reported the world key, guest actions left blocks unchanged, the builder bypass permitted edits and reload delivered the replacement handler once. Quit delivery was covered by automated tests. Actual AI-client acceptance is tracked for 0.0.30.
 
 ## [0.0.19] - 2026-11-20
 

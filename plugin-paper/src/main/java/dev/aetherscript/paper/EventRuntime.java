@@ -48,7 +48,7 @@ final class EventRuntime implements Listener, AutoCloseable {
     private void block(String kind, Player player, Block block, Cancellable event) {
         if (event.isCancelled() || !interested(kind)) return;
         Map<String, ScriptValue> fields = fields(player);
-        fields.put("world", text(block.getWorld().getName()));
+        fields.put("world", text(block.getWorld().getKey().toString()));
         fields.put("block_type", text(block.getType().name()));
         fields.put("x", integer(block.getX())); fields.put("y", integer(block.getY())); fields.put("z", integer(block.getZ()));
         dispatch(kind, player, fields, event);
@@ -57,7 +57,7 @@ final class EventRuntime implements Listener, AutoCloseable {
     private static Map<String, ScriptValue> fields(Player player) {
         Map<String, ScriptValue> fields = new HashMap<>();
         fields.put("player_name", text(player.getName())); fields.put("player_uuid", text(player.getUniqueId().toString()));
-        fields.put("world", text(player.getWorld().getName()));
+        fields.put("world", text(player.getWorld().getKey().toString()));
         return fields;
     }
     private static ScriptValue text(String text) { return new ScriptValue(ScriptType.TEXT, text); }

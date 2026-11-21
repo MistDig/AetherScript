@@ -1,12 +1,12 @@
 feature starter-protection version "1.0.0"
 on block_break permission "*" bypass "aetherscript.protection.bypass" {
-  if world == "world" {
+  if world == "minecraft:overworld" {
     send "Block breaking is protected here."
     cancel
   }
 }
 on block_place permission "*" bypass "aetherscript.protection.bypass" {
-  if world == "world" {
+  if world == "minecraft:overworld" {
     send "Block placing is protected here."
     cancel
   }

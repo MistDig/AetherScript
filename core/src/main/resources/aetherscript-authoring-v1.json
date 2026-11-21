@@ -306,7 +306,7 @@
     },
     "testing": "Existing command-test MCP tools do not simulate event dispatch. Validate source offline; test actual joins/quits/block actions on Paper.",
     "exampleFile": "starter-protection.aether",
-    "example": "feature starter-protection version \"1.0.0\"\non block_break permission \"*\" bypass \"aetherscript.protection.bypass\" {\n  if world == \"world\" {\n    send \"Block breaking is protected here.\"\n    cancel\n  }\n}\non block_place permission \"*\" bypass \"aetherscript.protection.bypass\" {\n  if world == \"world\" {\n    send \"Block placing is protected here.\"\n    cancel\n  }\n}\n",
+    "example": "feature starter-protection version \"1.0.0\"\non block_break permission \"*\" bypass \"aetherscript.protection.bypass\" {\n  if world == \"minecraft:overworld\" {\n    send \"Block breaking is protected here.\"\n    cancel\n  }\n}\non block_place permission \"*\" bypass \"aetherscript.protection.bypass\" {\n  if world == \"minecraft:overworld\" {\n    send \"Block placing is protected here.\"\n    cancel\n  }\n}\n",
     "authorization": "Local console ais permit/restrict only. Each handler infers runtime.event.<id>; cancel additionally infers runtime.event.cancel. Existing browser capability choices and legacy grants do not authorize events."
   }
 }

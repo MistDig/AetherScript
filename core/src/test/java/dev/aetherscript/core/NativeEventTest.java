@@ -98,4 +98,16 @@ class NativeEventTest {
         assertThrows(ValidationException.class, () -> compile("on join permission \"*\" {\nsend \"x\"\n}\n".repeat(17)));
     }
 
+    @Test void eventAuthorityRequiresExplicitOwnerApproval(@org.junit.jupiter.api.io.TempDir java.nio.file.Path temp) throws Exception {
+        var feature = compile("on block_break permission \"*\" {\ncancel\n}");
+        var known = new HashSet<>(CompiledFeature.EVENT_CAPABILITIES); known.add(ScriptCapabilityPolicy.MESSAGE);
+        var policy = new ScriptCapabilityPolicy(temp.resolve("policy.json"), known);
+        assertThrows(ValidationException.class, () -> policy.validate(feature));
+        policy.grant("protect", Set.of(ScriptCapabilityPolicy.MESSAGE, "runtime.event.block_break"));
+        assertThrows(ValidationException.class, () -> policy.validate(feature));
+        policy.grant("protect", Set.copyOf(feature.definition().requires()));
+        assertDoesNotThrow(() -> policy.validate(feature));
+        assertThrows(ValidationException.class, () -> policy.validateConnection(feature, Set.of(ScriptCapabilityPolicy.MESSAGE)));
+    }
+
 }

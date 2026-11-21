@@ -100,6 +100,14 @@ progress_valid, progress_error = calls([('aether_validate', {'format':'aether','
 assert progress_valid['valid'] and set(progress_valid['requiredCapabilities']) == {'state.own','runtime.message.send'}, progress_valid
 assert not progress_error['valid'] and progress_error['reason'] and progress_error['line'] == next(
     number for number, line in enumerate(bad_progress.splitlines(), 1) if 'state_save(123,' in line)
+events = guide['events']
+protection = events['example']
+assert protection == (repo / 'examples/starter-protection.aether').read_text(encoding='utf-8')
+event_valid, event_invalid = calls([('aether_validate', {'format':'aether','source':source})
+                                   for source in (protection, protection.replace('on block_break', 'on join', 1))])
+assert event_valid['valid'] and set(event_valid['requiredCapabilities']) == {
+    'runtime.message.send', 'runtime.event.block_break', 'runtime.event.block_place', 'runtime.event.cancel'}
+assert not event_invalid['valid'] and event_invalid['line'] > 0 and 'cancel' in event_invalid['reason']
 print(json.dumps({"result":"pass","version":version,"checks":["discover template","validate template",
     "single-line edit changes behavior","comment preserves behavior","type error identifies line and column",
     "CLI and MCP agree on valid source","CLI and MCP agree on invalid source",
@@ -109,4 +117,5 @@ print(json.dumps({"result":"pass","version":version,"checks":["discover template
     "function defaults and explicit overrides run through packaged MCP",
     "homes validates with inferred capabilities", "host argument types reject with location",
     "offline native execution requires host context", "host discovery exports executable callable catalog",
-    "typed state signatures discovered", "player-progress validates with scoped capabilities"]},indent=2))
+    "typed state signatures discovered", "player-progress validates with scoped capabilities",
+    "starter protection validates with local event capabilities", "unsupported cancellation identifies source location"]},indent=2))

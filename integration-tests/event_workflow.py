@@ -12,7 +12,14 @@ def verify_protection(command, check, connect, teleport, passed, repo, scripts):
     caps = 'runtime.event.block_break,runtime.event.block_place,runtime.event.cancel'
     check('events-owner-permit', 'ais permit starter-protection '+caps, 'CAPABILITIES_SAVED starter-protection:')
     check('events-activate', 'ais reload starter-protection', 'ACTIVE generation=')
+    (scripts/'event-welcome.aether').write_text(
+        'feature event-welcome version "1"\non join permission "*" {\n'
+        '  send "Join world: " + world\n}\n', encoding='utf-8')
+    check('join-owner-permit', 'ais permit event-welcome runtime.event.join', 'CAPABILITIES_SAVED event-welcome:')
+    check('join-activate', 'ais reload event-welcome', 'ACTIVE generation=')
     actor = connect('AetherHomeA')
+    actor.message('Join world: minecraft:overworld')
+    passed('events-join', 'The player received the namespaced world key from the join handler.')
     command('gamemode creative AetherHomeA', 'Creative')
     teleport(actor, 10, 10)
     command('setblock 12 79 10 minecraft:stone', 'Changed')

@@ -14,7 +14,7 @@ The [17 November–17 December plan](docs/ecosystem/month-goal-2026-11-17.md) pr
 
 ## Native events in 0.0.20
 
-Use synchronous `on join`, `on quit`, `on block_break` and `on block_place` handlers with immutable event fields and explicit permissions. Event capabilities require local console approval; existing browser grants remain unchanged. Block handlers can cancel the action before Paper returns. The opt-in [starter-protection example](examples/starter-protection.aether) protects all blocks in `world` for guests while builders holding `aetherscript.protection.bypass` can edit. See the [language guide](docs/wiki/Language-Reference.md#synchronous-native-events-0020) and the [release plan](RELEASE-PLAN.md) for the current scope and remaining work.
+Use synchronous `on join`, `on quit`, `on block_break` and `on block_place` handlers with immutable event fields and explicit permissions. Event capabilities require local console approval; existing browser grants remain unchanged. Block handlers can cancel the action before Paper returns. The opt-in [starter-protection example](examples/starter-protection.aether) protects all blocks in `minecraft:overworld` for guests while builders holding `aetherscript.protection.bypass` can edit. See the [language guide](docs/wiki/Language-Reference.md#synchronous-native-events-0020) and the [release plan](RELEASE-PLAN.md) for the current scope and remaining work.
 
 ## Native commands and approved tests introduced in 0.0.17
 

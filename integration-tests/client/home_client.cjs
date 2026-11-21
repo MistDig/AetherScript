@@ -13,6 +13,7 @@ client.on('position', packet => {
   for (const key of ['x', 'y', 'z', 'yaw', 'pitch']) position[key] = (packet.flags?.[key] ? position[key] : 0) + packet[key]
   client.write('teleport_confirm', { teleportId: packet.teleportId })
   client.write('position_look', { ...position, flags: { onGround: true, hasHorizontalCollision: false } })
+  if (!positioned) client.write('player_loaded', {})
   positioned = true
   emit('position', { ...position, teleportId: packet.teleportId })
 })
