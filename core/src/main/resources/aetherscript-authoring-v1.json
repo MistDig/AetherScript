@@ -484,5 +484,48 @@
         "source": "feature world-display version \"1\"\ncommand world-display permission \"aetherscript.example.worlddisplay\" sender player {\n  let world = world_from_location(player_location())\n  send \"Weather: \" + world_weather(world)\n  bossbar(\"AetherScript\", 100)\n  scoreboard([\"World dashboard\"])\n  every 10 repeat 2 {\n    actionbar(\"AetherScript world dashboard\")\n  }\n}\n"
       }
     ]
+  },
+  "recordsAndPackages": {
+    "introduced": "0.0.23",
+    "recordDeclaration": "record QuestProgress(stage: integer, title: text)",
+    "constructor": "QuestProgress(0, \"Explorer\")",
+    "fieldAccess": "progress.stage",
+    "records": {
+      "immutable": true,
+      "maximumDeclarations": 32,
+      "fields": "1..16",
+      "declarationOrder": "Referenced types must already be declared; no forward or recursive types.",
+      "persistence": "state_save/state_load support nested records; changed schema or type fails explicitly."
+    },
+    "package": {
+      "directory": "scripts/<feature-id>.aetherpack/",
+      "entry": "main.aether",
+      "import": "import \"progress.aether\"",
+      "helperContents": [
+        "leading imports",
+        "record declarations",
+        "function declarations"
+      ],
+      "filenamePattern": "[a-z][a-z0-9-]*.aether",
+      "maximumFiles": 32,
+      "maximumUtf8Bytes": 65536,
+      "allFilesReachable": true,
+      "sharedDependencies": "Composed once in dependency order.",
+      "rejected": [
+        "cycles",
+        "repeated imports in one file",
+        "unreachable files",
+        "subdirectories",
+        "links",
+        "non-aether members",
+        "absolute paths",
+        "traversal"
+      ],
+      "diagnostics": "Original filename, line and column.",
+      "revisions": "Whole package snapshots for reload, rollback and recovery.",
+      "deployment": "Local filesystem only; hosted MCP still accepts a single source string."
+    },
+    "example": "examples/quests.aetherpack",
+    "offlineValidation": "java -cp AetherScript-MCP-0.0.23.jar dev.aetherscript.cli.Validate --package examples/quests.aetherpack"
   }
 }

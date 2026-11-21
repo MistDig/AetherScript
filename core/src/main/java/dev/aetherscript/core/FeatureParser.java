@@ -25,6 +25,7 @@ public final class FeatureParser {
     public FeatureParser(CallableRegistry callables) { this.callables = Objects.requireNonNull(callables).snapshot(); }
 
     public CompiledFeature parse(byte[] source, String format) {
+        if (format.equals("aetherpack")) return AetherPackage.parse(source, callables);
         if (format.equals("aether")) return new TextFrontend(callables).parse(source);
         Map<String, int[]> locations = new HashMap<>();
         if (source.length > MAX_BYTES) throw fail("$", "source exceeds 65536 bytes");

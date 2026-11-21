@@ -1,0 +1,3 @@
+fn second_quest(): text {
+  return "Second quest: gather stone."
+}

@@ -102,7 +102,7 @@ public final class RevisionStore {
     }
     public Saved load(String id, Revision revision) throws IOException {
         FeatureParser.requireId(id); validateRevision(revision);
-        byte[] bytes = readBounded(sourcePath(id, revision.hash()), FeatureParser.MAX_BYTES);
+        byte[] bytes = readBounded(sourcePath(id, revision.hash()), sourceLimit(revision.format()));
         if (!FeatureParser.hash(bytes).equals(revision.hash())) throw new IOException("STORAGE_CORRUPT: source checksum mismatch for " + id);
         SourceFile source = new SourceFile(id + "." + revision.format(), revision.format(), bytes);
         CompiledFeature compiled = source.compile();
@@ -159,7 +159,7 @@ public final class RevisionStore {
     private void writeSource(String id, SourceFile source) throws IOException {
         Path path = sourcePath(id, source.hash());
         if (Files.exists(path, LinkOption.NOFOLLOW_LINKS)) {
-            if (FeatureParser.hash(readBounded(path, FeatureParser.MAX_BYTES)).equals(source.hash())) return;
+            if (FeatureParser.hash(readBounded(path, sourceLimit(source.format()))).equals(source.hash())) return;
             // A validated editable source can repair the exact content-addressed bytes, never a different revision.
             atomicWrite(path, source.bytes(), false);
             return;
@@ -215,9 +215,10 @@ public final class RevisionStore {
     }
     private static void validateRevision(Revision revision) throws IOException {
         if (revision == null || revision.number() < 1 || revision.hash() == null || !revision.hash().matches("[a-f0-9]{64}")
-            || !Set.of("yaml", "yml", "json", "aether").contains(revision.format()) || revision.savedAt() == null) throw new IOException("Invalid saved revision");
+            || !Set.of("yaml", "yml", "json", "aether", "aetherpack").contains(revision.format()) || revision.savedAt() == null) throw new IOException("Invalid saved revision");
         try { Instant.parse(revision.savedAt()); } catch (RuntimeException e) { throw new IOException("Invalid revision timestamp", e); }
     }
+    private static int sourceLimit(String format) { return format.equals("aetherpack") ? AetherPackage.MAX_SNAPSHOT_BYTES : FeatureParser.MAX_BYTES; }
     private static byte[] readBounded(Path file, int max) throws IOException {
         if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) throw new IOException("Unsafe or missing storage file");
         try (InputStream input = Files.newInputStream(file, LinkOption.NOFOLLOW_LINKS)) {

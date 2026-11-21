@@ -1,0 +1,4 @@
+import "progress.aether"
+fn reward_count(progress: QuestProgress): integer {
+  return progress.stage * 2
+}

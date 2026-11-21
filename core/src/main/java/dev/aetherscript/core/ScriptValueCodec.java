@@ -51,8 +51,9 @@ public final class ScriptValueCodec {
         out.writeByte(switch (type.kind()) {
             case INTEGER -> 0; case TEXT -> 1; case BOOLEAN -> 2; case LIST -> 3;
             case UUID -> 4; case LOCATION -> 5; case UNIT -> 6; case OPTIONAL -> 7;
-            case MAP -> 8; case SET -> 9; case ITEM -> 10; case WORLD -> 11; case BLOCK -> 12;
+            case RECORD -> 13; case MAP -> 8; case SET -> 9; case ITEM -> 10; case WORLD -> 11; case BLOCK -> 12;
         });
+        if (type.isRecord()) { out.writeUTF(type.name()); out.writeByte(type.fields().size()); for (var field : type.fields().entrySet()) { out.writeUTF(field.getKey()); writeType(out, field.getValue()); } }
         if (type.isMap()) writeType(out, type.key());
         if (type.element() != null) writeType(out, type.element());
     }
@@ -60,6 +61,7 @@ public final class ScriptValueCodec {
         if (depth > 8) throw new IOException("Type nesting limit");
         int tag = in.readUnsignedByte();
         return switch (tag) {
+            case 13 -> { String name = in.readUTF(); int count = in.readUnsignedByte(); if (count < 1 || count > 16) throw new IOException("Record field limit"); var fields = new LinkedHashMap<String, ScriptType>(); for (int i = 0; i < count; i++) if (fields.put(in.readUTF(), readType(in, depth + 1)) != null) throw new IOException("Duplicate record field"); yield ScriptType.record(name, fields); }
             case 0 -> ScriptType.INTEGER;
             case 1 -> ScriptType.TEXT;
             case 2 -> ScriptType.BOOLEAN;
@@ -79,6 +81,7 @@ public final class ScriptValueCodec {
     private static void writeValue(DataOutputStream out, ScriptValue value, int[] budget) throws IOException {
         if (--budget[0] < 0) throw new IOException("Typed value node limit");
         switch (value.type().kind()) {
+            case RECORD -> { for (String field : value.type().fields().keySet()) writeValue(out, value.record().get(field), budget); }
             case INTEGER -> out.writeLong(value.integer());
             case TEXT -> {
                 if (value.text().length() > MAX_BINARY) throw new IOException("Text length limit");
@@ -108,6 +111,7 @@ public final class ScriptValueCodec {
     private static ScriptValue readValue(DataInputStream in, ScriptType type, int[] budget) throws IOException {
         if (--budget[0] < 0) throw new IOException("Typed value node limit");
         Object value = switch (type.kind()) {
+            case RECORD -> { var fields = new LinkedHashMap<String, ScriptValue>(); for (var field : type.fields().entrySet()) fields.put(field.getKey(), readValue(in, field.getValue(), budget)); yield fields; }
             case INTEGER -> in.readLong();
             case TEXT -> {
                 int length = in.readInt();

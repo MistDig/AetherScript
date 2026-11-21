@@ -105,7 +105,7 @@ public final class TextFrontend {
                     String operator = Character.toString(c);
                     if (index + 1 < input.length() && List.of("==", "!=", "<=", ">=", "&&", "||").contains(input.substring(index, index + 2))) {
                         operator = input.substring(index, index + 2); advance();
-                    } else if ("{}[](),:+-*/%<>=!".indexOf(c) < 0) {
+                    } else if ("{}[](),.:+-*/%<>=!".indexOf(c) < 0) {
                         throw error(startLine, startColumn, "Unexpected character. Use the documented operators and double-quoted text.");
                     }
                     advance(); add(Kind.SYMBOL, operator, startLine, startColumn);
@@ -188,6 +188,10 @@ public final class TextFrontend {
     private static boolean valuesEqual(ScriptValue left, ScriptValue right, Execution execution, Token token) {
         execution.step(token);
         if (left == right) return true;
+        if (left.type().isRecord()) {
+            for (String field : left.type().fields().keySet()) if (!valuesEqual(left.record().get(field), right.record().get(field), execution, token)) return false;
+            return true;
+        }
         if (left.type().isList()) {
             List<ScriptValue> a = left.list(), b = right.list();
             if (a.size() != b.size()) return false;
@@ -231,6 +235,18 @@ public final class TextFrontend {
             try { return new ScriptValue(ScriptType.ITEM, new ScriptValue.ItemDescriptor(key, (int) count)); }
             catch (IllegalArgumentException invalid) { throw token.error(invalid.getMessage()); }
         }
+    }
+    private record RecordValue(ScriptType type, List<Expression> fields, Token token) implements Expression {
+        public int depth() { return 1 + fields.stream().mapToInt(Expression::depth).max().orElse(0); }
+        public ScriptValue evaluate(Execution execution) {
+            execution.step(token); var values = new java.util.LinkedHashMap<String, ScriptValue>(); int i = 0;
+            for (String name : type.fields().keySet()) values.put(name, fields.get(i++).evaluate(execution));
+            return new ScriptValue(type, values);
+        }
+    }
+    private record Field(Expression record, String name, ScriptType type, Token token) implements Expression {
+        public int depth() { return 1 + record.depth(); }
+        public ScriptValue evaluate(Execution execution) { execution.step(token); return record.evaluate(execution).record().get(name); }
     }
     private record ListValue(ScriptType type, List<Expression> elements) implements Expression {
         public int depth() { return 1 + elements.stream().mapToInt(Expression::depth).max().orElse(0); }
@@ -540,6 +556,8 @@ public final class TextFrontend {
     private static boolean usesName(Expression value) {
         return switch (value) {
             case Name ignored -> true;
+            case RecordValue record -> record.fields().stream().anyMatch(TextFrontend::usesName);
+            case Field field -> usesName(field.record());
             case Unary unary -> usesName(unary.operand());
             case Binary binary -> usesName(binary.left()) || usesName(binary.right());
             case AsText conversion -> usesName(conversion.operand());
@@ -558,7 +576,8 @@ public final class TextFrontend {
     private static Object constantDescription(ScriptValue value, Execution budget, Token token) {
         budget.step(token);
         Object content;
-        if (value.type().isList()) content = value.list().stream().map(element -> constantDescription(element, budget, token)).toList();
+        if (value.type().isRecord()) content = value.type().fields().keySet().stream().map(field -> List.of(field, constantDescription(value.record().get(field), budget, token))).toList();
+        else if (value.type().isList()) content = value.list().stream().map(element -> constantDescription(element, budget, token)).toList();
         else if (value.type().isMap()) content = value.map().entrySet().stream().map(entry -> List.of(constantDescription(entry.getKey(), budget, token), constantDescription(entry.getValue(), budget, token))).toList();
         else if (value.type().isSet()) content = value.set().stream().map(element -> constantDescription(element, budget, token)).toList();
         else if (value.type().kind() == ScriptType.Kind.OPTIONAL) content = value.optional().stream().map(element -> constantDescription(element, budget, token)).toList();
@@ -595,6 +614,8 @@ public final class TextFrontend {
     }
     private static Object expressionDescription(Expression expression) {
         return switch (expression) {
+            case RecordValue record -> List.of("record", record.type(), record.fields().stream().map(TextFrontend::expressionDescription).toList());
+            case Field field -> List.of("field", expressionDescription(field.record()), field.name());
             case Literal literal -> List.of("literal", literal.type().name(), literal.value().value());
             case Name name -> List.of("binding", name.binding().slot());
             case Unary unary -> List.of("unary", unary.operator().text(), expressionDescription(unary.operand()));
@@ -617,6 +638,7 @@ public final class TextFrontend {
         private final List<Token> tokens;
         private final Deque<Map<String, Binding>> scopes = new ArrayDeque<>();
         private final List<Argument> arguments = new ArrayList<>();
+        private final Map<String, ScriptType> records = new java.util.LinkedHashMap<>();
         private final Map<String, Function> functions = new java.util.LinkedHashMap<>();
         private Function currentFunction;
         private final CallableRegistry callables;
@@ -629,7 +651,7 @@ public final class TextFrontend {
             newlines(); expect("feature"); String id = logicalId();
             expect("version"); Token versionToken = require(Kind.STRING, "Feature version must be double-quoted text");
             bounded(versionToken, 64, "Feature version"); lineEnd();
-            while (matches("fn")) { function(); newlines(); }
+            while (matches("record") || matches("fn")) { if (matches("record")) recordDeclaration(); else function(); newlines(); }
             if (matches("on")) return events(null, id, versionToken.text(), original);
             expect("command"); Token commandToken = peek(); String name = logicalId();
             expect("permission"); Token permission = require(Kind.STRING, "Permission must be explicit double-quoted text");
@@ -656,6 +678,7 @@ public final class TextFrontend {
                     argument.defaultValue() == null ? List.of() : List.of(argument.defaultValue().value()))).toList(),
                 statementsDescription(body));
             if (advanced) semantic = List.of(semantic, functions.values().stream().map(TextFrontend::functionDescription).toList());
+            if (!records.isEmpty()) semantic = List.of(semantic, "named-records-v1", List.copyOf(records.values()));
             return events(compiled(feature, original, program, semantic), id, versionToken.text(), original);
         }
         private CompiledFeature events(CompiledFeature command, String id, String version, byte[] original) {
@@ -692,11 +715,28 @@ public final class TextFrontend {
             return compiled(definition, original, program, List.of("aether-events-v1", command == null ? List.of() : command.irHash(),
                 definition, handlers.stream().map(handler -> List.of(handler.kind(), handler.permission(), handler.bypassPermission() == null ? "" : handler.bypassPermission(), statementsDescription(handler.body()))).toList()));
         }
+        private void recordDeclaration() {
+            Token start = take(); advanced = true;
+            if (records.size() >= 32) throw start.error("A feature supports at most 32 records");
+            Token name = identifier("Expected a record name");
+            if (records.containsKey(name.text()) || functions.containsKey(name.text()) || callables.descriptor(name.text()) != null || List.of("text", "integer", "boolean", "list", "map", "set", "optional", "uuid", "location", "item", "world", "block", "unit").contains(name.text())) throw name.error("Record name is already declared or reserved");
+            expect("("); var fields = new java.util.LinkedHashMap<String, ScriptType>();
+            if (!matches(")")) do {
+                Token field = identifier("Expected a record field name");
+                if (fields.size() >= 16) throw field.error("Records support at most 16 fields");
+                expect(":"); ScriptType type = declaredType();
+                if (fields.putIfAbsent(field.text(), type) != null) throw field.error("Duplicate record field");
+                if (!matches(",")) break; take();
+            } while (true);
+            expect(")");
+            try { records.put(name.text(), ScriptType.record(name.text(), fields)); } catch (IllegalArgumentException invalid) { throw name.error(invalid.getMessage()); }
+            lineEnd();
+        }
         private void function() {
             Token start = take(); advanced = true;
             if (functions.size() >= MAX_FUNCTIONS) throw start.error("A feature supports at most 32 functions");
             Token name = identifier("Expected a function name");
-            if (functions.containsKey(name.text())) throw name.error("Function is already declared");
+            if (functions.containsKey(name.text()) || records.containsKey(name.text())) throw name.error("Function is already declared");
             expect("("); List<Binding> parameters = new ArrayList<>(); Map<String, Binding> parameterScope = new HashMap<>();
             Map<Integer, ScriptValue> defaults = new HashMap<>(); Execution defaultBudget = new Execution();
             if (!matches(")")) do {
@@ -759,6 +799,7 @@ public final class TextFrontend {
                 expect("<"); ScriptType element = declaredType(); expect(">"); expressionDepth--;
                 advanced = true; return listType(element, token);
             }
+            if (records.containsKey(token.text())) return records.get(token.text());
             return switch (token.text()) {
                 case "text" -> ScriptType.TEXT; case "integer" -> ScriptType.INTEGER; case "boolean" -> ScriptType.BOOLEAN;
                 case "world" -> ScriptType.WORLD; case "block" -> ScriptType.BLOCK; case "item" -> ScriptType.ITEM; case "uuid" -> ScriptType.UUID; case "location" -> ScriptType.LOCATION; case "unit" -> ScriptType.UNIT;
@@ -948,10 +989,19 @@ public final class TextFrontend {
                 return node(new Unary(operator, operand, type), operator);
             }
             Expression value = primary();
-            while (matches("[")) {
-                Token token = take(); requireList(value, token); Expression index = expression(); expect("]");
-                requireType(index, ScriptType.INTEGER, token, "List index must be an integer");
-                value = node(new Index(value, index, token), token); advanced = true;
+            while (matches("[") || matches(".")) {
+                Token token = take();
+                if (token.text().equals(".")) {
+                    Token field = require(Kind.NAME, "Expected a record field name");
+                    ScriptType type = value.type().fields().get(field.text());
+                    if (type == null) throw field.error("Unknown record field '" + field.text() + "'");
+                    value = node(new Field(value, field.text(), type, field), field);
+                } else {
+                    requireList(value, token); Expression index = expression(); expect("]");
+                    requireType(index, ScriptType.INTEGER, token, "List index must be an integer");
+                    value = node(new Index(value, index, token), token);
+                }
+                advanced = true;
             }
             return value;
         }
@@ -962,6 +1012,15 @@ public final class TextFrontend {
             Token token = take();
             if (eventKind != null && (List.of("[", "{", "list", "map", "set").contains(token.text())))
                 throw token.error("Synchronous event handlers support only scalar expressions");
+            if (records.containsKey(token.text()) && matches("(")) {
+                if (eventKind != null) throw token.error("Synchronous event handlers support only scalar expressions");
+                take(); ScriptType type = records.get(token.text()); var values = new ArrayList<Expression>();
+                for (var field : type.fields().entrySet()) {
+                    if (!values.isEmpty()) expect(",");
+                    Expression value = expression(); requireType(value, field.getValue(), token, "Record field '" + field.getKey() + "' has the wrong type"); values.add(value);
+                }
+                expect(")"); advanced = true; return node(new RecordValue(type, List.copyOf(values), token), token);
+            }
             if (token.text().equals("item") && matches("(") && !functions.containsKey("item")) {
                 if (eventKind != null) throw token.error("Synchronous event handlers do not support item descriptors");
                 take(); Expression material = expression(); expect(","); Expression amount = expression(); expect(")");

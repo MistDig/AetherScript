@@ -3,7 +3,9 @@ import argparse
 import json
 from pathlib import Path
 import re
+import shutil
 import subprocess
+import tempfile
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--java", default="java")
@@ -115,6 +117,19 @@ kit_valid, kit_invalid = calls([('aether_validate', {'format':'aether','source':
 assert kit_valid['valid'] and set(kit_valid['requiredCapabilities']) == {
     'runtime.message.send', 'player.kit.claim'}
 assert not kit_invalid['valid'] and kit_invalid['line'] == 3 and kit_invalid['reason']
+quest = repo / 'examples/quests.aetherpack'
+quest_valid = json.loads(run([*cli, '--package', str(quest)]))
+assert quest_valid['valid'] and quest_valid['featureId'] == 'quests'
+with tempfile.TemporaryDirectory() as directory:
+    copied = Path(directory) / quest.name
+    shutil.copytree(quest, copied)
+    module = copied / 'second-quest.aether'
+    source = module.read_text(encoding='utf-8')
+    broken = source.replace('"Second quest: gather stone."', 'missing_name')
+    assert broken != source
+    module.write_text(broken, encoding='utf-8')
+    quest_invalid = json.loads(run([*cli, '--package', str(copied)], expected_exit=1))
+    assert not quest_invalid['valid'] and 'second-quest.aether' in quest_invalid['path'] and quest_invalid['line'] > 0
 print(json.dumps({"result":"pass","version":version,"checks":["discover template","validate template",
     "single-line edit changes behavior","comment preserves behavior","type error identifies line and column",
     "CLI and MCP agree on valid source","CLI and MCP agree on invalid source",
@@ -126,4 +141,5 @@ print(json.dumps({"result":"pass","version":version,"checks":["discover template
     "offline native execution requires host context", "host discovery exports executable callable catalog",
     "typed state signatures discovered", "player-progress validates with scoped capabilities",
     "starter protection validates with local event capabilities", "unsupported cancellation identifies source location",
-    "daily kit validates with local kit capability", "invalid cooldown type identifies source location"]},indent=2))
+    "daily kit validates with local kit capability", "invalid cooldown type identifies source location",
+    "quest package validates through CLI", "invalid quest module retains source filename and line"]},indent=2))

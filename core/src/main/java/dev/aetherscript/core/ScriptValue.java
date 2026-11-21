@@ -39,6 +39,7 @@ public record ScriptValue(ScriptType type, Object value) {
     public ScriptValue {
         Objects.requireNonNull(type, "type"); Objects.requireNonNull(value, "value");
         if (type.isList() && value instanceof List<?> list) value = List.copyOf(list);
+        if (type.isRecord() && value instanceof Map<?, ?> fields) value = Collections.unmodifiableMap(new LinkedHashMap<>(fields));
         if (type.isMap() && value instanceof Map<?, ?> map) {
             if (map.size() > 256) throw new IllegalArgumentException("Map exceeds 256 entries");
             value = Collections.unmodifiableMap(new LinkedHashMap<>(map));
@@ -48,6 +49,7 @@ public record ScriptValue(ScriptType type, Object value) {
             value = Collections.unmodifiableSet(new LinkedHashSet<>(set));
         }
         boolean valid = switch (type.kind()) {
+            case RECORD -> value instanceof Map<?, ?> fields && fields.keySet().equals(type.fields().keySet()) && type.fields().entrySet().stream().allMatch(field -> fields.get(field.getKey()) instanceof ScriptValue child && child.type().equals(field.getValue()));
             case INTEGER -> value instanceof Long;
             case TEXT -> value instanceof String text && text.length() <= FeatureParser.MAX_TEXT;
             case BOOLEAN -> value instanceof Boolean;
@@ -64,6 +66,7 @@ public record ScriptValue(ScriptType type, Object value) {
         };
         if (!valid) throw new IllegalArgumentException("Invalid value for " + type.name());
     }
+    @SuppressWarnings("unchecked") public Map<String, ScriptValue> record() { return (Map<String, ScriptValue>) value; }
     public WorldRef world() { return (WorldRef) value; }
     public BlockRef block() { return (BlockRef) value; }
     public ItemDescriptor item() { return (ItemDescriptor) value; }

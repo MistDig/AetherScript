@@ -1,0 +1,4 @@
+record QuestProgress(stage: integer, title: text)
+fn advance(progress: QuestProgress): QuestProgress {
+  return QuestProgress(progress.stage + 1, progress.title)
+}

@@ -8,7 +8,7 @@ Test jobs retain at most 32 results globally and 8 per connection for up to 180 
 
 ## Current capabilities
 
-This document describes the 0.0.21 language foundation; verification remains attributed to its recorded version. It supports native .aether message commands, typed positional arguments, immutable and mutable locals, bounded loops, typed functions, immutable homogeneous lists/maps/sets, arithmetic, boolean conditions, explicit reload, revisions and rollback. A locally approved native player-command slice adds location snapshots, own-player/feature persistent homes, bounded delay and self teleport. Native player join/quit and cancellable block break/place handlers are available. Item descriptors, storage-inventory operations and durable kit claims are available. Economy, custom item metadata, menus and quest systems remain planned. Do not invent syntax or promise unsupported gameplay.
+This document describes the 0.0.23 language foundation; verification remains attributed to its recorded version. It supports native .aether message commands, typed positional arguments, immutable and mutable locals, bounded loops, typed functions, immutable homogeneous lists/maps/sets, arithmetic, boolean conditions, explicit reload, revisions and rollback. A locally approved native player-command slice adds location snapshots, own-player/feature persistent homes, bounded delay and self teleport. Native player join/quit and cancellable block break/place handlers are available. Item descriptors, storage-inventory operations and durable kit claims are available. Typed records and locally installed multi-file packages support reusable quest logic and persisted progress. Economy, custom item metadata and menus remain planned. Do not invent syntax or promise unsupported gameplay.
 
 Use tool discovery from the connected app as the authority for available tools. Hosted and local gateways expose different tools. A hosted service version may differ from the plugin release version.
 
@@ -338,4 +338,31 @@ ais reload starter-protection
 ```
 
  Non-builders cannot break or place any material in `minecraft:overworld`. Other worlds are unaffected. Grant `aetherscript.protection.bypass` through your permissions system to builders who should edit there. Permission plugins determine wildcard/operator inheritance, so verify both builder and guest accounts. No extra script permission is needed by guests. The packaged example is opt-in: copying it into `scripts/` and reloading activates it.
+
+
+## Records, modules and packages (0.0.23)
+
+Use `record QuestProgress(stage: integer, title: text)` before functions and handlers. Construct with positional arguments, for example `QuestProgress(0, "Explorer")`, and read `progress.stage`. Records are immutable: construct a replacement to change fields. Names and field types are checked before activation. Declare referenced record types first; forward and recursive definitions are rejected. A feature allows at most 32 record declarations, with 1–16 fields each. Lists, maps, sets, function parameters/results and typed per-player state can contain records. Saved schema/type mismatches fail explicitly; changing a saved record schema requires an intentional migration or a new key.
+
+A local package is `scripts/quests.aetherpack/`, containing `main.aether` and flat helper `.aether` files. Write whole-line `import "progress.aether"` directives at the start of a file. The entry then contains the feature header; helpers contain imports, record declarations and functions only. Imports compose one feature with a shared declaration namespace. Shared dependencies are included once; cycles, duplicate imports within one file and duplicate declarations fail. Functions and record types still follow declaration order in the composed source.
+
+Use lowercase filenames matching `[a-z][a-z0-9-]*.aether`. Packages allow at most 32 reachable files and 65536 UTF-8 bytes in both source and composition. Unreachable files, subdirectories, links, non-source files and paths outside the package are rejected. The directory stem must match the feature ID. Do not install another source format for the same ID. Reload validates the whole package before replacing its active revision. Revisions retain the complete package for recovery and rollback. Diagnostics identify the originating filename, line and column.
+
+The [quest example](https://github.com/MistDig/AetherScript/tree/v0.0.23/examples/quests.aetherpack) splits progress records, reward calculations and a second quest across four files. Copy the entire directory into the plugin scripts directory. Console approval and activation:
+
+```text
+ais permit quests state.own
+ais validate quests
+ais reload quests
+```
+
+As an authorized player, run `/ais run quests show`, then `/ais run quests advance`. A new player first sees `Explorer: stage 0`, `Reward preview: 0 bread`, and `Second quest: gather stone.` Advance saves stage 1 and changes the preview to 2 bread; subsequent show calls retain that progress. The reward is a calculation, not an item grant. Edit `second-quest.aether` and reload to change that quest independently.
+
+Validate an installed release offline:
+
+```text
+java -cp AetherScript-MCP-0.0.23.jar dev.aetherscript.cli.Validate --package examples/quests.aetherpack
+```
+
+Package deployment is local-file administration. Hosted MCP authoring continues to accept one `.aether` source string; this release does not add multi-file apply tools, a remote package protocol, third-party dependency resolution or an addon loader.
 

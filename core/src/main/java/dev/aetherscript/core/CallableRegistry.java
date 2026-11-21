@@ -47,7 +47,7 @@ public final class CallableRegistry {
             descriptor.playerRequired(), descriptor.platform(), descriptor.errorContract(), descriptor.documentation(), descriptor.owner());
     }
     private static boolean containsUnit(ScriptType type) {
-        return type.equals(ScriptType.UNIT) || type.element() != null && containsUnit(type.element()) || type.key() != null && containsUnit(type.key());
+        return type.fields().values().stream().anyMatch(CallableRegistry::containsUnit) || type.equals(ScriptType.UNIT) || type.element() != null && containsUnit(type.element()) || type.key() != null && containsUnit(type.key());
     }
     public ScriptValue invoke(String name, List<ScriptValue> arguments, InvocationContext context, SourceLocation at) {
         Objects.requireNonNull(at);

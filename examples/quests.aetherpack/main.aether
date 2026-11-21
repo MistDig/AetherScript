@@ -1,0 +1,15 @@
+import "progress.aether"
+import "rewards.aether"
+import "second-quest.aether"
+feature quests version "1.0.0"
+command quests permission "aetherscript.example.quests" sender player {
+  arg action: text = "show"
+  var progress = state_load("quest_progress", QuestProgress(0, "Explorer"))
+  if action == "advance" {
+    set progress = advance(progress)
+    state_save("quest_progress", progress)
+  }
+  send progress.title + ": stage " + text(progress.stage)
+  send "Reward preview: " + text(reward_count(progress)) + " bread"
+  send second_quest()
+}

@@ -2,6 +2,14 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.23] - 2026-11-21
+
+- Add immutable nominal records with typed construction, field access, collection/function use and per-player persistence.
+- Add local multi-file packages with explicit imports, bounded dependency composition, whole-package revisions and originating-file diagnostics.
+- Add a four-file quest example, canonical human/AI authoring guidance and release-stamped documentation exports. Hosted multi-file mutation and external package resolution remain planned.
+- Java 25 clean build reported 358 passing tests and one Windows symlink test skipped. Packaged AI discovery, original module diagnostics, wiki examples, MCP stdio, legacy hashes, SQLite packaging and site checks passed.
+- Paper 26.3 build 245 passed 11 checks through a translated loopback client over two boots. Quest state persisted, an imported module reloaded independently and a broken edit retained the previous working package across restart.
+
 ## [0.0.22] - 2026-11-21
 
 - Add transient ten-heart blocks, world references and actions, bounded repeats and player displays.

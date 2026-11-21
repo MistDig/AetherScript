@@ -1,0 +1,57 @@
+[
+  {
+    "test": "homes-startup-native-denied",
+    "result": "pass",
+    "detail": "[22:13:00 INFO]: AetherScript 0.0.23; 26.3-245-cd1c3b6 (MC: 26.3); ready=true; generation=1; features=1; busy=false; remoteManage=false; recovery=ENABLED"
+  },
+  {
+    "test": "homes-denial-keeps-pure-feature",
+    "result": "pass",
+    "detail": "[22:13:00 INFO]: Hello from AetherScript!"
+  },
+  {
+    "test": "homes-owner-permit",
+    "result": "pass",
+    "detail": "[22:13:01 INFO]: CAPABILITIES_SAVED homes: [player.location.read, player.teleport.self, runtime.message.send, scheduler.delay, state.own]; run ais reload homes to activate an approved edit"
+  },
+  {
+    "test": "homes-activate",
+    "result": "pass",
+    "detail": "[22:13:01 INFO]: ACTIVE generation=2 features=2; saved successfully"
+  },
+  {
+    "test": "quests-permit",
+    "result": "pass",
+    "detail": "[22:13:08 INFO]: CAPABILITIES_SAVED quests: [runtime.message.send, state.own]; run ais reload quests to activate an approved edit"
+  },
+  {
+    "test": "quests-activate",
+    "result": "pass",
+    "detail": "[22:13:09 INFO]: ACTIVE generation=3 features=3; saved successfully"
+  },
+  {
+    "test": "quests-record-progress",
+    "result": "pass",
+    "detail": "Imported code read, updated and saved a typed progress record."
+  },
+  {
+    "test": "quests-module-reload",
+    "result": "pass",
+    "detail": "[22:13:20 INFO]: ACTIVE generation=4 features=3; saved successfully"
+  },
+  {
+    "test": "quests-module-location",
+    "result": "pass",
+    "detail": "[22:13:21 INFO]: Edit scripts/quests.aetherpack: line 2, column 10; second-quest.aether"
+  },
+  {
+    "test": "quests-invalid-edit-isolated",
+    "result": "pass",
+    "detail": "Invalid module left the complete prior revision active."
+  },
+  {
+    "test": "quests-package-restart",
+    "result": "pass",
+    "detail": "Recovered the saved package and persisted record with an invalid editable module still present."
+  }
+]
