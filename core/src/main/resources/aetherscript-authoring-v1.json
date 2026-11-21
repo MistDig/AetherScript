@@ -19,7 +19,15 @@
     "runtime.event.cancel",
     "player.inventory.read",
     "player.inventory.write",
-    "player.kit.claim"
+    "player.kit.claim",
+    "player.display",
+    "player.sound",
+    "runtime.event.block_hearts",
+    "scheduler.repeat",
+    "world.block.write",
+    "world.read",
+    "world.time.write",
+    "world.weather.write"
   ],
   "authoringRules": [
     "Match the feature ID to the filename.",
@@ -43,7 +51,9 @@
     "optional<elementType>",
     "map<keyType, valueType>",
     "set<elementType>",
-    "item"
+    "item",
+    "world",
+    "block"
   ],
   "statements": [
     "arg name: text | integer | boolean [= constantExpression]",
@@ -208,7 +218,15 @@
       "runtime.event.cancel",
       "player.inventory.read",
       "player.inventory.write",
-      "player.kit.claim"
+      "player.kit.claim",
+      "player.display",
+      "player.sound",
+      "runtime.event.block_hearts",
+      "scheduler.repeat",
+      "world.block.write",
+      "world.read",
+      "world.time.write",
+      "world.weather.write"
     ],
     "hostCatalogDiscovery": "CLI --language and local/hosted aether_capabilities expose the executable host-call catalog; live discovery includes the actual connection grant.",
     "approvalWindow": "Fresh ais connect browser approval chooses supported capabilities, all or selected scripts and an optional live test player. Explicit console ais permit/restrict ceilings remain authoritative.",
@@ -218,12 +236,9 @@
     "browserApprovedExecutionCeiling": [
       "runtime.message.send",
       "player.location.read",
-      "state.own",
-      "scheduler.delay",
       "player.teleport.self",
-      "player.inventory.read",
-      "player.inventory.write",
-      "player.kit.claim"
+      "state.own",
+      "scheduler.delay"
     ]
   },
   "remoteWorkflow": {
@@ -296,7 +311,8 @@
       "let name = expression",
       "send textExpression",
       "if booleanExpression { ... } else { ... }",
-      "cancel (block_break/block_place only)"
+      "cancel (block_break/block_place only)",
+      "block_hearts(integer) (block_break only)"
     ],
     "purity": "Synchronous immutable snapshots and pure scalar expressions only. No collection operations, arguments, mutable locals, loops, functions, user function calls, host calls, waits or persistent storage.",
     "cancellation": "Only block events can cancel. Cancellation sets true and never clears an existing cancellation. Already cancelled block events are skipped.",
@@ -307,7 +323,8 @@
       "runtime.event.quit",
       "runtime.event.block_break",
       "runtime.event.block_place",
-      "runtime.event.cancel"
+      "runtime.event.cancel",
+      "runtime.event.block_hearts"
     ],
     "limits": {
       "handlersPerFeature": 16,
@@ -354,5 +371,118 @@
     "failureSemantics": "Insufficient capacity/items leaves inventory unchanged. Full inventory preserves kit claim. Failed delivery compensates reservation. Crash after reservation before delivery can consume cooldown without reward; SQLite/player inventory share no transaction.",
     "clock": "Persisted wall-clock expiry isolated by feature/player/key; clock changes affect remaining duration. Fixed key required for daily limits.",
     "itemValues": "Equality, list/map values and persistence supported; item set elements/map keys unsupported."
+  },
+  "worldAndDisplays": {
+    "introduced": "0.0.22",
+    "localCapabilities": [
+      "player.display",
+      "player.sound",
+      "runtime.event.block_hearts",
+      "scheduler.repeat",
+      "world.block.write",
+      "world.read",
+      "world.time.write",
+      "world.weather.write"
+    ],
+    "calls": [
+      {
+        "signature": "repeat_wait(integer) -> unit",
+        "capability": "scheduler.repeat",
+        "description": "Wait 1..1200 server ticks."
+      },
+      {
+        "signature": "world_from_location(location) -> world",
+        "capability": "world.read",
+        "description": "Extract the world UUID."
+      },
+      {
+        "signature": "block_at(world, integer, integer, integer) -> block",
+        "capability": "world.read",
+        "description": "Create a coordinate reference without loading terrain."
+      },
+      {
+        "signature": "block_material(block) -> text",
+        "capability": "world.read",
+        "description": "Read a namespaced material in a loaded chunk."
+      },
+      {
+        "signature": "block_set(block, text) -> unit",
+        "capability": "world.block.write",
+        "description": "Set a vanilla block in a loaded chunk without physics."
+      },
+      {
+        "signature": "world_time(world) -> integer",
+        "capability": "world.read",
+        "description": "Read time of day."
+      },
+      {
+        "signature": "world_set_time(world, integer) -> unit",
+        "capability": "world.time.write",
+        "description": "Set time to 0..23999."
+      },
+      {
+        "signature": "world_weather(world) -> text",
+        "capability": "world.read",
+        "description": "Read clear, rain or thunder."
+      },
+      {
+        "signature": "world_set_weather(world, text, integer) -> unit",
+        "capability": "world.weather.write",
+        "description": "Set clear, rain or thunder for 1..72000 ticks."
+      },
+      {
+        "signature": "actionbar(text) -> unit",
+        "capability": "player.display",
+        "description": "Show up to 256 characters to the invoking player."
+      },
+      {
+        "signature": "title(text, text, integer, integer, integer) -> unit",
+        "capability": "player.display",
+        "description": "Show title and subtitle, with fade-in, stay and fade-out in 0..1200 ticks each."
+      },
+      {
+        "signature": "sound(text, integer, integer) -> unit",
+        "capability": "player.sound",
+        "description": "Play a namespaced vanilla sound, volume 0..100 and pitch 50..200 as percentages."
+      },
+      {
+        "signature": "bossbar(text, integer) -> unit",
+        "capability": "player.display",
+        "description": "Show a boss bar with progress 0..100."
+      },
+      {
+        "signature": "bossbar_clear() -> unit",
+        "capability": "player.display",
+        "description": "Clear this revision’s boss bar."
+      },
+      {
+        "signature": "scoreboard(list<text>) -> unit",
+        "capability": "player.display",
+        "description": "Show at most 15 lines of up to 128 characters each."
+      },
+      {
+        "signature": "scoreboard_clear() -> unit",
+        "capability": "player.display",
+        "description": "Clear this revision’s scoreboard and restore the previous scoreboard when still active."
+      }
+    ],
+    "timer": {
+      "syntax": "every ticks repeat count { ... }",
+      "scope": "Player command or function; first iteration after the first wait. Interval 1..1200, count 0..64. Invocation deadline, break and continue apply."
+    },
+    "hearts": {
+      "syntax": "block_hearts(10)",
+      "scope": "block_break only; one call on an executed branch. Count 1..100 and 256 active blocks. Prior cancellation wins. The last hit follows the vanilla break path. State is transient."
+    },
+    "examples": [
+      {
+        "file": "ten-heart-blocks.aether",
+        "source": "feature ten-heart-blocks version \"1\"\non block_break permission \"*\" {\n  if world == \"minecraft:overworld\" && block_type == \"STONE\" {\n    block_hearts(10)\n  }\n}\n"
+      },
+      {
+        "file": "world-display.aether",
+        "source": "feature world-display version \"1\"\ncommand world-display permission \"aetherscript.example.worlddisplay\" sender player {\n  let world = world_from_location(player_location())\n  send \"Weather: \" + world_weather(world)\n  bossbar(\"AetherScript\", 100)\n  scoreboard([\"World dashboard\"])\n  every 10 repeat 2 {\n    actionbar(\"AetherScript world dashboard\")\n  }\n}\n"
+      }
+    ]
   }
 }

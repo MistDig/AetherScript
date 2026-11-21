@@ -163,6 +163,7 @@ final class GameplayRuntime implements AutoCloseable, Listener {
         });
     }
     private volatile boolean closed;
+    private final PaperWorldDisplays worldDisplays;
     private volatile KitCooldowns kitCooldowns;
     private volatile SQLiteVariables state; // Accessed by the single existing plugin I/O worker.
 
@@ -170,6 +171,7 @@ final class GameplayRuntime implements AutoCloseable, Listener {
                     Supplier<ScriptCapabilityPolicy> policy, BooleanSupplier ready, Path directory) {
         this.plugin = plugin; this.registry = registry; this.io = io; this.main = main;
         this.policy = policy; this.ready = ready; this.stateDirectory = directory;
+        this.worldDisplays = new PaperWorldDisplays(plugin.getServer());
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
         testExpiry.scheduleAtFixedRate(this::expireTests, 1, 1, TimeUnit.SECONDS);
     }
@@ -194,10 +196,20 @@ final class GameplayRuntime implements AutoCloseable, Listener {
         catch (RejectedExecutionException failure) { active.remove(run); admission.release(); run.cancel(); throw error("RUNTIME_BUSY"); }
     }
     /** Main-thread activation and policy changes retire only affected invocations. */
-    void reconcile() { expireTests(); for (Run run : active) if (!run.current(false)) run.cancel(); }
+    void reconcile() {
+        expireTests();
+        for (Run run : active) if (!run.current(false)) run.cancel();
+        var snapshot = registry.snapshot();
+        worldDisplays.reconcile(owner -> {
+            var feature = snapshot.features().get(owner.feature());
+            return feature != null && feature.sourceHash().equals(owner.revision())
+                && policy.get().allowed(owner.feature()).containsAll(feature.definition().requires());
+        });
+    }
     @EventHandler public void quit(PlayerQuitEvent event) {
         UUID actor = event.getPlayer().getUniqueId();
         sessions.remove(actor); // A reconnect with the same UUID must never revive an earlier invocation.
+        worldDisplays.forget(actor);
         for (Run run : active) if (run.actor.equals(actor)) run.cancel();
     }
     private static ValidationException error(String message) { return new ValidationException("$", message); }
@@ -318,10 +330,18 @@ final class GameplayRuntime implements AutoCloseable, Listener {
                     return new ScriptValue(ScriptType.BOOLEAN, true);
                 });
                 case "player.kit.claim" -> claimKit(values);
+                case "world.from_location", "world.block.at", "world.block.material", "world.block.set",
+                     "world.time.read", "world.time.set", "world.weather.read", "world.weather.set",
+                     "player.display.actionbar", "player.display.title", "player.sound",
+                     "player.display.bossbar", "player.display.bossbar.clear",
+                     "player.display.scoreboard", "player.display.scoreboard.clear" ->
+                    main.call(() -> worldDisplays.invoke(descriptor.id(), player(), values,
+                        new PaperWorldDisplays.Owner(feature.definition().id(), feature.sourceHash())));
                 case "state.own.get_location", "state.own.put_location", "state.own.save", "state.own.load" -> state(descriptor.id(), values);
-                case "scheduler.delay" -> {
+                case "scheduler.delay", "scheduler.repeat" -> {
                     long ticks = values.getFirst().integer();
-                    if (ticks < 0 || ticks > 1200) throw error("DELAY_LIMIT: expected 0..1200 server ticks");
+                    long minimum = descriptor.id().equals("scheduler.repeat") ? 1 : 0;
+                    if (ticks < minimum || ticks > 1200) throw error("DELAY_LIMIT: expected " + minimum + "..1200 server ticks");
                     CompletableFuture<ScriptValue> done = new CompletableFuture<>();
                     BukkitTask task = main.call(() -> {
                         player();
@@ -477,6 +497,7 @@ final class GameplayRuntime implements AutoCloseable, Listener {
         return result;
     }
     @Override public void close() {
+        worldDisplays.reconcile(owner -> false);
         closed = true; testExpiry.shutdownNow(); sessions.clear(); active.forEach(Run::cancel); interpreters.shutdownNow(); HandlerList.unregisterAll(this);
     }
     void closeStorageAfterShutdown() {

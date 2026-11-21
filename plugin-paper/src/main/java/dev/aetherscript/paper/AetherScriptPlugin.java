@@ -187,6 +187,7 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
                         permitted.entrySet().removeIf(entry -> !scriptPolicy.allowed(entry.getKey()).containsAll(entry.getValue().definition().requires()));
                         if (!permitted.equals(before.features())) featureCommands.activate(before.generation(), permitted);
                         if (gameplay != null) gameplay.reconcile();
+                        if (events != null) events.refresh();
                         say(sender, "CAPABILITIES_SAVED " + id + ": " + approved + "; run ais reload " + id + " to activate an approved edit"); return null;
                     });
                 } catch (Exception failure) {
@@ -368,7 +369,9 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
             authorized.run();
             if (sender != null && !sender.hasPermission("aetherscript.admin")) throw new SecurityException("PERMISSION_DENIED: permission changed before activation");
             Registry.Snapshot replacement = featureCommands.activate(before.generation(), change.target());
-            if (gameplay != null) gameplay.reconcile(); return replacement;
+            if (gameplay != null) gameplay.reconcile();
+            if (events != null) events.refresh();
+            return replacement;
         });
         try {
             authorized.run();
@@ -382,6 +385,7 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
             onMain(() -> {
                 featureCommands.activate(activated.generation(), safe ? before.features() : Map.of());
                 if (gameplay != null) gameplay.reconcile();
+                if (events != null) events.refresh();
                 if (!safe) { ready = false; startupError = "STORAGE_QUARANTINED"; } return null;
             });
             throw new IOException(safe ? "SAVE_FAILED: previous working registry restored as a new generation; editable files untouched" : "STORAGE_QUARANTINED: restore owner backup", failure);

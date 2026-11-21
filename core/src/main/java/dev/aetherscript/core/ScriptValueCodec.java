@@ -51,7 +51,7 @@ public final class ScriptValueCodec {
         out.writeByte(switch (type.kind()) {
             case INTEGER -> 0; case TEXT -> 1; case BOOLEAN -> 2; case LIST -> 3;
             case UUID -> 4; case LOCATION -> 5; case UNIT -> 6; case OPTIONAL -> 7;
-            case MAP -> 8; case SET -> 9; case ITEM -> 10;
+            case MAP -> 8; case SET -> 9; case ITEM -> 10; case WORLD -> 11; case BLOCK -> 12;
         });
         if (type.isMap()) writeType(out, type.key());
         if (type.element() != null) writeType(out, type.element());
@@ -67,6 +67,8 @@ public final class ScriptValueCodec {
             case 5 -> ScriptType.LOCATION;
             case 6 -> ScriptType.UNIT;
             case 10 -> ScriptType.ITEM;
+            case 11 -> ScriptType.WORLD;
+            case 12 -> ScriptType.BLOCK;
             case 3 -> ScriptType.list(readType(in, depth + 1));
             case 7 -> ScriptType.optional(readType(in, depth + 1));
             case 9 -> ScriptType.set(readType(in, depth + 1));
@@ -93,6 +95,8 @@ public final class ScriptValueCodec {
                 var l = value.location(); writeUuid(out, l.worldId());
                 out.writeDouble(l.x()); out.writeDouble(l.y()); out.writeDouble(l.z()); out.writeFloat(l.yaw()); out.writeFloat(l.pitch());
             }
+            case WORLD -> writeUuid(out, value.world().worldId());
+            case BLOCK -> { var b = value.block(); writeUuid(out, b.worldId()); out.writeInt(b.x()); out.writeInt(b.y()); out.writeInt(b.z()); }
             case ITEM -> { out.writeUTF(value.item().material()); out.writeInt(value.item().amount()); }
             case UNIT -> { }
             case OPTIONAL -> { out.writeByte(value.optional().isPresent() ? 1 : 0); if (value.optional().isPresent()) writeValue(out, value.optional().orElseThrow(), budget); }
@@ -113,6 +117,8 @@ public final class ScriptValueCodec {
             case BOOLEAN -> readFlag(in);
             case UUID -> readUuid(in);
             case LOCATION -> new ScriptValue.LocationSnapshot(readUuid(in), in.readDouble(), in.readDouble(), in.readDouble(), in.readFloat(), in.readFloat());
+            case WORLD -> new ScriptValue.WorldRef(readUuid(in));
+            case BLOCK -> new ScriptValue.BlockRef(readUuid(in), in.readInt(), in.readInt(), in.readInt());
             case ITEM -> new ScriptValue.ItemDescriptor(in.readUTF(), in.readInt());
             case UNIT -> ScriptValue.Unit.INSTANCE;
             case OPTIONAL -> readFlag(in) ? Optional.of(readValue(in, type.element(), budget)) : Optional.empty();

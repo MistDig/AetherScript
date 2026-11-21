@@ -35,6 +35,8 @@ public final class Validate {
     }
 
     private static void print(Object value) throws IOException {
-        System.out.println(FeatureParser.JSON.writeValueAsString(value));
+        System.out.write(FeatureParser.JSON.writeValueAsBytes(value));
+        System.out.write('\n');
+        System.out.flush();
     }
 }

@@ -4,9 +4,12 @@ import dev.aetherscript.core.*;
 import net.kyori.adventure.text.Component;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.*;
 import org.bukkit.event.block.*;
 import org.bukkit.event.player.*;
+import org.bukkit.event.world.ChunkUnloadEvent;
+import org.bukkit.event.world.WorldUnloadEvent;
 import java.util.*;
 import java.util.function.*;
 
@@ -20,10 +23,13 @@ final class EventRuntime implements Listener, AutoCloseable {
     private Registry.Snapshot indexed;
     private Map<String, List<Subscriber>> subscribers = Map.of();
     private final Set<String> reported = new HashSet<>();
+    private final Map<ScriptValue.BlockRef, Hearts> hearts = new HashMap<>();
+    private record Hearts(String material, int maximum, int remaining, TextDisplay display) {}
     private record Subscriber(CompiledFeature feature, CompiledFeature.EventHandler handler) { }
     private List<Subscriber> subscribers(String kind) {
         Registry.Snapshot current = registry.snapshot();
         if (current != indexed) {
+            clearHearts();
             Map<String, List<Subscriber>> next = new HashMap<>();
             current.features().entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
                 CompiledFeature feature = entry.getValue();
@@ -51,7 +57,7 @@ final class EventRuntime implements Listener, AutoCloseable {
         fields.put("world", text(block.getWorld().getKey().toString()));
         fields.put("block_type", text(block.getType().name()));
         fields.put("x", integer(block.getX())); fields.put("y", integer(block.getY())); fields.put("z", integer(block.getZ()));
-        dispatch(kind, player, fields, event);
+        dispatch(kind, player, fields, event, block);
     }
     private void player(String kind, Player player) { if (interested(kind)) dispatch(kind, player, fields(player), null); }
     private static Map<String, ScriptValue> fields(Player player) {
@@ -63,11 +69,15 @@ final class EventRuntime implements Listener, AutoCloseable {
     private static ScriptValue text(String text) { return new ScriptValue(ScriptType.TEXT, text); }
     private static ScriptValue integer(long number) { return new ScriptValue(ScriptType.INTEGER, number); }
     void dispatch(String kind, Player player, Map<String, ScriptValue> fields, Cancellable event) {
+        dispatch(kind, player, fields, event, null);
+    }
+    private void dispatch(String kind, Player player, Map<String, ScriptValue> fields, Cancellable event, Block block) {
         if (closed || !ready.getAsBoolean() || event != null && event.isCancelled()) return;
         List<Subscriber> handlers = subscribers(kind);
         if (handlers.isEmpty()) return;
         Registry.Snapshot captured = indexed;
         CompiledFeature.EventData data = new CompiledFeature.EventData(kind, fields);
+        int maximumHearts = 0;
         for (Subscriber subscriber : handlers) {
             CompiledFeature feature = subscriber.feature();
             CompiledFeature.EventHandler handler = subscriber.handler();
@@ -81,6 +91,7 @@ final class EventRuntime implements Listener, AutoCloseable {
             try {
                 CompiledFeature.EventResult result = handler.evaluate(data);
                 if (result.cancelled() && event != null) event.setCancelled(true);
+                if (maximumHearts == 0) maximumHearts = result.blockHearts();
                 for (Feature.MessageAction message : result.messages()) player.sendMessage(Component.text(message.text()));
             } catch (RuntimeException failure) {
                 String key = feature.definition().id() + ":" + kind;
@@ -89,7 +100,56 @@ final class EventRuntime implements Listener, AutoCloseable {
                     + "; further failures suppressed until registry replacement");
             }
         }
+        if (block != null && event instanceof BlockBreakEvent && !event.isCancelled() && maximumHearts > 0)
+            hit(block, event, maximumHearts);
     }
 
-    @Override public void close() { closed = true; HandlerList.unregisterAll(this); }
+    private static ScriptValue.BlockRef key(Block block) {
+        return new ScriptValue.BlockRef(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ());
+    }
+    private void hit(Block block, Cancellable event, int maximum) {
+        var key = key(block);
+        var previous = hearts.get(key);
+        String material = block.getType().name();
+        if (previous != null && (!previous.material().equals(material) || previous.maximum() != maximum)) {
+            remove(key);
+            previous = null;
+        }
+        int remaining = (previous == null ? maximum : previous.remaining()) - 1;
+        if (remaining < 1) return;
+        event.setCancelled(true);
+        if (previous == null && hearts.size() >= 256) {
+            return;
+        }
+        TextDisplay display = previous == null ? block.getWorld().spawn(block.getLocation().add(0.5, 1.2, 0.5), TextDisplay.class, entity -> {
+            entity.setPersistent(false);
+            entity.setBillboard(org.bukkit.entity.Display.Billboard.CENTER);
+        }) : previous.display();
+        display.text(Component.text(remaining + " / " + maximum + " hearts"));
+        hearts.put(key, new Hearts(material, maximum, remaining, display));
+    }
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void completed(BlockBreakEvent event) { if (!hearts.isEmpty()) remove(key(event.getBlock())); }
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void replaced(BlockPlaceEvent event) { if (!hearts.isEmpty()) remove(key(event.getBlockPlaced())); }
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void unload(ChunkUnloadEvent event) {
+        var chunk = event.getChunk();
+        hearts.keySet().stream().filter(key -> key.worldId().equals(chunk.getWorld().getUID())
+            && key.x() >> 4 == chunk.getX() && key.z() >> 4 == chunk.getZ()).toList().forEach(this::remove);
+    }
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void unload(WorldUnloadEvent event) {
+        hearts.keySet().stream().filter(key -> key.worldId().equals(event.getWorld().getUID())).toList().forEach(this::remove);
+    }
+    private void remove(ScriptValue.BlockRef key) {
+        Hearts removed = hearts.remove(key);
+        if (removed != null) removed.display().remove();
+    }
+    private void clearHearts() {
+        hearts.values().forEach(health -> health.display().remove());
+        hearts.clear();
+    }
+    void refresh() { clearHearts(); subscribers("block_break"); }
+    @Override public void close() { closed = true; clearHearts(); HandlerList.unregisterAll(this); }
 }

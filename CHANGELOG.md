@@ -2,6 +2,12 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.22] - 2026-11-21
+
+- Add transient ten-heart blocks, world references and actions, bounded repeats and player displays.
+- Java 25 clean build passed 348 tests. The packaged validator accepted 19 wiki scripts. MCP discovery, legacy hashes, SQLite packaging and the site build passed.
+- Paper 26.3 build 245 passed 25 checks through a translated loopback client. The test observed protection, reload cleanup, nine retained blocks and the tenth break, a real world write, display packets, timed repeats and revocation cleanup.
+
 ## [0.0.21] - 2026-11-21
 
 - Add immutable typed item descriptors, player storage-inventory checks and all-or-none give/remove operations with explicit capability gates.

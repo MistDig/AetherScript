@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/assets/aetherscript-banner.png" alt="AetherScript — little scripts, big possibilities" width="1200"></p>
 
-<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.21"><b>Download 0.0.21</b></a> · <a href="https://mistdig.github.io/AetherScript/">Explore the docs</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
+<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.22"><b>Download 0.0.22</b></a> · <a href="https://mistdig.github.io/AetherScript/">Explore the docs</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
 
 [![Build](https://github.com/MistDig/AetherScript/actions/workflows/ci.yml/badge.svg)](https://github.com/MistDig/AetherScript/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/MistDig/AetherScript)](https://github.com/MistDig/AetherScript/releases)
@@ -10,7 +10,11 @@ An open-source Minecraft scripting engine with **live hot reloading**, saved wor
 
 ## Language foundation and the month goal
 
-The [17 November–17 December plan](docs/ecosystem/month-goal-2026-11-17.md) prioritizes the language, core Minecraft APIs and addon foundations, then gameplay adapters and reliability, with MCP expansion last. AI authors get canonical syntax, a machine-readable contract and precise errors; humans need not learn the DSL to request features. The one-month goal is a broad plugin language, with explicit acceptance gates rather than a guarantee of Java API parity. Release 0.0.21 adds item descriptors, inventory operations and durable kit cooldowns. Synchronous player join/quit and cancellable block break/place handlers remain available. Typed per-player SQLite save/load includes nested immutable collections; verification is recorded in the changelog. Existing MCP validation uses the shared core, with no new tools or relay changes.
+The [17 November–17 December plan](docs/ecosystem/month-goal-2026-11-17.md) prioritizes the language, core Minecraft APIs and addon foundations, then gameplay adapters and reliability, with MCP expansion last. AI authors get canonical syntax, a machine-readable contract and precise errors; humans need not learn the DSL to request features. The one-month goal is a broad plugin language, with explicit acceptance gates rather than a guarantee of Java API parity. Release 0.0.22 adds ten-heart blocks, world actions, timers and player displays. Synchronous player join/quit and cancellable block break/place handlers remain available. Typed per-player SQLite save/load includes nested immutable collections; verification is recorded in the changelog. Existing MCP validation uses the shared core, with no new tools or relay changes.
+
+## Ten-heart blocks in 0.0.22
+
+Use `block_hearts(10)` in a block-break handler. The release also adds loaded-world block actions, bounded timed loops, titles, action bars, sounds, boss bars and scoreboards. See the [language guide](docs/wiki/Language-Reference.md#world-actions-timers-and-displays-0022).
 
 ## Daily kits in 0.0.21
 
@@ -79,7 +83,7 @@ This experimental implementation supports sender messages, preparation-time lega
 
 ## Get started
 
-1. Stop Paper, back up existing AetherScript data, and install **AetherScript-0.0.21.jar** from the release. Keep only one plugin JAR installed.
+1. Stop Paper, back up existing AetherScript data, and install **AetherScript-0.0.22.jar** from the release. Keep only one plugin JAR installed.
 2. Start with Java 25 and wait for `Ready. Restored ...`. A new install creates and activates `plugins/AetherScript/scripts/hello-ai.yml`.
 3. Run `/ais run hello-ai`. Players need `aetherscript.example.hello` (operators by default).
 4. Edit its quoted `text`, save, then `/ais validate hello-ai` and `/ais reload hello-ai`.

@@ -19,6 +19,14 @@ public record ScriptValue(ScriptType type, Object value) {
             if (!Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(z) || !Float.isFinite(yaw) || !Float.isFinite(pitch)) throw new IllegalArgumentException("Location coordinates must be finite");
         }
     }
+    public record WorldRef(UUID worldId) { public WorldRef { Objects.requireNonNull(worldId, "worldId"); } }
+    public record BlockRef(UUID worldId, int x, int y, int z) {
+        public BlockRef {
+            Objects.requireNonNull(worldId, "worldId");
+            if (Math.abs((long)x) > 30_000_000 || Math.abs((long)z) > 30_000_000 || Math.abs((long)y) > 20_000_000)
+                throw new IllegalArgumentException("Block outside supported world coordinate bounds");
+        }
+    }
     /** Plain vanilla material descriptor; platform validation occurs at the inventory boundary. */
     public record ItemDescriptor(String material, int amount) {
         public ItemDescriptor {
@@ -46,6 +54,8 @@ public record ScriptValue(ScriptType type, Object value) {
             case UUID -> value instanceof UUID;
             case LOCATION -> value instanceof LocationSnapshot;
             case ITEM -> value instanceof ItemDescriptor;
+            case WORLD -> value instanceof WorldRef;
+            case BLOCK -> value instanceof BlockRef;
             case UNIT -> value == Unit.INSTANCE;
             case LIST -> value instanceof List<?> list && list.size() <= 256 && list.stream().allMatch(item -> item instanceof ScriptValue child && child.type.equals(type.element()));
             case MAP -> value instanceof Map<?, ?> map && map.size() <= 256 && map.entrySet().stream().allMatch(entry -> entry.getKey() instanceof ScriptValue k && k.type.equals(type.key()) && entry.getValue() instanceof ScriptValue v && v.type.equals(type.element()));
@@ -54,6 +64,8 @@ public record ScriptValue(ScriptType type, Object value) {
         };
         if (!valid) throw new IllegalArgumentException("Invalid value for " + type.name());
     }
+    public WorldRef world() { return (WorldRef) value; }
+    public BlockRef block() { return (BlockRef) value; }
     public ItemDescriptor item() { return (ItemDescriptor) value; }
     public long integer() { return (Long) value; }
     public boolean bool() { return (Boolean) value; }

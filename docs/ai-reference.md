@@ -244,6 +244,56 @@ TEXT_SOURCE_REQUIRED means the owner must resolve an existing legacy/duplicate s
 HTTP 401 invalid_token requires reconnecting with a fresh ais connect browser approval. Superseded, expired, rejected and revoked sessions terminate. HTTP 503 temporarily_unavailable with Retry-After means a valid new connection is waiting for Paper; retry after the indicated delay.
 The owner can inspect ais connections and revoke with ais disconnect. Approval does not imply the connection has reached Paper; Connected is confirmed after an actual status response.
 
+## World actions, timers and displays (0.0.22)
+
+A world reference holds a world UUID. A block reference holds that UUID and integer coordinates. Reading or setting a block requires a loaded world and chunk. Explicit console grants authorize world writes. A direct world write does not run player break/place checks. New capabilities are available to locally approved scripts.
+
+| Call | Capability | Behavior |
+| --- | --- | --- |
+| `repeat_wait(integer) -> unit` | `scheduler.repeat` | Wait 1..1200 server ticks. |
+| `world_from_location(location) -> world` | `world.read` | Extract the world UUID. |
+| `block_at(world, integer, integer, integer) -> block` | `world.read` | Create a coordinate reference without loading terrain. |
+| `block_material(block) -> text` | `world.read` | Read a namespaced material in a loaded chunk. |
+| `block_set(block, text) -> unit` | `world.block.write` | Set a vanilla block in a loaded chunk without physics. |
+| `world_time(world) -> integer` | `world.read` | Read time of day. |
+| `world_set_time(world, integer) -> unit` | `world.time.write` | Set time to 0..23999. |
+| `world_weather(world) -> text` | `world.read` | Read clear, rain or thunder. |
+| `world_set_weather(world, text, integer) -> unit` | `world.weather.write` | Set clear, rain or thunder for 1..72000 ticks. |
+| `actionbar(text) -> unit` | `player.display` | Show up to 256 characters to the invoking player. |
+| `title(text, text, integer, integer, integer) -> unit` | `player.display` | Show title and subtitle, with fade-in, stay and fade-out in 0..1200 ticks each. |
+| `sound(text, integer, integer) -> unit` | `player.sound` | Play a namespaced vanilla sound, volume 0..100 and pitch 50..200 as percentages. |
+| `bossbar(text, integer) -> unit` | `player.display` | Show a boss bar with progress 0..100. |
+| `bossbar_clear() -> unit` | `player.display` | Clear this revision’s boss bar. |
+| `scoreboard(list<text>) -> unit` | `player.display` | Show at most 15 lines of up to 128 characters each. |
+| `scoreboard_clear() -> unit` | `player.display` | Clear this revision’s scoreboard and restore the previous scoreboard when still active. |
+
+`every 20 repeat 3 { ... }` waits 20 ticks before each of three iterations. Use it in player commands or functions. Interval and count are evaluated once. Invocations obey the existing deadline and retire on revision replacement, restriction or logout. Boss bars and scoreboards clear on feature retirement or logout.
+
+Install the ten-heart example into `scripts/`, then run `ais permit ten-heart-blocks runtime.event.block_break,runtime.event.block_hearts` and `ais reload ten-heart-blocks` from the console. The first nine eligible breaks show remaining hearts. The tenth follows Paper’s normal break path. Progress and displays clear on reload or chunk unload.
+
+
+```aether
+feature ten-heart-blocks version "1"
+on block_break permission "*" {
+  if world == "minecraft:overworld" && block_type == "STONE" {
+    block_hearts(10)
+  }
+}
+```
+
+```aether
+feature world-display version "1"
+command world-display permission "aetherscript.example.worlddisplay" sender player {
+  let world = world_from_location(player_location())
+  send "Weather: " + world_weather(world)
+  bossbar("AetherScript", 100)
+  scoreboard(["World dashboard"])
+  every 10 repeat 2 {
+    actionbar("AetherScript world dashboard")
+  }
+}
+```
+
 ## Reference priority
 
 Use this current reference, discovered tool schemas and the bundled authoring contract for generation. The following full-guide appendix includes human tutorials, historical test records and explicitly planned work. Historical release examples do not add current capabilities.

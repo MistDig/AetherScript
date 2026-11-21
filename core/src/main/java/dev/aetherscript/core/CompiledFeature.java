@@ -17,8 +17,9 @@ public record CompiledFeature(Feature definition, String sourceHash, String irHa
             }
         }
     }
-    public record EventResult(List<Feature.MessageAction> messages, boolean cancelled) {
-        public EventResult { messages = List.copyOf(messages); }
+    public record EventResult(List<Feature.MessageAction> messages, boolean cancelled, int blockHearts) {
+        public EventResult(List<Feature.MessageAction> messages, boolean cancelled) { this(messages, cancelled, 0); }
+        public EventResult { messages = List.copyOf(messages); if (blockHearts < 0 || blockHearts > 100) throw new IllegalArgumentException("block hearts must be 1..100 or absent"); }
     }
     public interface EventHandler {
         String kind();
@@ -26,7 +27,7 @@ public record CompiledFeature(Feature definition, String sourceHash, String irHa
         String bypassPermission();
         EventResult evaluate(EventData data);
     }
-    public static final java.util.Set<String> EVENT_CAPABILITIES = java.util.Set.of("runtime.event.join", "runtime.event.quit", "runtime.event.block_break", "runtime.event.block_place", "runtime.event.cancel");
+    public static final java.util.Set<String> EVENT_CAPABILITIES = java.util.Set.of("runtime.event.join", "runtime.event.quit", "runtime.event.block_break", "runtime.event.block_place", "runtime.event.cancel", "runtime.event.block_hearts");
     public static java.util.Map<String, ScriptType> eventFields(String kind) {
         if (!java.util.Set.of("join", "quit", "block_break", "block_place").contains(kind)) throw new IllegalArgumentException("Unsupported event: " + kind);
         var fields = new java.util.LinkedHashMap<String, ScriptType>();

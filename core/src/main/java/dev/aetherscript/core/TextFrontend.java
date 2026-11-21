@@ -377,6 +377,20 @@ public final class TextFrontend {
             }
         }
     }
+    private record ScheduledLoop(CallableRegistry registry, Expression interval, Expression count, List<Statement> body, Token token) implements Statement {
+        public void prepare(Execution execution) {
+            ScriptValue ticks = interval.evaluate(execution);
+            long times = count.evaluate(execution).integer();
+            if (ticks.integer() < 1 || ticks.integer() > 1200 || times < 0 || times > 64)
+                throw token.error("TIMER_LIMIT: expected 1..1200 ticks and 0..64 repeats");
+            for (long index = 0; index < times; index++) {
+                execution.step(token);
+                registry.invoke("repeat_wait", List.of(ticks), execution.context, location(token));
+                try { for (Statement statement : body) statement.prepare(execution); }
+                catch (LoopJump jump) { if (!jump.continueLoop) break; }
+            }
+        }
+    }
     private record For(Binding binding, Expression collection, List<Statement> body, Token token) implements Statement {
         public void prepare(Execution execution) {
             execution.step(token);
@@ -412,6 +426,15 @@ public final class TextFrontend {
             execution.messages.add(new Feature.MessageAction(text));
         }
     }
+    private record BlockHearts(Expression count, Token token) implements Statement {
+        public void prepare(Execution execution) {
+            execution.step(token);
+            long hearts = count.evaluate(execution).integer();
+            if (hearts < 1 || hearts > 100) throw token.error("block_hearts count must be between 1 and 100");
+            if (execution.blockHearts != 0) throw token.error("block_hearts may execute only once per handler");
+            execution.blockHearts = (int) hearts;
+        }
+    }
     private record Cancel(Token token) implements Statement {
         public void prepare(Execution execution) { execution.step(token); execution.eventCancelled = true; }
     }
@@ -429,6 +452,7 @@ public final class TextFrontend {
         Execution(InvocationContext context) { this.context = context; }
         private int steps, callDepth;
         private boolean eventCancelled;
+        private int blockHearts;
         void step() {
             step(null);
         }
@@ -447,7 +471,7 @@ public final class TextFrontend {
             Execution execution = new Execution();
             fields.forEach((name, binding) -> execution.values.put(binding, data.fields().get(name)));
             for (Statement statement : body) statement.prepare(execution);
-            return new CompiledFeature.EventResult(execution.messages, execution.eventCancelled);
+            return new CompiledFeature.EventResult(execution.messages, execution.eventCancelled, execution.blockHearts);
         }
     }
     private record EventProgram(CompiledFeature command, List<NativeEventHandler> handlers, String sourceHash) implements CompiledFeature.Program {
@@ -554,6 +578,7 @@ public final class TextFrontend {
     }
     private static List<Object> statementsDescription(List<Statement> statements) {
         return statements.stream().map(statement -> switch (statement) {
+            case BlockHearts hearts -> (Object) List.of("block_hearts", expressionDescription(hearts.count()));
             case Cancel cancel -> (Object) List.of("cancel");
             case UnitCall call -> (Object) List.of("unit-call", expressionDescription(call.expression()));
             case Let let -> (Object) List.of("let", let.binding().slot(), expressionDescription(let.initializer()));
@@ -561,6 +586,7 @@ public final class TextFrontend {
             case Condition condition -> (Object) List.of("if", expressionDescription(condition.condition()), statementsDescription(condition.yes()), statementsDescription(condition.no()));
             case Assign assign -> (Object) List.of("set", assign.binding().slot(), expressionDescription(assign.value()));
             case Loop loop -> (Object) List.of(loop.counted() ? "repeat" : "while", expressionDescription(loop.condition()), statementsDescription(loop.body()));
+            case ScheduledLoop loop -> (Object) List.of("every", expressionDescription(loop.interval()), expressionDescription(loop.count()), statementsDescription(loop.body()));
             case For loop -> (Object) List.of("for", loop.binding().slot(), expressionDescription(loop.collection()), statementsDescription(loop.body()));
             case Jump jump -> (Object) List.of(jump.continueLoop() ? "continue" : "break");
             case Return returned -> (Object) List.of("return", expressionDescription(returned.value()));
@@ -735,7 +761,7 @@ public final class TextFrontend {
             }
             return switch (token.text()) {
                 case "text" -> ScriptType.TEXT; case "integer" -> ScriptType.INTEGER; case "boolean" -> ScriptType.BOOLEAN;
-                case "item" -> ScriptType.ITEM; case "uuid" -> ScriptType.UUID; case "location" -> ScriptType.LOCATION; case "unit" -> ScriptType.UNIT;
+                case "world" -> ScriptType.WORLD; case "block" -> ScriptType.BLOCK; case "item" -> ScriptType.ITEM; case "uuid" -> ScriptType.UUID; case "location" -> ScriptType.LOCATION; case "unit" -> ScriptType.UNIT;
                 default -> throw token.error("ScriptType must be text, integer or boolean");
             };
         }
@@ -792,8 +818,15 @@ public final class TextFrontend {
         }
         private Statement statement() {
             Token start = take();
-            if (eventKind != null && !List.of("let", "send", "if", "cancel").contains(start.text()))
-                throw start.error("Synchronous event handlers support only let, send, if and cancel");
+            if (eventKind != null && !List.of("let", "send", "if", "cancel", "block_hearts").contains(start.text()))
+                throw start.error("Synchronous event handlers support only let, send, if, cancel and block_hearts");
+            if (start.text().equals("block_hearts")) {
+                if (!"block_break".equals(eventKind)) throw start.error("block_hearts requires a block_break handler");
+                expect("("); Expression count = expression(); expect(")");
+                requireType(count, ScriptType.INTEGER, start, "block_hearts requires an integer count");
+                capabilities.add("runtime.event.block_hearts");
+                lineEnd(); return new BlockHearts(count, start);
+            }
             if (start.text().equals("cancel")) {
                 if (eventKind == null || !eventKind.startsWith("block_")) throw start.error("cancel requires a cancellable block_break or block_place handler");
                 capabilities.add("runtime.event.cancel");
@@ -821,6 +854,17 @@ public final class TextFrontend {
                 scopes.push(new HashMap<>()); scopes.peek().put(name.text(), binding);
                 loopDepth++; List<Statement> body = block(); loopDepth--; scopes.pop(); advanced = true;
                 return new For(binding, collection, body, start);
+            }
+            if (start.text().equals("every")) {
+                Expression interval = expression(); expect("repeat"); Expression count = expression();
+                requireType(interval, ScriptType.INTEGER, start, "every expects an integer tick interval");
+                requireType(count, ScriptType.INTEGER, start, "every repeat expects an integer count");
+                var timer = callables.descriptor("repeat_wait");
+                if (timer == null || !timer.id().equals("scheduler.repeat")) throw start.error("Scheduled repeats are unavailable in this callable catalog");
+                capabilities.addAll(timer.requiredCapabilities());
+                advanced = true; hostRequired = true;
+                loopDepth++; List<Statement> body = block(); loopDepth--;
+                return new ScheduledLoop(callables, interval, count, body, start);
             }
             if (start.text().equals("while") || start.text().equals("repeat")) {
                 boolean counted = start.text().equals("repeat"); Expression condition = expression();

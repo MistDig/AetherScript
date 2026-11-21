@@ -60,3 +60,65 @@ def verify_protection(command, check, connect, teleport, passed, repo, scripts):
     interact('break')
     check_block('air')
     passed('events-builder-bypass', 'Same actor with the bypass permission placed dirt and broke it.')
+
+    heart_file = repo / 'examples/ten-heart-blocks.aether'
+    (scripts / heart_file.name).write_bytes(heart_file.read_bytes())
+    check('hearts-owner-permit', 'ais permit ten-heart-blocks runtime.event.block_break,runtime.event.block_hearts',
+          'CAPABILITIES_SAVED ten-heart-blocks:')
+    check('hearts-activate', 'ais reload ten-heart-blocks', 'ACTIVE generation=')
+    command('deop AetherHomeA', 'operator')
+    command('setblock 12 80 10 minecraft:stone', 'Changed')
+    interact('break', 'New break denial.')
+    check_block('stone')
+    selector = '@e[type=minecraft:text_display,distance=..3]'
+
+    def display(exists):
+        condition = 'if' if exists else 'unless'
+        command(f'execute positioned 12 80 10 {condition} entity {selector} run say hearts-display-{exists}',
+                f'hearts-display-{exists}')
+
+    display(False)
+    passed('hearts-respects-protection', 'A denied break produced no heart display or block change.')
+    check('hearts-restrict-protection-fixture', 'ais restrict starter-protection', 'CAPABILITIES_SAVED starter-protection:')
+    interact('break')
+    display(True)
+    (scripts / heart_file.name).write_text(heart_file.read_text(encoding='utf-8') + '\n// Replace revision\n', encoding='utf-8')
+    check('hearts-reload', 'ais reload ten-heart-blocks', 'ACTIVE generation=')
+    display(False)
+    for _ in range(9):
+        interact('break')
+        check_block('stone')
+    display(True)
+    interact('break')
+    check_block('air')
+    display(False)
+    passed('hearts-tenth-break', 'After reload, nine hits retained stone and the tenth broke it and removed the display.')
+
+    dashboard = repo / 'examples/world-display.aether'
+    path = scripts / dashboard.name
+    source = dashboard.read_text(encoding='utf-8').replace(
+        '  send "Weather:', '  let target = block_at(world, 12, 80, 10)\n'
+        '  block_set(target, "minecraft:glass")\n'
+        '  send block_material(target)\n'
+        '  title("World dashboard", "Ready", 0, 20, 0)\n'
+        '  sound("minecraft:entity.experience_orb.pickup", 100, 100)\n'
+        '  send "Weather:')
+    path.write_text(source, encoding='utf-8')
+    caps = 'player.location.read,world.read,world.block.write,player.display,player.sound,scheduler.repeat'
+    check('dashboard-owner-permit', 'ais permit world-display '+caps, 'CAPABILITIES_SAVED world-display:')
+    check('dashboard-activate', 'ais reload world-display', 'ACTIVE generation=')
+    command('op AetherHomeA', 'operator')
+    offset = len(actor.events)
+    actor.command('world-display')
+    actor.message('minecraft:glass')
+    check_block('glass')
+    actor.wait(lambda e: e['event']=='display' and e['kind']=='action_bar')
+    actor.wait(lambda e: e['event']=='display' and e['kind']=='action_bar')
+    packets = [e['kind'] for e in actor.events[offset:] if e['event']=='display']
+    assert {'action_bar', 'set_title_text', 'boss_bar', 'scoreboard_objective', 'sound_effect'} <= set(packets), packets
+    assert packets.count('action_bar') == 2, packets
+    passed('dashboard-displays-and-timer', 'World write/read succeeded and the client received title, sound, boss bar, scoreboard and two timed action bars.')
+    check('dashboard-restrict', 'ais restrict world-display', 'CAPABILITIES_SAVED world-display:')
+    actor.wait(lambda e: e['event']=='display' and e['kind']=='boss_bar')
+    actor.wait(lambda e: e['event']=='display' and e['kind']=='scoreboard_objective')
+    passed('dashboard-cleared', 'Revocation removed persistent displays.')

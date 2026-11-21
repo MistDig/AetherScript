@@ -20,6 +20,9 @@ client.on('position', packet => {
 client.on('ping', packet => client.write('pong', { id: packet.id }))
 client.on('chunk_batch_finished', () => client.write('chunk_batch_received', { chunksPerTick: 10 }))
 for (const name of ['systemChat', 'playerChat']) client.on(name, packet => emit('message', { kind: name, message: packet }))
+for (const name of ['action_bar', 'set_title_text', 'boss_bar', 'scoreboard_objective', 'sound_effect']) {
+  client.on(name, packet => emit('display', { kind: name, packet }))
+}
 client.on('kick_disconnect', packet => emit('kick', { packet }))
 client.on('disconnect', packet => emit('kick', { packet }))
 client.on('error', error => emit('error', { message: error.message }))

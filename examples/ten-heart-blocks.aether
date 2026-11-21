@@ -1,0 +1,6 @@
+feature ten-heart-blocks version "1"
+on block_break permission "*" {
+  if world == "minecraft:overworld" && block_type == "STONE" {
+    block_hearts(10)
+  }
+}

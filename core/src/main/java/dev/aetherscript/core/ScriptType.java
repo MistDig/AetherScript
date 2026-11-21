@@ -4,8 +4,8 @@ import java.util.Objects;
 
 /** Immutable closed language type; map values use element and map keys use key. */
 public record ScriptType(String name, ScriptType element, ScriptType key) {
-    public enum Kind { INTEGER, TEXT, BOOLEAN, LIST, UUID, LOCATION, ITEM, UNIT, OPTIONAL, MAP, SET }
-    public static final ScriptType INTEGER = new ScriptType("INTEGER", null), TEXT = new ScriptType("TEXT", null), BOOLEAN = new ScriptType("BOOLEAN", null), UUID = new ScriptType("UUID", null), LOCATION = new ScriptType("LOCATION", null), ITEM = new ScriptType("ITEM", null), UNIT = new ScriptType("UNIT", null);
+    public enum Kind { INTEGER, TEXT, BOOLEAN, LIST, UUID, LOCATION, ITEM, WORLD, BLOCK, UNIT, OPTIONAL, MAP, SET }
+    public static final ScriptType INTEGER = new ScriptType("INTEGER", null), TEXT = new ScriptType("TEXT", null), BOOLEAN = new ScriptType("BOOLEAN", null), UUID = new ScriptType("UUID", null), LOCATION = new ScriptType("LOCATION", null), ITEM = new ScriptType("ITEM", null), WORLD = new ScriptType("WORLD", null), BLOCK = new ScriptType("BLOCK", null), UNIT = new ScriptType("UNIT", null);
     public ScriptType(String name, ScriptType element) { this(name, element, null); }
     public ScriptType {
         Objects.requireNonNull(name, "name");
