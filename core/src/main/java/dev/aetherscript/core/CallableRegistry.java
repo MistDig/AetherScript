@@ -37,11 +37,23 @@ public final class CallableRegistry {
         names.values().forEach(copy::register); copy.frozen = true; return copy;
     }
     public static boolean typedState(Descriptor descriptor) {
-        return descriptor.id().equals("state.own.save") || descriptor.id().equals("state.own.load");
+        return descriptor.id().equals("state.own.save") || descriptor.id().equals("state.own.load") || descriptor.id().equals("state.shared.read") || descriptor.id().equals("state.shared.commit");
+    }
+    /** Zero-based argument which determines the polymorphic state signature. */
+    public static int stateTypeArgument(Descriptor descriptor) {
+        return descriptor.id().equals("state.shared.read") ? 2 : 1;
     }
     public static Descriptor specialize(Descriptor descriptor, ScriptType type) {
         if (!typedState(descriptor)) return descriptor;
+        if (descriptor.id().equals("state.shared.commit") && (!type.isMap() || !type.key().equals(ScriptType.TEXT)))
+            throw new IllegalArgumentException("STATE_TYPE_UNSUPPORTED: shared writes must be a map with text keys");
         if (containsUnit(type)) throw new IllegalArgumentException("STATE_TYPE_UNSUPPORTED: unit cannot be persisted");
+        if (descriptor.id().equals("state.shared.read"))
+            return new Descriptor(descriptor.id(), descriptor.dslName(), List.of(ScriptType.TEXT, ScriptType.TEXT, type), type,
+                descriptor.context(), descriptor.requiredCapabilities(), descriptor.playerRequired(), descriptor.platform(), descriptor.errorContract(), descriptor.documentation(), descriptor.owner());
+        if (descriptor.id().equals("state.shared.commit"))
+            return new Descriptor(descriptor.id(), descriptor.dslName(), List.of(ScriptType.TEXT, type, ScriptType.list(ScriptType.TEXT)), ScriptType.BOOLEAN,
+                descriptor.context(), descriptor.requiredCapabilities(), descriptor.playerRequired(), descriptor.platform(), descriptor.errorContract(), descriptor.documentation(), descriptor.owner());
         return new Descriptor(descriptor.id(), descriptor.dslName(), List.of(ScriptType.TEXT, type),
             descriptor.id().equals("state.own.load") ? type : ScriptType.UNIT, descriptor.context(), descriptor.requiredCapabilities(),
             descriptor.playerRequired(), descriptor.platform(), descriptor.errorContract(), descriptor.documentation(), descriptor.owner());
@@ -56,8 +68,8 @@ public final class CallableRegistry {
         if (context == null) throw at.error("Callable requires a host invocation context");
         List<ScriptValue> args;
         try { args = List.copyOf(arguments); } catch (RuntimeException invalid) { throw at.error("Invalid callable arguments"); }
-        if (typedState(descriptor) && args.size() == 2) {
-            try { descriptor = specialize(descriptor, args.get(1).type()); }
+        if (typedState(descriptor) && args.size() == descriptor.parameters().size()) {
+            try { descriptor = specialize(descriptor, args.get(stateTypeArgument(descriptor)).type()); }
             catch (IllegalArgumentException invalid) { throw at.error(invalid.getMessage()); }
         }
         if (args.size() != descriptor.parameters().size()) throw at.error("Wrong argument count for " + name);

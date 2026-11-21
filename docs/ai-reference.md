@@ -294,6 +294,60 @@ command world-display permission "aetherscript.example.worlddisplay" sender play
 }
 ```
 
+## Shared state and atomic transactions (0.0.24)
+
+`shared_read(scope, key, fallback)` reads a feature-owned typed value and observes that key's revision for the current invocation. Scope is `"server"` or `"world"`; world scope uses the player's world at invocation start. Other features cannot access those keys. An absent or deleted key returns the supplied fallback. A stored value with a different type fails explicitly.
+
+`shared_commit(scope, writes, deletes)` attempts one atomic transaction: `writes` is a homogeneous `map<text, T>`, and `deletes` is a `list<text>`. The operation compares every key previously observed in that scope, then commits all writes and deletions together. Read each key whose state matters before attempting a commit. It returns `false` if a revision changed; no partial update or automatic retry occurs. A script may tell the player to retry. Re-read and re-check business conditions on a fresh attempt. Deletions retain revision tombstones, so deleting and recreating a key cannot conceal a conflict. This provides atomic shared-state updates; it does not make inventory, displays or other external effects transactional.
+
+`player_key()` returns `p` followed by the invoking player's UUID without hyphens. Use it to create per-player keys inside shared state. The calls require `state.shared.read`, `state.shared.write` and `player.identity.self` respectively. This slice is locally approved; hosted MCP grants do not acquire these capabilities automatically.
+
+The economy example prices a virtual purchase at 5 credits. New players start with a fallback balance of 10; the feature starts with one unit of stock. It reads stock, balance and purchase count, then writes all three in one transaction. No actual inventory item is delivered. Install `economy.aether` and approve from the console:
+
+```text
+ais permit economy state.shared.read,state.shared.write,player.identity.self
+ais validate economy
+ais reload economy
+```
+
+With two fresh players, `/ais run economy show` reports `Stock: 1`, `Balance: 10`, `Owned: 0`. Race `/ais run economy buy` from both players. Exactly one purchase commits. The other observes sold-out stock or a conflict. Afterwards, the winner sees stock 0, balance 5 and owned 1; the loser sees stock 0, balance 10 and owned 0. Repeated purchases leave balances unchanged while stock is zero. Verify those values after restart as a separate persistence check.
+
+
+A player invocation can observe up to 128 keys. Shared storage has a 4096-key limit including deletion tombstones, and an encoded value is limited to 4096 bytes. An accepted transaction may finish after the invocation retires.
+
+```aether
+feature economy version "1.0.0"
+command economy permission "aetherscript.example.economy" sender player {
+  arg action: text = "show"
+  let owner = player_key()
+  let balance_key = owner + "_balance"
+  let owned_key = owner + "_owned"
+  let stock = shared_read("server", "stock", 1)
+  let balance = shared_read("server", balance_key, 10)
+  let owned = shared_read("server", owned_key, 0)
+  if action == "buy" {
+    if stock < 1 {
+      send "Sold out."
+    } else {
+      if balance < 5 {
+        send "Insufficient balance."
+      } else {
+        let writes = put(put({"stock": stock - 1}, balance_key, balance - 5), owned_key, owned + 1)
+        if shared_commit("server", writes, list<text>()) {
+          send "Purchase committed."
+        } else {
+          send "Purchase conflict; try again."
+        }
+      }
+    }
+  } else {
+    send "Stock: " + text(stock)
+    send "Balance: " + text(balance)
+    send "Owned: " + text(owned)
+  }
+}
+```
+
 ## Reference priority
 
 Use this current reference, discovered tool schemas and the bundled authoring contract for generation. The following full-guide appendix includes human tutorials, historical test records and explicitly planned work. Historical release examples do not add current capabilities.

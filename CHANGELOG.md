@@ -2,6 +2,13 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.24] - 2026-11-21
+
+- Add feature-owned typed shared server and world state, deletion, read-set revision checks and atomic writes.
+- Add a virtual economy example and stable invoking-player storage keys.
+- Java 25 clean build reported 367 passing tests and one Windows symlink test skipped. Packaged AI discovery and validation, all 20 wiki examples, MCP stdio, SQLite packaging, legacy semantic hashes and documentation checks passed.
+- Paper 26.3 build 245 passed 11 checks over two boots through translated loopback clients. Concurrent buyers observed one successful purchase and one conflict. The losing balance was unchanged. World isolation, deletion and restart persistence passed.
+
 ## [0.0.23] - 2026-11-21
 
 - Add immutable nominal records with typed construction, field access, collection/function use and per-player persistence.

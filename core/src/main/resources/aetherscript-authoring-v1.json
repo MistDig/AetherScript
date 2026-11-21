@@ -27,7 +27,10 @@
     "world.block.write",
     "world.read",
     "world.time.write",
-    "world.weather.write"
+    "world.weather.write",
+    "state.shared.read",
+    "state.shared.write",
+    "player.identity.self"
   ],
   "authoringRules": [
     "Match the feature ID to the filename.",
@@ -226,7 +229,10 @@
       "world.block.write",
       "world.read",
       "world.time.write",
-      "world.weather.write"
+      "world.weather.write",
+      "state.shared.read",
+      "state.shared.write",
+      "player.identity.self"
     ],
     "hostCatalogDiscovery": "CLI --language and local/hosted aether_capabilities expose the executable host-call catalog; live discovery includes the actual connection grant.",
     "approvalWindow": "Fresh ais connect browser approval chooses supported capabilities, all or selected scripts and an optional live test player. Explicit console ais permit/restrict ceilings remain authoritative.",
@@ -527,5 +533,44 @@
     },
     "example": "examples/quests.aetherpack",
     "offlineValidation": "java -cp AetherScript-MCP-0.0.23.jar dev.aetherscript.cli.Validate --package examples/quests.aetherpack"
+  },
+  "sharedState": {
+    "introduced": "0.0.24",
+    "scope": [
+      "server",
+      "world"
+    ],
+    "isolation": "feature; world scope resolves current invocation world",
+    "callables": [
+      {
+        "signature": "shared_read(scope: text, key: text, fallback: T) -> T",
+        "capability": "state.shared.read",
+        "behavior": "Observe key revision; absent/deleted returns fallback; stored type mismatch fails."
+      },
+      {
+        "signature": "shared_commit(scope: text, writes: map<text,T>, deletes: list<text>) -> boolean",
+        "capability": "state.shared.write",
+        "behavior": "Atomic compare of every previously observed key in scope and all writes/deletions; false on conflict; no automatic retry."
+      },
+      {
+        "signature": "player_key() -> text",
+        "capability": "player.identity.self",
+        "behavior": "p followed by invoking-player UUID without hyphens."
+      }
+    ],
+    "authoringRules": [
+      "Read each key whose state matters before commit.",
+      "On conflict re-read and re-check conditions; do not claim success or retry stale writes.",
+      "Deletions retain revision tombstones.",
+      "External host effects, including inventory delivery, are not transactional with shared state.",
+      "Locally approved only; existing hosted grants do not expand."
+    ],
+    "example": "feature economy version \"1.0.0\"\ncommand economy permission \"aetherscript.example.economy\" sender player {\n  arg action: text = \"show\"\n  let owner = player_key()\n  let balance_key = owner + \"_balance\"\n  let owned_key = owner + \"_owned\"\n  let stock = shared_read(\"server\", \"stock\", 1)\n  let balance = shared_read(\"server\", balance_key, 10)\n  let owned = shared_read(\"server\", owned_key, 0)\n  if action == \"buy\" {\n    if stock < 1 {\n      send \"Sold out.\"\n    } else {\n      if balance < 5 {\n        send \"Insufficient balance.\"\n      } else {\n        let writes = put(put({\"stock\": stock - 1}, balance_key, balance - 5), owned_key, owned + 1)\n        if shared_commit(\"server\", writes, list<text>()) {\n          send \"Purchase committed.\"\n        } else {\n          send \"Purchase conflict; try again.\"\n        }\n      }\n    }\n  } else {\n    send \"Stock: \" + text(stock)\n    send \"Balance: \" + text(balance)\n    send \"Owned: \" + text(owned)\n  }\n}\n",
+    "limits": {
+      "keysPerInvocation": 128,
+      "durableKeysIncludingTombstones": 4096,
+      "encodedValueBytes": 4096
+    },
+    "worldAuthority": "World UUID is captured when the player invocation starts."
   }
 }

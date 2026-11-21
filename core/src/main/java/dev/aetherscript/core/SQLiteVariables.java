@@ -11,11 +11,18 @@ public final class SQLiteVariables implements AutoCloseable {
     private static final String CREATE = "CREATE TABLE variables (feature TEXT NOT NULL, player TEXT NOT NULL, name TEXT NOT NULL, revision INTEGER NOT NULL CHECK(revision>0), kind TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY(feature,player,name)) STRICT";
     private final Connection connection;
     private boolean closed;
-    public SQLiteVariables(Path root) throws IOException {
+    private final boolean shared;
+    public record SharedEntry(long revision, Value value) {
+        public SharedEntry { if (revision < 0 || (revision == 0 && value != null)) throw new IllegalArgumentException("Invalid shared revision"); }
+    }
+    public static SQLiteVariables openShared(Path root) throws IOException { return new SQLiteVariables(root, true); }
+    public SQLiteVariables(Path root) throws IOException { this(root, false); }
+    private SQLiteVariables(Path root, boolean shared) throws IOException {
+        this.shared = shared;
         Path directory = root.toAbsolutePath().normalize();
         Files.createDirectories(directory);
         if (!directory.toRealPath().equals(directory)) throw new IOException("Variable directory traverses a link");
-        Path file = directory.resolve("variables.sqlite");
+        Path file = directory.resolve(shared ? "shared.sqlite" : "variables.sqlite");
         for (String suffix : List.of("", "-journal", "-wal", "-shm")) safeFile(Path.of(file + suffix));
         if (Files.exists(file) && Files.size(file) > MAX_FILE_BYTES) throw new IOException("Variable database size limit");
         Connection opened = null;
@@ -59,7 +66,7 @@ public final class SQLiteVariables implements AutoCloseable {
     }
     /** Zero means absent. Distinct keys and matching revisions are required for the entire batch. */
     public synchronized Map<Key, Entry> commit(List<Mutation> mutations) throws IOException {
-        ensureOpen(); mutations = List.copyOf(mutations);
+        ensureOpen(); if (shared) throw new IllegalStateException("Use sharedCommit for shared storage"); mutations = List.copyOf(mutations);
         if (mutations.isEmpty() || mutations.size() > MAX_BATCH) throw new IllegalArgumentException("Batch must contain 1..128 mutations");
         Set<Key> seen = new HashSet<>();
         for (Mutation mutation : mutations) {
@@ -88,7 +95,13 @@ public final class SQLiteVariables implements AutoCloseable {
         } catch (SQLException | IOException | RuntimeException e) { rollback(); throw failure(e); }
     }
     private Map<Key, Entry> readSnapshot() throws SQLException, IOException {
-        Map<Key, Entry> values = new HashMap<>();
+        Map<Key, Entry> visible = new HashMap<>();
+        for (var row : readSharedRows().entrySet()) if (row.getValue().value() != null)
+            visible.put(row.getKey(), new Entry(row.getValue().revision(), row.getValue().value()));
+        return Map.copyOf(visible);
+    }
+    private Map<Key, SharedEntry> readSharedRows() throws SQLException, IOException {
+        Map<Key, SharedEntry> values = new HashMap<>();
         try (PreparedStatement statement = connection.prepareStatement("SELECT feature,player,name,revision,kind,value,typeof(feature),typeof(player),typeof(name),typeof(revision),typeof(kind),typeof(value) FROM variables LIMIT 4097"); ResultSet rows = statement.executeQuery()) {
             while (rows.next()) {
                 for (int column = 7; column <= 12; column++) if (!(column == 10 ? "integer" : "text").equals(rows.getString(column))) throw new IOException("Invalid SQLite variable storage type");
@@ -99,7 +112,14 @@ public final class SQLiteVariables implements AutoCloseable {
                 String encoded = java.nio.charset.StandardCharsets.UTF_8.newDecoder().onMalformedInput(java.nio.charset.CodingErrorAction.REPORT).decode(java.nio.ByteBuffer.wrap(raw)).toString();
                 UUID player = playerText.isEmpty() ? null : UUID.fromString(playerText);
                 if (player != null && !player.toString().equals(playerText)) throw new IOException("Noncanonical UUID");
-                Type type = Type.valueOf(rows.getString(5));
+                String kind = rows.getString(5);
+                if (shared && "DELETED".equals(kind)) {
+                    if (!encoded.isEmpty()) throw new IOException("Invalid tombstone");
+                    Key key = new Key(rows.getString(1), player, rows.getString(3));
+                    if (values.put(key, new SharedEntry(rows.getLong(4), null)) != null) throw new IOException("Duplicate variable key");
+                    continue;
+                }
+                Type type = Type.valueOf(kind);
                 Value value = switch (type) {
                     case TEXT -> Value.text(encoded);
                     case INTEGER -> { long number = Long.parseLong(encoded); if (!Long.toString(number).equals(encoded)) throw new IOException("Noncanonical integer"); yield Value.integer(number); }
@@ -107,11 +127,53 @@ public final class SQLiteVariables implements AutoCloseable {
                 };
                 validateText(value);
                 Key key = new Key(rows.getString(1), player, rows.getString(3));
-                if (values.put(key, new Entry(rows.getLong(4), value)) != null) throw new IOException("Duplicate variable key");
+                if (values.put(key, new SharedEntry(rows.getLong(4), value)) != null) throw new IOException("Duplicate variable key");
             }
         }
         return Map.copyOf(values);
     }
+    /** Missing keys have revision zero; deleted keys retain a positive durable revision. */
+    public synchronized SharedEntry sharedRead(Key key) throws IOException {
+        ensureShared(); Objects.requireNonNull(key);
+        try { sql("BEGIN"); var entry = readSharedRows().getOrDefault(key, new SharedEntry(0, null)); sql("COMMIT"); return entry; }
+        catch (SQLException | IOException | RuntimeException e) { rollback(); throw failure(e); }
+    }
+    /** Compares the complete read set, including read-only keys, before atomically writing/deleting. */
+    public synchronized Map<Key, SharedEntry> sharedCommit(Map<Key, Long> expectedRevisions, Map<Key, Value> writes, Set<Key> deletes) throws IOException {
+        ensureShared();
+        expectedRevisions = Map.copyOf(expectedRevisions); writes = Map.copyOf(writes); deletes = Set.copyOf(deletes);
+        if (expectedRevisions.isEmpty() || expectedRevisions.size() > MAX_BATCH || writes.size() + deletes.size() > MAX_BATCH)
+            throw new IllegalArgumentException("Shared transaction requires 1..128 read keys and at most 128 changes");
+        for (var expected : expectedRevisions.entrySet()) if (expected.getValue() < 0) throw new IllegalArgumentException("Invalid expected revision");
+        Set<Key> changed = new HashSet<>(writes.keySet());
+        for (Key key : deletes) if (!changed.add(key)) throw new IllegalArgumentException("Key both written and deleted");
+        if (!expectedRevisions.keySet().containsAll(changed)) throw new IllegalArgumentException("Changed key missing read revision");
+        for (Value value : writes.values()) validateText(value);
+        try {
+            sql("BEGIN IMMEDIATE");
+            Map<Key, SharedEntry> rows = new HashMap<>(readSharedRows());
+            for (var expected : expectedRevisions.entrySet()) {
+                long revision = rows.getOrDefault(expected.getKey(), new SharedEntry(0, null)).revision();
+                if (revision != expected.getValue()) throw new ConflictException(expected.getKey());
+            }
+            for (Key key : changed) rows.put(key, new SharedEntry(Math.incrementExact(expectedRevisions.get(key)), writes.get(key)));
+            // Tombstones count toward the durable namespace bound: never silently discard ABA protection.
+            if (rows.size() > MAX_KEYS) throw new IllegalArgumentException("Variable key limit");
+            try (PreparedStatement statement = connection.prepareStatement("INSERT INTO variables(feature,player,name,revision,kind,value) VALUES(?,?,?,?,?,?) ON CONFLICT(feature,player,name) DO UPDATE SET revision=excluded.revision,kind=excluded.kind,value=excluded.value")) {
+                for (Key key : changed) {
+                    SharedEntry entry = rows.get(key); Value value = entry.value();
+                    statement.setString(1, key.feature()); statement.setString(2, key.player() == null ? "" : key.player().toString()); statement.setString(3, key.name());
+                    statement.setLong(4, entry.revision()); statement.setString(5, value == null ? "DELETED" : value.type().name());
+                    statement.setString(6, value == null ? "" : switch (value.type()) { case TEXT -> value.text(); case INTEGER -> Long.toString(value.integer()); case BOOLEAN -> value.bool() ? "true" : "false"; });
+                    statement.executeUpdate();
+                }
+            }
+            Map<Key, SharedEntry> result = new HashMap<>();
+            for (Key key : expectedRevisions.keySet()) result.put(key, rows.getOrDefault(key, new SharedEntry(0, null)));
+            sql("COMMIT"); return Map.copyOf(result);
+        } catch (SQLException | IOException | RuntimeException e) { rollback(); throw failure(e); }
+    }
+    private void ensureShared() { ensureOpen(); if (!shared) throw new IllegalStateException("Shared storage required"); }
     private static void validateText(Value value) {
         if (value.type() != Type.TEXT) return;
         try { java.nio.charset.StandardCharsets.UTF_8.newEncoder().onMalformedInput(java.nio.charset.CodingErrorAction.REPORT).encode(java.nio.CharBuffer.wrap(value.text())); }

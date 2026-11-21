@@ -16,6 +16,7 @@ parser.add_argument('--homes', action='store_true', help='Exercise player homes 
 parser.add_argument('--events', action='store_true', help='Exercise actual break and place packets with the homes protocol fixture (requires --homes)')
 parser.add_argument('--kits', action='store_true', help='Exercise inventory delivery and cooldown restart (requires --homes)')
 parser.add_argument('--packages', action='store_true', help='Exercise a multi-file quest package and revision recovery (requires --homes)')
+parser.add_argument('--economy', action='store_true', help='Exercise a contested purchase and scoped transactions (requires --homes)')
 parser.add_argument('--client-dir', type=Path, help='External pinned ViaProxy/client dependency directory for --homes')
 parser.add_argument('--pairing', action='store_true', help='Pair the packaged MCP with this disposable server and check live status and revocation')
 parser.add_argument('--relay-config', type=Path, help='Optional path to a private relay.json for a live remote script-management test')
@@ -40,6 +41,8 @@ if args.kits and (not args.homes or args.events):
     parser.error('--kits requires --homes and runs separately from --events')
 if args.packages and (not args.homes or args.events or args.kits):
     parser.error('--packages requires --homes and runs separately from --events and --kits')
+if args.economy and (not args.homes or args.events or args.kits or args.packages):
+    parser.error('--economy requires --homes and runs separately from the other player fixtures')
 if args.homes and (args.runtime_control or args.browser_only or args.browser_008 or args.pairing or args.relay_config):
     parser.error('--homes is a separate test mode')
 if not args.accept_eula:
@@ -172,7 +175,7 @@ if args.homes:
     from homes_workflow import verify
     try:
         verify(command, start, stop, server, repo, args.java, evidence, args.client_dir.resolve(),
-               events=args.events, kits=args.kits, packages=args.packages)
+               events=args.events, kits=args.kits, packages=args.packages, economy=args.economy)
     except Exception as error:
         evidence.append(dict(test='homes-smoke', result='fail', detail=str(error)))
     finally:
@@ -182,7 +185,7 @@ if args.homes:
     if any(item['result'] == 'fail' for item in evidence):
         print(evidence[-1]['detail'], flush=True)
         raise SystemExit(1)
-    fixture = 'quest package' if args.packages else 'kit' if args.kits else 'gameplay event' if args.events else 'homes'
+    fixture = 'economy' if args.economy else 'quest package' if args.packages else 'kit' if args.kits else 'gameplay event' if args.events else 'homes'
     print(f'PASS: {len(evidence)} {fixture} checks; translated protocol clients', flush=True)
     raise SystemExit(0)
 if args.runtime_control:

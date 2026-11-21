@@ -1137,7 +1137,7 @@ public final class TextFrontend {
                         if (!matches(")")) do {
                             if (values.size() >= descriptor.parameters().size()) throw token.error("Too many native call arguments");
                             Expression value = expression();
-                            if (CallableRegistry.typedState(descriptor) && values.size() == 1) {
+                            if (CallableRegistry.typedState(descriptor) && values.size() == CallableRegistry.stateTypeArgument(descriptor)) {
                                 try { descriptor = CallableRegistry.specialize(descriptor, value.type()); }
                                 catch (IllegalArgumentException invalid) { throw token.error(invalid.getMessage()); }
                             }

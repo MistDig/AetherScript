@@ -23,9 +23,20 @@ public final class AuthoringGuide {
             descriptor.parameters().forEach(type -> parameters.add(type.name().toLowerCase(Locale.ROOT)));
             call.put("returns", descriptor.result().name().toLowerCase(Locale.ROOT));
             if (CallableRegistry.typedState(descriptor)) {
-                parameters.removeAll(); parameters.add("text"); parameters.add("T");
-                call.put("returns", descriptor.id().equals("state.own.load") ? "T" : "unit");
-                call.put("typeParameter", "T inferred from argument 2; unit and containers containing unit are unsupported");
+                parameters.removeAll();
+                if (descriptor.id().equals("state.shared.read")) {
+                    parameters.add("text"); parameters.add("text"); parameters.add("T");
+                    call.put("returns", "T");
+                    call.put("typeParameter", "T inferred from argument 3; unit and containers or records containing unit are unsupported");
+                } else if (descriptor.id().equals("state.shared.commit")) {
+                    parameters.add("text"); parameters.add("map<text,T>"); parameters.add("list<text>");
+                    call.put("returns", "boolean");
+                    call.put("typeParameter", "T inferred from map values in argument 2; unit and containers or records containing unit are unsupported");
+                } else {
+                    parameters.add("text"); parameters.add("T");
+                    call.put("returns", descriptor.id().equals("state.own.load") ? "T" : "unit");
+                    call.put("typeParameter", "T inferred from argument 2; unit and containers containing unit are unsupported");
+                }
             }
             call.put("executionContext", descriptor.context().name());
             var capabilities = call.putArray("requiredCapabilities");

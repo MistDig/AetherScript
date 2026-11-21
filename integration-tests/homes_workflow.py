@@ -55,7 +55,7 @@ class Bot:
             try: self.request(op='quit'); self.p.wait(timeout=5)
             except (OSError,subprocess.TimeoutExpired): self.p.kill(); self.p.wait(timeout=5)
 
-def verify(command, start, stop, server, repo, java, evidence, client_dir, events=False, kits=False, packages=False):
+def verify(command, start, stop, server, repo, java, evidence, client_dir, events=False, kits=False, packages=False, economy=False):
     server,repo,client_dir=map(Path,(server,repo,client_dir))
     proxy_jar=client_dir/'ViaProxy-3.4.14.jar'
     if hashlib.sha256(proxy_jar.read_bytes()).hexdigest()!=PROXY_SHA256: raise AssertionError('Unexpected ViaProxy checksum')
@@ -117,6 +117,10 @@ def verify(command, start, stop, server, repo, java, evidence, client_dir, event
         if packages:
             from quest_workflow import verify_quest
             verify_quest(command, check, connect, start, stop, passed, repo, scripts)
+            return
+        if economy:
+            from economy_workflow import verify_economy
+            verify_economy(command, check, connect, start, stop, passed, repo, scripts)
             return
         a,b=connect('AetherHomeA'),connect('AetherHomeB')
         command('op AetherHomeA','operator'); command('op AetherHomeB','operator')

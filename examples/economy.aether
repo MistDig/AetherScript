@@ -1,0 +1,30 @@
+feature economy version "1.0.0"
+command economy permission "aetherscript.example.economy" sender player {
+  arg action: text = "show"
+  let owner = player_key()
+  let balance_key = owner + "_balance"
+  let owned_key = owner + "_owned"
+  let stock = shared_read("server", "stock", 1)
+  let balance = shared_read("server", balance_key, 10)
+  let owned = shared_read("server", owned_key, 0)
+  if action == "buy" {
+    if stock < 1 {
+      send "Sold out."
+    } else {
+      if balance < 5 {
+        send "Insufficient balance."
+      } else {
+        let writes = put(put({"stock": stock - 1}, balance_key, balance - 5), owned_key, owned + 1)
+        if shared_commit("server", writes, list<text>()) {
+          send "Purchase committed."
+        } else {
+          send "Purchase conflict; try again."
+        }
+      }
+    }
+  } else {
+    send "Stock: " + text(stock)
+    send "Balance: " + text(balance)
+    send "Owned: " + text(owned)
+  }
+}

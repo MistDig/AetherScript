@@ -35,6 +35,9 @@ public final class StandardCallables {
         add(registry, "player.display.bossbar.clear", "bossbar_clear", List.of(), ScriptType.UNIT, PAPER_MAIN, "player.display", "Bounded local Paper operation; requires an active player and feature.");
         add(registry, "player.display.scoreboard", "scoreboard", List.of(ScriptType.list(ScriptType.TEXT)), ScriptType.UNIT, PAPER_MAIN, "player.display", "Bounded local Paper operation; requires an active player and feature.");
         add(registry, "player.display.scoreboard.clear", "scoreboard_clear", List.of(), ScriptType.UNIT, PAPER_MAIN, "player.display", "Bounded local Paper operation; requires an active player and feature.");
+        add(registry, "state.shared.read", "shared_read", List.of(ScriptType.TEXT, ScriptType.TEXT, ScriptType.UNIT), ScriptType.UNIT, ASYNC_IO, "state.shared.read", "Read a typed value T in an authorized shared scope; infer T from fallback argument 3. Missing values return fallback; stored type mismatch fails.");
+        add(registry, "state.shared.commit", "shared_commit", List.of(ScriptType.TEXT, ScriptType.map(ScriptType.TEXT, ScriptType.UNIT), ScriptType.list(ScriptType.TEXT)), ScriptType.BOOLEAN, ASYNC_IO, "state.shared.write", "Atomically commit a bounded map of typed writes and list of deleted keys in an authorized shared scope; infer T from writes argument 2. Unit is not persistable.");
+        add(registry, "player.identity.self", "player_key", List.of(), ScriptType.TEXT, PAPER_MAIN, "player.identity.self", "Return the invoking player's stable storage key: p followed by the lowercase UUID without hyphens.");
         return registry;
     }
     private static void add(CallableRegistry registry, String id, String name, List<ScriptType> parameters, ScriptType result,

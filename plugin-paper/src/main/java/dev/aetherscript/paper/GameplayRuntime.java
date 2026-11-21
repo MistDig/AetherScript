@@ -1,5 +1,7 @@
 package dev.aetherscript.paper;
 
+import java.io.IOException;
+
 import dev.aetherscript.core.*;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
@@ -166,6 +168,7 @@ final class GameplayRuntime implements AutoCloseable, Listener {
     private final PaperWorldDisplays worldDisplays;
     private volatile KitCooldowns kitCooldowns;
     private volatile SQLiteVariables state; // Accessed by the single existing plugin I/O worker.
+    private volatile SQLiteVariables sharedState;
 
     GameplayRuntime(JavaPlugin plugin, Registry registry, ExecutorService io, RemoteScripts.Main main,
                     Supplier<ScriptCapabilityPolicy> policy, BooleanSupplier ready, Path directory) {
@@ -188,7 +191,7 @@ final class GameplayRuntime implements AutoCloseable, Listener {
             throw error("RUNTIME_BUSY: player or feature invocation limit reached");
         if (!admission.tryAcquire()) throw error("RUNTIME_BUSY: invocation limit reached");
         Run run;
-        try { run = new Run(feature, actor.getUniqueId(), checked, job); }
+        try { run = new Run(feature, actor.getUniqueId(), actor.getWorld().getUID(), checked, job); }
         catch (RuntimeException failure) { admission.release(); throw failure; }
         if (job != null) job.run = run;
         active.add(run);
@@ -225,10 +228,13 @@ final class GameplayRuntime implements AutoCloseable, Listener {
         final AtomicBoolean cancelled = new AtomicBoolean();
         final Map<Future<?>, Runnable> pending = new ConcurrentHashMap<>();
         final Map<PersistentVariables.Key, Long> revisions = new HashMap<>(); // I/O worker confined.
+        final Map<PersistentVariables.Key, SharedRead> sharedReads = new HashMap<>();
+        final UUID startingWorld;
         final InvocationContext context;
         volatile Thread worker;
-        Run(CompiledFeature feature, UUID actor, List<String> arguments, TestJob job) {
+        Run(CompiledFeature feature, UUID actor, UUID startingWorld, List<String> arguments, TestJob job) {
             this.job = job;
+            this.startingWorld = startingWorld;
             this.feature = feature; this.actor = actor; this.session = sessions.get(actor); this.arguments = arguments;
             context = new InvocationContext(feature.definition().id(), feature.sourceHash(), actor,
                 policy.get().allowed(feature.definition().id()), new ExecutionBudget(), () -> current(true),
@@ -330,6 +336,8 @@ final class GameplayRuntime implements AutoCloseable, Listener {
                     return new ScriptValue(ScriptType.BOOLEAN, true);
                 });
                 case "player.kit.claim" -> claimKit(values);
+                case "player.identity.self" -> new ScriptValue(ScriptType.TEXT, "p" + actor.toString().replace("-", ""));
+                case "state.shared.read", "state.shared.commit" -> shared(descriptor.id(), values);
                 case "world.from_location", "world.block.at", "world.block.material", "world.block.set",
                      "world.time.read", "world.time.set", "world.weather.read", "world.weather.set",
                      "player.display.actionbar", "player.display.title", "player.sound",
@@ -415,6 +423,78 @@ final class GameplayRuntime implements AutoCloseable, Listener {
                 // No fallible work after mutation: an effect must never be compensated as undelivered.
             }
             return true;
+        }
+        private record SharedRead(long revision, ScriptType type) {}
+        ScriptValue shared(String operation, List<ScriptValue> values) throws Exception {
+            UUID scope = switch (values.getFirst().text()) {
+                case "server" -> null;
+                case "world" -> startingWorld;
+                default -> throw error("SHARED_SCOPE_INVALID: use server or world");
+            };
+            CompletableFuture<ScriptValue> result = new CompletableFuture<>();
+            try {
+                io.execute(() -> {
+                    try {
+                        main.call(() -> { player(); return null; });
+                        if (sharedState == null) sharedState = SQLiteVariables.openShared(stateDirectory);
+                        if (operation.equals("state.shared.read")) result.complete(readShared(scope, values));
+                        else result.complete(commitShared(scope, values));
+                    } catch (ValidationException failure) {
+                        result.completeExceptionally(failure);
+                    } catch (Exception failure) {
+                        result.completeExceptionally(error("SHARED_UNAVAILABLE: inspect shared state storage"));
+                    }
+                });
+            } catch (RejectedExecutionException failure) {
+                throw error("STATE_BUSY: bounded I/O queue is full");
+            }
+            return await(result, () -> {});
+        }
+        private PersistentVariables.Key sharedKey(UUID scope, String name) {
+            try { return new PersistentVariables.Key(feature.definition().id(), scope, name); }
+            catch (IllegalArgumentException failure) { throw error("STATE_KEY_INVALID: use a lowercase name up to 64 characters"); }
+        }
+        private ScriptValue readShared(UUID scope, List<ScriptValue> values) throws IOException {
+            var key = sharedKey(scope, values.get(1).text());
+            if (!sharedReads.containsKey(key) && sharedReads.size() >= 128) throw error("SHARED_READ_LIMIT: up to 128 keys per invocation");
+            ScriptValue fallback = values.get(2);
+            var entry = sharedState.sharedRead(key);
+            ScriptValue value = fallback;
+            if (entry.value() != null) {
+                try { value = ScriptValueCodec.decode(entry.value().text()); }
+                catch (IllegalArgumentException failure) { throw error("SHARED_TYPE_MISMATCH: invalid stored value"); }
+                if (!value.type().equals(fallback.type())) throw error("SHARED_TYPE_MISMATCH: stored type differs from fallback");
+            }
+            sharedReads.put(key, new SharedRead(entry.revision(), fallback.type()));
+            return value;
+        }
+        private ScriptValue commitShared(UUID scope, List<ScriptValue> values) throws IOException {
+            Map<PersistentVariables.Key, Long> expected = new LinkedHashMap<>();
+            sharedReads.forEach((key, read) -> { if (Objects.equals(key.player(), scope)) expected.put(key, read.revision()); });
+            Map<PersistentVariables.Key, PersistentVariables.Value> writes = new LinkedHashMap<>();
+            Set<PersistentVariables.Key> deletes = new LinkedHashSet<>();
+            for (var entry : values.get(1).map().entrySet()) {
+                var key = sharedKey(scope, entry.getKey().text());
+                if (!expected.containsKey(key)) throw error("SHARED_READ_REQUIRED: read the key before writing");
+                if (!sharedReads.get(key).type().equals(entry.getValue().type()))
+                    throw error("SHARED_TYPE_MISMATCH: write must match the type read for this key");
+                try { writes.put(key, PersistentVariables.Value.text(ScriptValueCodec.encode(entry.getValue()))); }
+                catch (IllegalArgumentException failure) { throw error("STATE_VALUE_LIMIT: value exceeds typed state bounds"); }
+            }
+            for (var name : values.get(2).list()) {
+                var key = sharedKey(scope, name.text());
+                if (!expected.containsKey(key)) throw error("SHARED_READ_REQUIRED: read the key before deleting");
+                if (writes.containsKey(key) || !deletes.add(key)) throw error("SHARED_DUPLICATE_KEY");
+            }
+            if (writes.isEmpty() && deletes.isEmpty()) throw error("SHARED_EMPTY_COMMIT");
+            if (!current(true)) throw error("INVOCATION_RETIRED: transaction was not accepted");
+            try {
+                var current = sharedState.sharedCommit(expected, writes, deletes);
+                current.forEach((key, entry) -> sharedReads.put(key, new SharedRead(entry.revision(), sharedReads.get(key).type())));
+                return new ScriptValue(ScriptType.BOOLEAN, true);
+            } catch (PersistentVariables.ConflictException conflict) {
+                return new ScriptValue(ScriptType.BOOLEAN, false);
+            }
         }
         void receipt(Map<String, Object> receipt) {
             if (job != null) job.receipt(receipt);
@@ -504,7 +584,11 @@ final class GameplayRuntime implements AutoCloseable, Listener {
         // Never wait for disk on Paper's thread, and never close a connection underneath an in-flight worker.
         Thread.startVirtualThread(() -> {
             try {
-                if (io.awaitTermination(6, TimeUnit.SECONDS)) { if (state != null) state.close(); if (kitCooldowns != null) kitCooldowns.close(); }
+                if (io.awaitTermination(6, TimeUnit.SECONDS)) {
+                    if (state != null) state.close();
+                    if (kitCooldowns != null) kitCooldowns.close();
+                    if (sharedState != null) sharedState.close();
+                }
                 else plugin.getLogger().warning("Player-state worker has not stopped; storage close deferred to process shutdown.");
             }
             catch (Exception ignored) { }
