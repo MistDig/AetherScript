@@ -16,7 +16,10 @@
     "runtime.event.quit",
     "runtime.event.block_break",
     "runtime.event.block_place",
-    "runtime.event.cancel"
+    "runtime.event.cancel",
+    "player.inventory.read",
+    "player.inventory.write",
+    "player.kit.claim"
   ],
   "authoringRules": [
     "Match the feature ID to the filename.",
@@ -39,7 +42,8 @@
     "unit",
     "optional<elementType>",
     "map<keyType, valueType>",
-    "set<elementType>"
+    "set<elementType>",
+    "item"
   ],
   "statements": [
     "arg name: text | integer | boolean [= constantExpression]",
@@ -201,7 +205,10 @@
       "runtime.event.quit",
       "runtime.event.block_break",
       "runtime.event.block_place",
-      "runtime.event.cancel"
+      "runtime.event.cancel",
+      "player.inventory.read",
+      "player.inventory.write",
+      "player.kit.claim"
     ],
     "hostCatalogDiscovery": "CLI --language and local/hosted aether_capabilities expose the executable host-call catalog; live discovery includes the actual connection grant.",
     "approvalWindow": "Fresh ais connect browser approval chooses supported capabilities, all or selected scripts and an optional live test player. Explicit console ais permit/restrict ceilings remain authoritative.",
@@ -213,7 +220,10 @@
       "player.location.read",
       "state.own",
       "scheduler.delay",
-      "player.teleport.self"
+      "player.teleport.self",
+      "player.inventory.read",
+      "player.inventory.write",
+      "player.kit.claim"
     ]
   },
   "remoteWorkflow": {
@@ -308,5 +318,41 @@
     "exampleFile": "starter-protection.aether",
     "example": "feature starter-protection version \"1.0.0\"\non block_break permission \"*\" bypass \"aetherscript.protection.bypass\" {\n  if world == \"minecraft:overworld\" {\n    send \"Block breaking is protected here.\"\n    cancel\n  }\n}\non block_place permission \"*\" bypass \"aetherscript.protection.bypass\" {\n  if world == \"minecraft:overworld\" {\n    send \"Block placing is protected here.\"\n    cancel\n  }\n}\n",
     "authorization": "Local console ais permit/restrict only. Each handler infers runtime.event.<id>; cancel additionally infers runtime.event.cancel. Existing browser capability choices and legacy grants do not authorize events."
+  },
+  "itemsAndKits": {
+    "introduced": "0.0.21",
+    "exampleFile": "daily-kit.aether",
+    "example": "feature daily-kit version \"1.0.0\"\ncommand dailykit permission \"aetherscript.example.dailykit\" sender player {\n  let result = kit_claim(\"daily\", [item(\"minecraft:bread\", 16), item(\"minecraft:iron_ingot\", 4)], 86400)\n  if result == \"claimed\" {\n    send \"Daily kit claimed.\"\n  } else {\n    if result == \"cooldown\" {\n      send \"Your daily kit is on cooldown.\"\n    } else {\n      send \"Not enough inventory space; your daily kit remains available.\"\n    }\n  }\n}\n",
+    "signatures": [
+      "item(material: text, amount: integer) -> item",
+      "inventory_has(stack: item) -> boolean",
+      "inventory_give(stack: item) -> boolean",
+      "inventory_remove(stack: item) -> boolean",
+      "kit_claim(key: text, items: list<item>, cooldownSeconds: integer) -> text"
+    ],
+    "capabilities": {
+      "inventory_has": "player.inventory.read",
+      "inventory_give": "player.inventory.write",
+      "inventory_remove": "player.inventory.write",
+      "kit_claim": "player.kit.claim"
+    },
+    "limits": {
+      "itemAmountMin": 1,
+      "itemAmountMax": 2304,
+      "kitBundleMin": 1,
+      "kitBundleMax": 64,
+      "kitKeyPattern": "[a-z][a-z0-9_]{0,63}",
+      "cooldownSecondsMin": 1,
+      "cooldownSecondsMax": 31536000
+    },
+    "outcomes": [
+      "claimed",
+      "cooldown",
+      "inventory_full"
+    ],
+    "scope": "Invoking player storage slots only, excluding armor/offhand. Plain material items without ItemMeta; metadata items preserved and excluded from checks/removal/merging. Player commands only; unavailable in synchronous events.",
+    "failureSemantics": "Insufficient capacity/items leaves inventory unchanged. Full inventory preserves kit claim. Failed delivery compensates reservation. Crash after reservation before delivery can consume cooldown without reward; SQLite/player inventory share no transaction.",
+    "clock": "Persisted wall-clock expiry isolated by feature/player/key; clock changes affect remaining duration. Fixed key required for daily limits.",
+    "itemValues": "Equality, list/map values and persistence supported; item set elements/map keys unsupported."
   }
 }

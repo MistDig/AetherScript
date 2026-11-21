@@ -1,4 +1,4 @@
-[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) · [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.20)
+[Home](https://github.com/MistDig/AetherScript/wiki/Home) Â· [Start](https://github.com/MistDig/AetherScript/wiki/Getting-Started) Â· [Commands](https://github.com/MistDig/AetherScript/wiki/Commands) Â· [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.21)
 
 ---
 
@@ -108,7 +108,7 @@ Both branch bodies are parsed and type-checked before activation. An undefined n
 
 Statements end at a newline or at their closing-block boundary. `//` begins a comment. Text uses double quotes and supports escaped quotes, backslashes, newline, carriage return and tab. Emitted message text must satisfy the existing plain-text/control-character rules.
 
-Source is strict UTF-8 with an optional leading BOM. Diagnostics identify the source line and column. The initial limits are 64 KiB source, 8,192 tokens, 2,048 expression nodes, 256 statements, nesting depth 32 and 8,192 preparation steps. Message-only prepared output must emit 1–32 nonempty plain messages, each at most 2,048 UTF-16 units. Host-backed commands may perform operations without emitting a message; emitted messages retain the output bounds.
+Source is strict UTF-8 with an optional leading BOM. Diagnostics identify the source line and column. The initial limits are 64 KiB source, 8,192 tokens, 2,048 expression nodes, 256 statements, nesting depth 32 and 8,192 preparation steps. Message-only prepared output must emit 1â€“32 nonempty plain messages, each at most 2,048 UTF-16 units. Host-backed commands may perform operations without emitting a message; emitted messages retain the output bounds.
 
 
 ## Mutable locals, loops and typed functions
@@ -228,7 +228,7 @@ Wait for `CAPABILITIES_SAVED` before validating/reloading. Give the player `aeth
 | `player_location()` | Immutable `location` snapshot; `player.location.read`. |
 | `state_get_location(name)` | `optional<location>`; `state.own`. |
 | `state_put_location(name, destination)` | Durable write, returning `unit`; `state.own`. |
-| `delay(ticks)` | Resume after 0–1200 server ticks, returning `unit`; `scheduler.delay`. |
+| `delay(ticks)` | Resume after 0â€“1200 server ticks, returning `unit`; `scheduler.delay`. |
 | `teleport_self(destination)` | Teleport the invoking player only, returning `unit`; `player.teleport.self`. |
 
 Requirements are inferred from host calls. Function signatures also accept `uuid`, `location`, `unit` and `optional<T>` in addition to existing types. These are immutable values, not live Bukkit objects. A location contains a world UUID, finite coordinates, yaw and pitch. There is no arbitrary platform-object access. A `unit` function can finish without a value. `is_some(saved)` tests an optional; `unwrap(saved)` returns its contained value and fails with `OPTIONAL_EMPTY` when empty. Check presence before unwrapping. Command arguments remain text, integer or boolean; no location command argument or general record constructor is supplied.
@@ -240,6 +240,49 @@ Invocations are bounded to 120 seconds, 32 active globally, four per player and 
 Homes are stored in `plugins/AetherScript/player-state/variables.sqlite` and survive normal restarts and source revisions under the same feature ID. There is no automatic migration from the JSON backend or a script deletion API in this slice. Concurrent changes after an invocation reads a key can produce `STATE_CONFLICT`; inspect state before retrying. Storage failures are reported instead of silently losing a home. Back up the player-state directory with the server stopped; keep it separate from script revision backups.
 
 `ais permit` replaces the feature's approved set (and always includes `runtime.message.send`); it is not additive. `ais restrict homes` restores message-only execution, retires incompatible active commands and cancels affected work. Manual console approval does not activate source: reload explicitly; an authorized AI apply activates through the durable pipeline. Policy lives in `plugins/AetherScript/script-capabilities.json` and survives restart. If policy storage is corrupt, execution falls back to a message-only ceiling until the owner repairs it. Fresh browser approval can supply execution capabilities for autonomous native apply; explicit console policy remains the ceiling. Native or player-only MCP tests use the owner-selected online player, who must hold the declared command permission. The AI cannot choose the actor. Tests cause real sends, state writes, waits and teleports. When `aether_scripts_test` returns `pending: true` and `testId`, poll `aether_scripts_test_status` with `{id,testId}` and report actual messages, errors and effects. Pure `sender any` message tests without an actor remain synthetic. Offline `aether_test` stays synthetic and rejects host execution with `HOST_CONTEXT_REQUIRED`.
+
+## Items, inventories and daily kits (0.0.21)
+
+`item(material: text, amount: integer) -> item` constructs an immutable material/count descriptor. Use a lowercase material key such as `minecraft:bread`; an omitted namespace becomes `minecraft:`. Amounts range from 1 to 2304. Paper checks that the material is an available item. Items support equality, typed lists/map values and persistence, but cannot be set elements or map keys. Custom names, lore, enchantments, custom item IDs and inventory menus remain planned.
+
+| Call | Result | Required capability |
+| --- | --- | --- |
+| `inventory_has(stack: item)` | `boolean`: sufficient matching plain items in storage slots | `player.inventory.read` |
+| `inventory_give(stack: item)` | `boolean`: true when the entire amount was inserted | `player.inventory.write` |
+| `inventory_remove(stack: item)` | `boolean`: true when the entire amount was removed | `player.inventory.write` |
+| `kit_claim(key: text, items: list<item>, cooldownSeconds: integer)` | `text`: `claimed`, `cooldown` or `inventory_full` | `player.kit.claim` |
+
+Only plain material stacks without item metadata match; custom metadata is preserved and excluded from checks, removal and merging. Inventory calls use the invoking player's storage slots, excluding armor and offhand. Give/remove return false without changing inventory when capacity/items are insufficient. These host calls require a player command and are unavailable in synchronous event handlers. Calls execute in source order; separate give, state and inventory calls do not form a transaction. Use `kit_claim` for the guarded cooldown-and-reward operation rather than combining a state flag with `inventory_give`.
+
+A kit key matches `[a-z][a-z0-9_]{0,63}`. Bundles contain 1–64 descriptors and cooldowns range from 1 to 31536000 seconds. The cooldown is isolated by feature ID, player UUID and kit key, uses elapsed wall-clock time, and survives normal restart. A full inventory returns `inventory_full` without consuming the claim. `player.kit.claim` authorizes bundled delivery without separately requiring inventory write or script state permissions. Kit records use a separate namespace from `state_save`; source rollback does not restore cooldowns. Use a fixed kit key: letting players choose fresh keys would bypass a daily limit. Changing the feature ID or kit key creates a separate claim.
+
+Copy `examples/daily-kit.aether` into `plugins/AetherScript/scripts/daily-kit.aether`. In the server console run:
+
+```text
+ais permit daily-kit player.kit.claim
+ais validate daily-kit
+ais reload daily-kit
+```
+
+Wait for `CAPABILITIES_SAVED` before validation/reload, and grant `aetherscript.example.dailykit` to the player. `/dailykit` grants 16 bread and 4 iron ingots and sends `Daily kit claimed.`. An immediate repeat, including after a server restart, sends `Your daily kit is on cooldown.`. With insufficient storage capacity it sends `Not enough inventory space; your daily kit remains available.`; free enough space and retry to receive the reward.
+
+```aether
+feature daily-kit version "1.0.0"
+command dailykit permission "aetherscript.example.dailykit" sender player {
+  let result = kit_claim("daily", [item("minecraft:bread", 16), item("minecraft:iron_ingot", 4)], 86400)
+  if result == "claimed" {
+    send "Daily kit claimed."
+  } else {
+    if result == "cooldown" {
+      send "Your daily kit is on cooldown."
+    } else {
+      send "Not enough inventory space; your daily kit remains available."
+    }
+  }
+}
+```
+
+The implementation reserves the durable cooldown before rechecking and delivering the inventory change. A failed delivery compensates the reservation. SQLite and the Minecraft player inventory cannot share a transaction: a process crash between reservation and delivery can consume the claim without delivering the reward. Operators must account for that recovery limitation; this is not an exactly-once grant across crashes. A backward wall-clock change may extend a cooldown and a forward change may end it sooner.
 
 ## Synchronous native events (0.0.20)
 
@@ -329,14 +372,14 @@ commands:
 | Field | Accepted meaning |
 | --- | --- |
 | `schemaVersion` | Integer `1`. |
-| `id` | 1–64 characters, beginning with a lowercase letter followed by lowercase letters, digits or hyphens. Matches the filename. |
+| `id` | 1â€“64 characters, beginning with a lowercase letter followed by lowercase letters, digits or hyphens. Matches the filename. |
 | `version` | Required nonempty label up to 64 characters, independent of saved revision numbers. |
 | `requires` | Exactly `[runtime.message.send]`. The text frontend infers this requirement. |
 | `commands` | Exactly one command definition. |
 | `name` | Same character rules as feature ID; unique among active features. Used by the dispatcher and Paper native command metadata registration; client command-tree visibility remains unverified. |
 | `permission` | Explicit dotted permission node up to 128 characters, with wildcard characters rejected. |
 | `sender` | `any` or `player`. The latter restricts invocation to players. |
-| `actions` | 1–32 message actions. |
+| `actions` | 1â€“32 message actions. |
 | `type` | `message.send`. |
 | `target` | `sender`, meaning the invoker. |
 | `text` | Nonempty plain text up to 2,048 UTF-16 units, with control characters and legacy section-sign formatting rejected. |
@@ -349,10 +392,10 @@ The engine caps active features at 128, tracked histories at 128 and scripts-dir
 
 Copy an example to `scripts/welcome.aether` or `scripts/welcome.yml`. Set both feature ID and command name to `welcome`, choose the explicit permission `aetherscript.example.welcome`, and write your message. Validate, reload and invoke `/ais run welcome`.
 
-[Working examples](https://github.com/MistDig/AetherScript/tree/v0.0.20/examples) · [Structured JSON Schema](https://github.com/MistDig/AetherScript/blob/v0.0.20/schema/feature-v1.schema.json) · [Grammar and architecture decision](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/language-decision.md) · [Capability matrix](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/capabilities.csv)
+[Working examples](https://github.com/MistDig/AetherScript/tree/v0.0.21/examples) Â· [Structured JSON Schema](https://github.com/MistDig/AetherScript/blob/v0.0.21/schema/feature-v1.schema.json) Â· [Grammar and architecture decision](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/language-decision.md) Â· [Capability matrix](https://github.com/MistDig/AetherScript/blob/v0.0.4/docs/ecosystem/capabilities.csv)
 
 State writes have an acceptance check immediately before commit. Cancellation rejects work not yet accepted; an accepted write may finish after logout, revocation, timeout or shutdown. Accepted and completed writes are not rolled back.
 
 ---
 
-[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) · AetherScript 0.0.20
+[Back to the field guide](https://github.com/MistDig/AetherScript/wiki/Home) Â· AetherScript 0.0.21

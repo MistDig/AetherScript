@@ -8,7 +8,7 @@ Test jobs retain at most 32 results globally and 8 per connection for up to 180 
 
 ## Current capabilities
 
-This document describes the 0.0.20 language foundation; verification remains attributed to its recorded version. It supports native .aether message commands, typed positional arguments, immutable and mutable locals, bounded loops, typed functions, immutable homogeneous lists/maps/sets, arithmetic, boolean conditions, explicit reload, revisions and rollback. A locally approved native player-command slice adds location snapshots, own-player/feature persistent homes, bounded delay and self teleport. Native player join/quit and cancellable block break/place handlers are available. Inventories, item grants, economy and quest systems remain planned. Do not invent syntax or promise unsupported gameplay.
+This document describes the 0.0.21 language foundation; verification remains attributed to its recorded version. It supports native .aether message commands, typed positional arguments, immutable and mutable locals, bounded loops, typed functions, immutable homogeneous lists/maps/sets, arithmetic, boolean conditions, explicit reload, revisions and rollback. A locally approved native player-command slice adds location snapshots, own-player/feature persistent homes, bounded delay and self teleport. Native player join/quit and cancellable block break/place handlers are available. Item descriptors, storage-inventory operations and durable kit claims are available. Economy, custom item metadata, menus and quest systems remain planned. Do not invent syntax or promise unsupported gameplay.
 
 Use tool discovery from the connected app as the authority for available tools. Hosted and local gateways expose different tools. A hosted service version may differ from the plugin release version.
 
@@ -257,6 +257,49 @@ Use this current reference, discovered tool schemas and the bundled authoring co
 State writes have an acceptance check immediately before commit. Cancellation rejects work not yet accepted; an accepted write may finish after logout, revocation, timeout or shutdown. Accepted and completed writes are not rolled back.
 
 Test jobs retain at most 32 results globally and 8 per connection for up to 180 seconds; execution has a 120-second deadline. Captured message JSON is limited to 12 KiB and receipts to 6 KiB. `outputTruncated` or `receiptsTruncated` signals incomplete capture; truncated messages never count as a successful exact match. These capture limits do not undo effects already performed.
+
+## Items, inventories and daily kits (0.0.21)
+
+`item(material: text, amount: integer) -> item` constructs an immutable material/count descriptor. Use a lowercase material key such as `minecraft:bread`; an omitted namespace becomes `minecraft:`. Amounts range from 1 to 2304. Paper checks that the material is an available item. Items support equality, typed lists/map values and persistence, but cannot be set elements or map keys. Custom names, lore, enchantments, custom item IDs and inventory menus remain planned.
+
+| Call | Result | Required capability |
+| --- | --- | --- |
+| `inventory_has(stack: item)` | `boolean`: sufficient matching plain items in storage slots | `player.inventory.read` |
+| `inventory_give(stack: item)` | `boolean`: true when the entire amount was inserted | `player.inventory.write` |
+| `inventory_remove(stack: item)` | `boolean`: true when the entire amount was removed | `player.inventory.write` |
+| `kit_claim(key: text, items: list<item>, cooldownSeconds: integer)` | `text`: `claimed`, `cooldown` or `inventory_full` | `player.kit.claim` |
+
+Only plain material stacks without item metadata match; custom metadata is preserved and excluded from checks, removal and merging. Inventory calls use the invoking player's storage slots, excluding armor and offhand. Give/remove return false without changing inventory when capacity/items are insufficient. These host calls require a player command and are unavailable in synchronous event handlers. Calls execute in source order; separate give, state and inventory calls do not form a transaction. Use `kit_claim` for the guarded cooldown-and-reward operation rather than combining a state flag with `inventory_give`.
+
+A kit key matches `[a-z][a-z0-9_]{0,63}`. Bundles contain 1–64 descriptors and cooldowns range from 1 to 31536000 seconds. The cooldown is isolated by feature ID, player UUID and kit key, uses elapsed wall-clock time, and survives normal restart. A full inventory returns `inventory_full` without consuming the claim. `player.kit.claim` authorizes bundled delivery without separately requiring inventory write or script state permissions. Kit records use a separate namespace from `state_save`; source rollback does not restore cooldowns. Use a fixed kit key: letting players choose fresh keys would bypass a daily limit. Changing the feature ID or kit key creates a separate claim.
+
+Copy `examples/daily-kit.aether` into `plugins/AetherScript/scripts/daily-kit.aether`. In the server console run:
+
+```text
+ais permit daily-kit player.kit.claim
+ais validate daily-kit
+ais reload daily-kit
+```
+
+Wait for `CAPABILITIES_SAVED` before validation/reload, and grant `aetherscript.example.dailykit` to the player. `/dailykit` grants 16 bread and 4 iron ingots and sends `Daily kit claimed.`. An immediate repeat, including after a server restart, sends `Your daily kit is on cooldown.`. With insufficient storage capacity it sends `Not enough inventory space; your daily kit remains available.`; free enough space and retry to receive the reward.
+
+```aether
+feature daily-kit version "1.0.0"
+command dailykit permission "aetherscript.example.dailykit" sender player {
+  let result = kit_claim("daily", [item("minecraft:bread", 16), item("minecraft:iron_ingot", 4)], 86400)
+  if result == "claimed" {
+    send "Daily kit claimed."
+  } else {
+    if result == "cooldown" {
+      send "Your daily kit is on cooldown."
+    } else {
+      send "Not enough inventory space; your daily kit remains available."
+    }
+  }
+}
+```
+
+The implementation reserves the durable cooldown before rechecking and delivering the inventory change. A failed delivery compensates the reservation. SQLite and the Minecraft player inventory cannot share a transaction: a process crash between reservation and delivery can consume the claim without delivering the reward. Operators must account for that recovery limitation; this is not an exactly-once grant across crashes. A backward wall-clock change may extend a cooldown and a forward change may end it sooner.
 
 ## Synchronous native events (0.0.20)
 

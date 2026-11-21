@@ -108,6 +108,13 @@ event_valid, event_invalid = calls([('aether_validate', {'format':'aether','sour
 assert event_valid['valid'] and set(event_valid['requiredCapabilities']) == {
     'runtime.message.send', 'runtime.event.block_break', 'runtime.event.block_place', 'runtime.event.cancel'}
 assert not event_invalid['valid'] and event_invalid['line'] > 0 and 'cancel' in event_invalid['reason']
+kit = guide['itemsAndKits']['example']
+assert kit == (repo / 'examples/daily-kit.aether').read_text(encoding='utf-8')
+kit_valid, kit_invalid = calls([('aether_validate', {'format':'aether','source':source})
+                               for source in (kit, kit.replace('86400', 'true'))])
+assert kit_valid['valid'] and set(kit_valid['requiredCapabilities']) == {
+    'runtime.message.send', 'player.kit.claim'}
+assert not kit_invalid['valid'] and kit_invalid['line'] == 3 and kit_invalid['reason']
 print(json.dumps({"result":"pass","version":version,"checks":["discover template","validate template",
     "single-line edit changes behavior","comment preserves behavior","type error identifies line and column",
     "CLI and MCP agree on valid source","CLI and MCP agree on invalid source",
@@ -118,4 +125,5 @@ print(json.dumps({"result":"pass","version":version,"checks":["discover template
     "homes validates with inferred capabilities", "host argument types reject with location",
     "offline native execution requires host context", "host discovery exports executable callable catalog",
     "typed state signatures discovered", "player-progress validates with scoped capabilities",
-    "starter protection validates with local event capabilities", "unsupported cancellation identifies source location"]},indent=2))
+    "starter protection validates with local event capabilities", "unsupported cancellation identifies source location",
+    "daily kit validates with local kit capability", "invalid cooldown type identifies source location"]},indent=2))

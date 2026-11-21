@@ -163,6 +163,7 @@ final class GameplayRuntime implements AutoCloseable, Listener {
         });
     }
     private volatile boolean closed;
+    private volatile KitCooldowns kitCooldowns;
     private volatile SQLiteVariables state; // Accessed by the single existing plugin I/O worker.
 
     GameplayRuntime(JavaPlugin plugin, Registry registry, ExecutorService io, RemoteScripts.Main main,
@@ -303,6 +304,20 @@ final class GameplayRuntime implements AutoCloseable, Listener {
                     Location place = player().getLocation();
                     return new ScriptValue(ScriptType.LOCATION, new ScriptValue.LocationSnapshot(place.getWorld().getUID(), place.getX(), place.getY(), place.getZ(), place.getYaw(), place.getPitch()));
                 });
+                case "player.inventory.has", "player.inventory.give", "player.inventory.remove" -> main.call(() -> {
+                    Player actorPlayer = player();
+                    var inventory = actorPlayer.getInventory();
+                    var item = inventoryItem(values.getFirst().item(), inventory.getMaxStackSize());
+                    var original = inventory.getStorageContents();
+                    var slots = inventorySlots(original, inventory.getMaxStackSize());
+                    if (descriptor.id().equals("player.inventory.has")) return new ScriptValue(ScriptType.BOOLEAN, InventoryPlan.has(slots, item));
+                    var plan = descriptor.id().equals("player.inventory.give") ? InventoryPlan.give(slots, List.of(item)) : InventoryPlan.remove(slots, item);
+                    if (plan == null) return new ScriptValue(ScriptType.BOOLEAN, false);
+                    inventory.setStorageContents(inventoryContents(original, slots, plan));
+                    receipt(Map.of("operation", descriptor.id(), "material", item.material(), "amount", item.amount(), "delivered", true));
+                    return new ScriptValue(ScriptType.BOOLEAN, true);
+                });
+                case "player.kit.claim" -> claimKit(values);
                 case "state.own.get_location", "state.own.put_location", "state.own.save", "state.own.load" -> state(descriptor.id(), values);
                 case "scheduler.delay" -> {
                     long ticks = values.getFirst().integer();
@@ -336,6 +351,50 @@ final class GameplayRuntime implements AutoCloseable, Listener {
                 }
                 default -> throw error("UNSUPPORTED_HOST_OPERATION");
             };
+        }
+        ScriptValue claimKit(List<ScriptValue> values) throws Exception {
+            String name = values.getFirst().text(); long seconds = values.get(2).integer();
+            if (!name.matches("[a-z][a-z0-9_]{0,63}") || seconds < 1 || seconds > 31536000) throw error("KIT_ARGUMENT_INVALID");
+            var descriptors = values.get(1).list();
+            if (descriptors.isEmpty() || descriptors.size() > 64) throw error("KIT_ARGUMENT_INVALID: expected 1..64 items");
+            // The worker owns reservation and compensation through completion, even after await is cancelled.
+            CompletableFuture<ScriptValue> result = new CompletableFuture<>();
+            try { io.execute(() -> {
+                KitCooldowns.Reservation reservation = null; boolean delivered = false;
+                var delivery = new java.util.concurrent.atomic.AtomicInteger(); // 0 pending, 1 effect started, 2 abandoned
+                try {
+                    boolean fits = main.call(() -> kitFits(descriptors, null));
+                    if (!fits) { result.complete(new ScriptValue(ScriptType.TEXT, "inventory_full")); return; }
+                    if (kitCooldowns == null) kitCooldowns = new KitCooldowns(stateDirectory);
+                    if (!current(true)) throw error("INVOCATION_RETIRED");
+                    reservation = kitCooldowns.reserve(feature.definition().id(), actor, name, System.currentTimeMillis(), seconds);
+                    if (reservation == null) { result.complete(new ScriptValue(ScriptType.TEXT, "cooldown")); return; }
+                    delivered = main.call(() -> kitFits(descriptors, delivery));
+                    if (!delivered) { kitCooldowns.compensate(reservation); reservation = null; }
+                    else receipt(Map.of("operation", "player.kit.claim", "key", name, "status", "claimed", "cooldownSeconds", seconds));
+                    result.complete(new ScriptValue(ScriptType.TEXT, delivered ? "claimed" : "inventory_full"));
+                } catch (Exception failure) {
+                    if (reservation != null && !delivered && delivery.compareAndSet(0, 2)) try { kitCooldowns.compensate(reservation); }
+                    catch (Exception compensation) { plugin.getLogger().severe("Kit reservation compensation unavailable; cooldown retained. Inspect owner storage."); }
+                    result.completeExceptionally(failure instanceof ValidationException ? failure : error("KIT_UNAVAILABLE: inspect owner storage"));
+                }
+            }); } catch (RejectedExecutionException failure) { throw error("STATE_BUSY: bounded I/O queue is full"); }
+            return await(result, () -> {});
+        }
+        boolean kitFits(List<ScriptValue> descriptors, java.util.concurrent.atomic.AtomicInteger delivery) {
+            var inventory = player().getInventory();
+            var items = descriptors.stream().map(value -> inventoryItem(value.item(), inventory.getMaxStackSize())).toList();
+            var original = inventory.getStorageContents();
+            var slots = inventorySlots(original, inventory.getMaxStackSize());
+            var plan = InventoryPlan.give(slots, items);
+            if (plan == null) return false;
+            if (delivery != null) {
+                var contents = inventoryContents(original, slots, plan);
+                if (!delivery.compareAndSet(0, 1)) throw error("KIT_DELIVERY_ABANDONED");
+                inventory.setStorageContents(contents);
+                // No fallible work after mutation: an effect must never be compensated as undelivered.
+            }
+            return true;
         }
         void receipt(Map<String, Object> receipt) {
             if (job != null) job.receipt(receipt);
@@ -396,6 +455,27 @@ final class GameplayRuntime implements AutoCloseable, Listener {
             return await(result, () -> {});
         }
     }
+    private static InventoryPlan.Item inventoryItem(ScriptValue.ItemDescriptor item, int maximum) {
+        var material = org.bukkit.Material.matchMaterial(item.material());
+        if (material == null || !material.isItem() || material.isAir()) throw error("ITEM_MATERIAL_INVALID");
+        return new InventoryPlan.Item(material.getKey().toString(), item.amount(), Math.min(maximum, material.getMaxStackSize()));
+    }
+    private static InventoryPlan.Slot[] inventorySlots(org.bukkit.inventory.ItemStack[] contents, int maximum) {
+        var slots = new InventoryPlan.Slot[contents.length];
+        for (int i=0; i<contents.length; i++) {
+            var item = contents[i];
+            if (item != null && !item.getType().isAir()) slots[i] = new InventoryPlan.Slot(item.getType().getKey().toString(), item.getAmount(), Math.min(maximum,item.getMaxStackSize()), !item.hasItemMeta());
+        }
+        return slots;
+    }
+    private static org.bukkit.inventory.ItemStack[] inventoryContents(org.bukkit.inventory.ItemStack[] original, InventoryPlan.Slot[] before, InventoryPlan.Slot[] after) {
+        var result = original.clone();
+        for (int i=0; i<after.length; i++) if (!Objects.equals(before[i], after[i])) {
+            var slot = after[i];
+            result[i] = slot == null ? null : new org.bukkit.inventory.ItemStack(Objects.requireNonNull(org.bukkit.Material.matchMaterial(slot.material())), slot.amount());
+        }
+        return result;
+    }
     @Override public void close() {
         closed = true; testExpiry.shutdownNow(); sessions.clear(); active.forEach(Run::cancel); interpreters.shutdownNow(); HandlerList.unregisterAll(this);
     }
@@ -403,7 +483,7 @@ final class GameplayRuntime implements AutoCloseable, Listener {
         // Never wait for disk on Paper's thread, and never close a connection underneath an in-flight worker.
         Thread.startVirtualThread(() -> {
             try {
-                if (io.awaitTermination(6, TimeUnit.SECONDS)) { if (state != null) state.close(); }
+                if (io.awaitTermination(6, TimeUnit.SECONDS)) { if (state != null) state.close(); if (kitCooldowns != null) kitCooldowns.close(); }
                 else plugin.getLogger().warning("Player-state worker has not stopped; storage close deferred to process shutdown.");
             }
             catch (Exception ignored) { }

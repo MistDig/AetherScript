@@ -1,0 +1,72 @@
+[
+  {
+    "test": "homes-startup-native-denied",
+    "result": "pass",
+    "detail": "[20:53:57 INFO]: AetherScript 0.0.21; 26.3-245-cd1c3b6 (MC: 26.3); ready=true; generation=1; features=1; busy=false; remoteManage=false; recovery=ENABLED"
+  },
+  {
+    "test": "homes-denial-keeps-pure-feature",
+    "result": "pass",
+    "detail": "[20:53:57 INFO]: Hello from AetherScript!"
+  },
+  {
+    "test": "homes-owner-permit",
+    "result": "pass",
+    "detail": "[20:53:57 INFO]: CAPABILITIES_SAVED homes: [player.location.read, player.teleport.self, runtime.message.send, scheduler.delay, state.own]; run ais reload homes to activate an approved edit"
+  },
+  {
+    "test": "homes-activate",
+    "result": "pass",
+    "detail": "[20:53:58 INFO]: ACTIVE generation=2 features=2; saved successfully"
+  },
+  {
+    "test": "kit-owner-permit",
+    "result": "pass",
+    "detail": "[20:54:04 INFO]: CAPABILITIES_SAVED daily-kit: [player.kit.claim, runtime.message.send]; run ais reload daily-kit to activate an approved edit"
+  },
+  {
+    "test": "kit-activate",
+    "result": "pass",
+    "detail": "[20:54:05 INFO]: ACTIVE generation=3 features=3; saved successfully"
+  },
+  {
+    "test": "kit-full-denial",
+    "result": "pass",
+    "detail": "A full storage inventory blocked delivery."
+  },
+  {
+    "test": "kit-claim-after-full",
+    "result": "pass",
+    "detail": "Clearing space allowed the same player to get 16 bread and 4 iron ingots."
+  },
+  {
+    "test": "kit-repeat-denial",
+    "result": "pass",
+    "detail": "A repeat command left the inventory counts unchanged."
+  },
+  {
+    "test": "kit-player-isolation",
+    "result": "pass",
+    "detail": "A different player could claim the same kit independently."
+  },
+  {
+    "test": "inventory-owner-permit",
+    "result": "pass",
+    "detail": "[20:54:19 INFO]: CAPABILITIES_SAVED inventory-check: [player.inventory.read, player.inventory.write, runtime.message.send]; run ais reload inventory-check to activate an approved edit"
+  },
+  {
+    "test": "inventory-activate",
+    "result": "pass",
+    "detail": "[20:54:20 INFO]: ACTIVE generation=4 features=4; saved successfully"
+  },
+  {
+    "test": "inventory-check-remove-give",
+    "result": "pass",
+    "detail": "The second player checked, removed and restored the same four items."
+  },
+  {
+    "test": "kit-restart-cooldown",
+    "result": "pass",
+    "detail": "The original player still had the rewards and cooldown after restarting Paper."
+  }
+]

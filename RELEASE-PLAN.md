@@ -9,7 +9,7 @@ An owner should be able to describe a Minecraft plugin to an AI, install it and 
 | Target | Status | What an AI should be able to build and demonstrate |
 | --- | --- | --- |
 | 0.0.20 · Gameplay events | [Released](https://github.com/MistDig/AetherScript/releases/tag/v0.0.20) | Typed join, quit, block-break and block-place handlers. On Paper, guests could neither break nor place in the protected world, the builder could do both, and reload delivered one response from the replacement handler. |
-| 0.0.21 · Items, inventories and cooldowns | Planned | Give a daily kit, detect insufficient inventory space before consuming the claim, and preserve the cooldown after restart. |
+| 0.0.21 · Items, inventories and cooldowns | [Released](https://github.com/MistDig/AetherScript/releases/tag/v0.0.21) | On Paper, a full inventory preserved the claim, freeing space delivered exact rewards, and repeat claims stayed blocked after restart. Verified check, remove and give on the invoking player's inventory. |
 | 0.0.22 · World actions, timers and displays | Planned | Give blocks ten hearts with floating text. Count valid hits, respect existing protection, break on the tenth hit and clean up after reload. Expose recurring tasks, action bars, titles, sounds, scoreboards and boss bars. |
 | 0.0.23 · Records, modules and packages | Planned | Split quests, player progress and rewards across files in one plugin. Add a second quest independently. Report validation failures with the originating file and line. |
 | 0.0.24 · Shared data and transactions | Planned | Build an economy with server and world state. Two buyers racing for the final item produce one sale. A failed purchase leaves balances intact. Include deletion and atomic updates. |

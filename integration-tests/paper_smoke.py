@@ -14,6 +14,7 @@ parser.add_argument('--runtime-control', action='store_true', help='Exercise nat
 parser.add_argument('--native-mcp', action='store_true', help='Exercise browser-approved real-player native MCP on fresh Paper (requires --aether and --client-dir)')
 parser.add_argument('--homes', action='store_true', help='Exercise player homes with two translated protocol clients (requires --aether and --client-dir)')
 parser.add_argument('--events', action='store_true', help='Exercise actual break and place packets with the homes protocol fixture (requires --homes)')
+parser.add_argument('--kits', action='store_true', help='Exercise inventory delivery and cooldown restart (requires --homes)')
 parser.add_argument('--client-dir', type=Path, help='External pinned ViaProxy/client dependency directory for --homes')
 parser.add_argument('--pairing', action='store_true', help='Pair the packaged MCP with this disposable server and check live status and revocation')
 parser.add_argument('--relay-config', type=Path, help='Optional path to a private relay.json for a live remote script-management test')
@@ -34,6 +35,8 @@ if args.homes and (not args.aether or args.client_dir is None):
     parser.error('--homes requires --aether and --client-dir')
 if args.events and not args.homes:
     parser.error('--events requires --homes')
+if args.kits and (not args.homes or args.events):
+    parser.error('--kits requires --homes and runs separately from --events')
 if args.homes and (args.runtime_control or args.browser_only or args.browser_008 or args.pairing or args.relay_config):
     parser.error('--homes is a separate test mode')
 if not args.accept_eula:
@@ -165,7 +168,8 @@ if args.native_mcp:
 if args.homes:
     from homes_workflow import verify
     try:
-        verify(command, start, stop, server, repo, args.java, evidence, args.client_dir.resolve(), events=args.events)
+        verify(command, start, stop, server, repo, args.java, evidence, args.client_dir.resolve(),
+               events=args.events, kits=args.kits)
     except Exception as error:
         evidence.append(dict(test='homes-smoke', result='fail', detail=str(error)))
     finally:
@@ -175,7 +179,7 @@ if args.homes:
     if any(item['result'] == 'fail' for item in evidence):
         print(evidence[-1]['detail'], flush=True)
         raise SystemExit(1)
-    fixture = 'gameplay event' if args.events else 'homes'
+    fixture = 'kit' if args.kits else 'gameplay event' if args.events else 'homes'
     print(f'PASS: {len(evidence)} {fixture} checks; translated protocol clients', flush=True)
     raise SystemExit(0)
 if args.runtime_control:

@@ -132,14 +132,13 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
     private String principal(CommandSender sender) { return sender instanceof Player p ? "player:" + p.getUniqueId() : "local:" + sender.getName(); }
     private static Set<String> executionCapabilities() {
         Set<String> capabilities = new TreeSet<>(remoteCapabilities());
+        StandardCallables.create().descriptors().forEach(call -> capabilities.addAll(call.requiredCapabilities()));
         capabilities.addAll(CompiledFeature.EVENT_CAPABILITIES);
         return Set.copyOf(capabilities);
     }
     /** Relay protocol v2 retains its established capability allowlist. */
     private static Set<String> remoteCapabilities() {
-        Set<String> capabilities = new TreeSet<>(Set.of(ScriptCapabilityPolicy.MESSAGE));
-        StandardCallables.create().descriptors().forEach(call -> capabilities.addAll(call.requiredCapabilities()));
-        return Set.copyOf(capabilities);
+        return Set.of(ScriptCapabilityPolicy.MESSAGE, "player.location.read", "player.teleport.self", "state.own", "scheduler.delay");
     }
     private boolean runFeature(String id, List<String> arguments, CommandSender sender) {
         if (!ready) return false;

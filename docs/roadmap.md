@@ -39,7 +39,7 @@ Hosted OAuth and permission-checked native script apply/testing are implemented.
 
 ## v0.4 — events, UI, and bounded timers
 
-Allowlisted events, bounded scheduled work and per-player cooldowns, managed GUIs, scoreboards, and boss bars. Scope UI ownership per player/feature, respect other plugins' displays, clean up on disconnect/reload, invalidate stale callbacks, and enforce per-feature task/UI limits. Cooldowns need explicit clock semantics, restart policy, and generation-aware cancellation.
+Allowlisted events, bounded scheduled work and per-player cooldowns, managed GUIs, scoreboards, and boss bars. Scope UI ownership per player/feature, respect other plugins' displays, clean up on disconnect/reload, invalidate stale callbacks, and enforce per-feature task/UI limits. Release 0.0.21 implements a narrow kit cooldown with persisted wall-clock expiry, per-feature/player/key isolation and guarded delivery. General cooldown/timer APIs and the remaining displays still require explicit ownership and cleanup.
 
 ## v0.5 — state and richer gameplay
 

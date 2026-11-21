@@ -15,6 +15,10 @@ public final class StandardCallables {
         add(registry, "player.teleport.self", "teleport_self", List.of(ScriptType.LOCATION), ScriptType.UNIT, PAPER_MAIN, "player.teleport.self", "Teleport only the invoking player to a validated location.");
         add(registry, "state.own.save", "state_save", List.of(ScriptType.TEXT, ScriptType.UNIT), ScriptType.UNIT, ASYNC_IO, "state.own", "Save a bounded typed value T for this feature/player; T is inferred from argument 2. Unit is not persistable.");
         add(registry, "state.own.load", "state_load", List.of(ScriptType.TEXT, ScriptType.UNIT), ScriptType.UNIT, ASYNC_IO, "state.own", "Load a bounded typed value T, inferred from fallback argument 2; missing returns fallback and a stored type mismatch fails.");
+        add(registry, "player.inventory.has", "inventory_has", List.of(ScriptType.ITEM), ScriptType.BOOLEAN, PAPER_MAIN, "player.inventory.read", "Check the invoking player's storage inventory for matching plain items.");
+        add(registry, "player.inventory.give", "inventory_give", List.of(ScriptType.ITEM), ScriptType.BOOLEAN, PAPER_MAIN, "player.inventory.write", "Give plain items only if the full amount fits; false leaves inventory unchanged.");
+        add(registry, "player.inventory.remove", "inventory_remove", List.of(ScriptType.ITEM), ScriptType.BOOLEAN, PAPER_MAIN, "player.inventory.write", "Remove plain items only if the full amount exists; false leaves inventory unchanged.");
+        add(registry, "player.kit.claim", "kit_claim", List.of(ScriptType.TEXT, ScriptType.list(ScriptType.ITEM), ScriptType.INTEGER), ScriptType.TEXT, ASYNC_IO, "player.kit.claim", "Claim a bounded bundle with a durable feature/player/key cooldown in seconds; returns claimed, cooldown, or inventory_full.");
         return registry;
     }
     private static void add(CallableRegistry registry, String id, String name, List<ScriptType> parameters, ScriptType result,

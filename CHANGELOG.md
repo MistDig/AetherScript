@@ -2,6 +2,14 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.21] - 2026-11-21
+
+- Add immutable typed item descriptors, player storage-inventory checks and all-or-none give/remove operations with explicit capability gates.
+- Add bounded kit claims with per-feature/player/key durable cooldowns, capacity preflight and compensation when delivery fails. SQLite/inventory crash atomicity remains limited as documented.
+- Add the daily-kit example, machine-readable signatures and human/AI authoring guidance.
+- Java 25 clean build passed 346 tests. Packaged AI authoring, wiki examples, MCP stdio, SQLite packaging, legacy IR and documentation checks passed.
+- Paper 26.3 build 245 passed 14 checks with translated loopback clients across two boots. A full inventory preserved the claim, exact rewards arrived after freeing space, repeat claims left counts unchanged, a second player claimed independently and the cooldown survived restart.
+
 ## [0.0.20] - 2026-11-21
 
 - Add native synchronous player join/quit and block break/place handlers with typed immutable event snapshots, explicit permission gates and bounded pure evaluation.

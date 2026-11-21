@@ -19,6 +19,15 @@ public record ScriptValue(ScriptType type, Object value) {
             if (!Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(z) || !Float.isFinite(yaw) || !Float.isFinite(pitch)) throw new IllegalArgumentException("Location coordinates must be finite");
         }
     }
+    /** Plain vanilla material descriptor; platform validation occurs at the inventory boundary. */
+    public record ItemDescriptor(String material, int amount) {
+        public ItemDescriptor {
+            Objects.requireNonNull(material, "material");
+            if (!material.matches("(?:minecraft:)?[a-z0-9_]{1,128}")) throw new IllegalArgumentException("Item material must be a vanilla lowercase material key");
+            if (!material.startsWith("minecraft:")) material = "minecraft:" + material;
+            if (amount < 1 || amount > 2304) throw new IllegalArgumentException("Item amount must be 1..2304");
+        }
+    }
     public ScriptValue {
         Objects.requireNonNull(type, "type"); Objects.requireNonNull(value, "value");
         if (type.isList() && value instanceof List<?> list) value = List.copyOf(list);
@@ -36,6 +45,7 @@ public record ScriptValue(ScriptType type, Object value) {
             case BOOLEAN -> value instanceof Boolean;
             case UUID -> value instanceof UUID;
             case LOCATION -> value instanceof LocationSnapshot;
+            case ITEM -> value instanceof ItemDescriptor;
             case UNIT -> value == Unit.INSTANCE;
             case LIST -> value instanceof List<?> list && list.size() <= 256 && list.stream().allMatch(item -> item instanceof ScriptValue child && child.type.equals(type.element()));
             case MAP -> value instanceof Map<?, ?> map && map.size() <= 256 && map.entrySet().stream().allMatch(entry -> entry.getKey() instanceof ScriptValue k && k.type.equals(type.key()) && entry.getValue() instanceof ScriptValue v && v.type.equals(type.element()));
@@ -44,6 +54,7 @@ public record ScriptValue(ScriptType type, Object value) {
         };
         if (!valid) throw new IllegalArgumentException("Invalid value for " + type.name());
     }
+    public ItemDescriptor item() { return (ItemDescriptor) value; }
     public long integer() { return (Long) value; }
     public boolean bool() { return (Boolean) value; }
     public String text() { return (String) value; }

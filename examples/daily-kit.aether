@@ -1,0 +1,13 @@
+feature daily-kit version "1.0.0"
+command dailykit permission "aetherscript.example.dailykit" sender player {
+  let result = kit_claim("daily", [item("minecraft:bread", 16), item("minecraft:iron_ingot", 4)], 86400)
+  if result == "claimed" {
+    send "Daily kit claimed."
+  } else {
+    if result == "cooldown" {
+      send "Your daily kit is on cooldown."
+    } else {
+      send "Not enough inventory space; your daily kit remains available."
+    }
+  }
+}

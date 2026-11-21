@@ -21,6 +21,7 @@ class ScriptValueCodecTest {
         fixtures.put(new ScriptValue(ScriptType.optional(ScriptType.TEXT), Optional.empty()), "070100");
         fixtures.put(new ScriptValue(ScriptType.map(ScriptType.TEXT, ScriptType.INTEGER), Map.of()), "0801000000");
         fixtures.put(new ScriptValue(ScriptType.set(ScriptType.TEXT), Set.of()), "09010000");
+        fixtures.put(new ScriptValue(ScriptType.ITEM, new ScriptValue.ItemDescriptor("bread", 16)), "0a000f6d696e6563726166743a627265616400000010");
         fixtures.forEach((value, hex) -> {
             String wire = "ASV1:" + Base64.getEncoder().encodeToString(HexFormat.of().parseHex(hex));
             assertEquals(wire, ScriptValueCodec.encode(value));

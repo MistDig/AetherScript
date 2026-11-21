@@ -220,6 +220,18 @@ public final class TextFrontend {
         public int depth() { return operand.depth() + 1; }
         public ScriptValue evaluate(Execution execution) { execution.step(); return textValue(operand.evaluate(execution).value().toString(), token); }
     }
+    private record ItemValue(Expression material, Expression amount, Token token) implements Expression {
+        public ScriptType type() { return ScriptType.ITEM; }
+        public int depth() { return 1 + Math.max(material.depth(), amount.depth()); }
+        public ScriptValue evaluate(Execution execution) {
+            execution.step(token);
+            var key = material.evaluate(execution).text();
+            long count = amount.evaluate(execution).integer();
+            if (count < 1 || count > 2304) throw token.error("Item amount must be 1..2304");
+            try { return new ScriptValue(ScriptType.ITEM, new ScriptValue.ItemDescriptor(key, (int) count)); }
+            catch (IllegalArgumentException invalid) { throw token.error(invalid.getMessage()); }
+        }
+    }
     private record ListValue(ScriptType type, List<Expression> elements) implements Expression {
         public int depth() { return 1 + elements.stream().mapToInt(Expression::depth).max().orElse(0); }
         public ScriptValue evaluate(Execution execution) {
@@ -507,6 +519,7 @@ public final class TextFrontend {
             case Unary unary -> usesName(unary.operand());
             case Binary binary -> usesName(binary.left()) || usesName(binary.right());
             case AsText conversion -> usesName(conversion.operand());
+            case ItemValue item -> usesName(item.material()) || usesName(item.amount());
             case ListValue list -> list.elements().stream().anyMatch(TextFrontend::usesName);
             case MapSetValue collection -> collection.elements().stream().anyMatch(TextFrontend::usesName);
             case CollectionOperation operation -> operation.arguments().stream().anyMatch(TextFrontend::usesName);
@@ -561,6 +574,7 @@ public final class TextFrontend {
             case Unary unary -> List.of("unary", unary.operator().text(), expressionDescription(unary.operand()));
             case Binary binary -> List.of("binary", binary.operator().text(), expressionDescription(binary.left()), expressionDescription(binary.right()));
             case AsText conversion -> List.of("text", expressionDescription(conversion.operand()));
+            case ItemValue item -> List.of("item", expressionDescription(item.material()), expressionDescription(item.amount()));
             case ListValue list -> List.of("list", list.type().name(), list.elements().stream().map(TextFrontend::expressionDescription).toList());
             case MapSetValue collection -> List.of("collection", collection.type().name(), collection.elements().stream().map(TextFrontend::expressionDescription).toList());
             case CollectionOperation operation -> List.of("collection-operation", operation.name(), operation.type().name(), operation.arguments().stream().map(TextFrontend::expressionDescription).toList());
@@ -721,7 +735,7 @@ public final class TextFrontend {
             }
             return switch (token.text()) {
                 case "text" -> ScriptType.TEXT; case "integer" -> ScriptType.INTEGER; case "boolean" -> ScriptType.BOOLEAN;
-                case "uuid" -> ScriptType.UUID; case "location" -> ScriptType.LOCATION; case "unit" -> ScriptType.UNIT;
+                case "item" -> ScriptType.ITEM; case "uuid" -> ScriptType.UUID; case "location" -> ScriptType.LOCATION; case "unit" -> ScriptType.UNIT;
                 default -> throw token.error("ScriptType must be text, integer or boolean");
             };
         }
@@ -904,6 +918,14 @@ public final class TextFrontend {
             Token token = take();
             if (eventKind != null && (List.of("[", "{", "list", "map", "set").contains(token.text())))
                 throw token.error("Synchronous event handlers support only scalar expressions");
+            if (token.text().equals("item") && matches("(") && !functions.containsKey("item")) {
+                if (eventKind != null) throw token.error("Synchronous event handlers do not support item descriptors");
+                take(); Expression material = expression(); expect(","); Expression amount = expression(); expect(")");
+                requireType(material, ScriptType.TEXT, token, "Item material must be text");
+                requireType(amount, ScriptType.INTEGER, token, "Item amount must be integer");
+                advanced = true;
+                return node(new ItemValue(material, amount, token), token);
+            }
             if (token.text().equals("{")) {
                 if (matches("}")) throw token.error("Empty maps require map<key,value>()");
                 List<Expression> elements = new ArrayList<>(); ScriptType key = null, valueType = null;
