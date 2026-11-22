@@ -1,0 +1,6 @@
+name: PersonalWeatherAddon
+version: '1.0.0'
+main: example.sky.PersonalWeatherAddon
+api-version: '26.3'
+depend: [AetherScript]
+description: Trusted example exposing a bounded personal-weather callable

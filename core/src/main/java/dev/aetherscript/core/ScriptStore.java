@@ -10,8 +10,14 @@ public final class ScriptStore {
         public boolean valid() { return error == null && compiled != null; }
     }
     private final Path root;
+    private final java.util.function.Supplier<FeatureParser> parsers;
     public record RemoteIntent(String id, String expectedHash, String source, long baseSequence) { }
-    public ScriptStore(Path root) { this.root = root.toAbsolutePath().normalize(); }
+    public ScriptStore(Path root) { this(root, FeatureParser::new); }
+    public ScriptStore(Path root, java.util.function.Supplier<FeatureParser> parsers) {
+        this.root = root.toAbsolutePath().normalize(); this.parsers = Objects.requireNonNull(parsers, "parsers");
+    }
+    public FeatureParser parser() { return Objects.requireNonNull(parsers.get(), "parser supplier result"); }
+    public CompiledFeature compile(SourceFile source) { return source.compile(parser()); }
     private Path intents() throws IOException {
         if (Files.isSymbolicLink(root) || !root.toRealPath().equals(root)) throw new IOException("Unsafe scripts directory");
         Path directory = root.resolve(".remote-intents");
@@ -40,6 +46,7 @@ public final class ScriptStore {
     }
     /** Durable activation decides recovery; unrelated owner source changes always win. */
     public synchronized void recoverRemoteIntents(RevisionStore store) throws IOException {
+        FeatureParser parser = parser();
         Path directory = intents();
         try (var paths = Files.list(directory)) {
             var files = paths.limit(129).toList();
@@ -54,7 +61,7 @@ public final class ScriptStore {
                 FeatureParser.requireId(intent.id());
                 if (!path.getFileName().toString().equals(intent.id() + ".json")) throw new IOException("Remote intent ID mismatch");
                 var candidate = new SourceFile(intent.id() + ".aether", "aether", intent.source().getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                if (!candidate.compile().definition().id().equals(intent.id())) throw new IOException("Remote intent source mismatch");
+                if (!candidate.compile(parser).definition().id().equals(intent.id())) throw new IOException("Remote intent source mismatch");
                 var history = store.state().features().get(intent.id());
                 if (store.state().sequence() > intent.baseSequence() && history != null && history.activeRevision() != null && history.activeRevision().hash().equals(candidate.hash())) {
                     var inspection = inspect(null).get(intent.id());
@@ -83,9 +90,10 @@ public final class ScriptStore {
         return file.source();
     }
     public synchronized SourceFile compareAndSwapText(String id, String expectedHash, String text) throws IOException {
+        FeatureParser parser = parser();
         FeatureParser.requireId(id);
         SourceFile next = new SourceFile(id + ".aether", "aether", text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        if (!id.equals(next.compile().definition().id())) throw new ValidationException("$.id", "ID must match target");
+        if (!id.equals(next.compile(parser).definition().id())) throw new ValidationException("$.id", "ID must match target");
         SourceFile previous = textSource(id);
         if (!Objects.equals(expectedHash, previous == null ? "ABSENT" : previous.hash())) throw new IOException("STALE_SOURCE");
         if (previous != null && previous.hash().equals(next.hash())) return previous;
@@ -102,7 +110,8 @@ public final class ScriptStore {
             return next;
         } finally { Files.deleteIfExists(temporary); }
     }
-    public Map<String, Inspection> inspect(String selected) throws IOException {
+    public Map<String, Inspection> inspect(String selected) throws IOException { return inspect(selected, parser()); }
+    public Map<String, Inspection> inspect(String selected, FeatureParser parser) throws IOException {
         if (selected != null) FeatureParser.requireId(selected);
         if (Files.isSymbolicLink(root) || !root.toRealPath().equals(root)) throw new IOException("Unsafe scripts directory");
         Map<String, Inspection> result = new TreeMap<>();
@@ -130,7 +139,7 @@ public final class ScriptStore {
                     try (InputStream stream = Files.newInputStream(file, LinkOption.NOFOLLOW_LINKS)) { bytes = stream.readNBytes(FeatureParser.MAX_BYTES + 1); }
                     source = new SourceFile(name, format, bytes);
                     }
-                    CompiledFeature compiled = source.compile();
+                    CompiledFeature compiled = source.compile(parser);
                     if (!id.equals(compiled.definition().id())) throw new ValidationException("$.id", "ID must match filename: " + id);
                     result.put(id, new Inspection(id, name, source, compiled, null));
                 } catch (ValidationException e) { result.put(id, new Inspection(id, name, source, null, e)); }

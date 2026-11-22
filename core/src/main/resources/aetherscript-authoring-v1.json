@@ -743,5 +743,64 @@
     "lifecycle": "Owned entity UUIDs require the same feature and active revision. Entities are nonpersistent; reload, restriction, disable, chunk/world unload clean up ownership. No chunk loading. Team membership is feature/revision/player scoped and transient; quit clears it.",
     "exampleFile": "examples/two-arenas.aether",
     "exampleSource": "feature two-arenas version \"1.0.0\"\ncommand arenas permission \"aetherscript.example.arenas\" sender player {\n  arg arena: text = \"red\"\n  arg action: text = \"show\"\n  if arena == \"red\" || arena == \"blue\" {\n    let position = player_location()\n    let inside = inside_region(position, 0, -64, 0, 15, 320, 15)\n    let in_blue = inside_region(position, 32, -64, 0, 47, 320, 15)\n    let allowed = (arena == \"red\" && inside) || (arena == \"blue\" && in_blue)\n    let score_key = arena + \"_score\"\n    let boss_key = arena + \"_boss\"\n    let score = shared_read(\"world\", score_key, 0)\n    let boss = shared_read(\"world\", boss_key, \"\")\n    if action == \"target\" && team_is(arena) && allowed && boss != \"\" {\n      if entity_target_player(boss) {\n        send \"Boss targeted \" + arena\n      }\n    }\n    if action == \"join\" {\n      team_join(arena)\n      send \"Joined \" + arena\n    } else {\n      if action == \"start\" {\n        if team_is(arena) && allowed {\n          let created = entity_spawn(position, \"zombie\", arena + \" arena boss\")\n          entity_health(created, 20)\n          if shared_commit(\"world\", put(map<text,text>(), boss_key, created), list<text>()) {\n            if boss != \"\" {\n              let removed = entity_remove(boss)\n            }\n            send \"Started \" + arena + \" boss \" + created\n          } else {\n            let removed = entity_remove(created)\n            send \"Start conflict; retry.\"\n          }\n        } else {\n          send \"Join this team and stand inside its arena first.\"\n        }\n      } else {\n        if action == \"score\" {\n          if team_is(arena) && allowed {\n            if shared_commit(\"world\", put(map<text,integer>(), score_key, score + 1), list<text>()) {\n              send arena + \" score \" + text(score + 1)\n            } else {\n              send \"Score conflict; retry.\"\n            }\n          } else {\n            send \"Join this team and stand inside its arena first.\"\n          }\n        } else {\n          if action == \"cleanup\" {\n            if shared_commit(\"world\", map<text,text>(), [boss_key]) {\n              if boss != \"\" {\n                let removed = entity_remove(boss)\n              }\n              team_leave()\n              send \"Cleaned \" + arena\n            } else {\n              send \"Cleanup conflict; retry.\"\n            }\n          } else {\n            send arena + \" score \" + text(score)\n            send \"Boss: \" + boss\n            send \"Member: \" + text(team_is(arena))\n            send \"Inside: \" + text(allowed)\n          }\n        }\n      }\n    }\n  } else {\n    send \"Choose red or blue.\"\n  }\n}\non entity_damage permission \"aetherscript.example.arenas\" {\n  if world == \"minecraft:overworld\" && x >= 0 && x <= 15 && z >= 0 && z <= 15 {\n    send \"Damage blocked in red.\"\n    cancel\n  } else {\n    send \"Damage: \" + entity_type + \" \" + text(damage_milli)\n  }\n}\non entity_death permission \"aetherscript.example.arenas\" {\n  send \"Death: \" + entity_type + \" \" + entity_uuid\n}\n"
+  },
+  "addonSdk": {
+    "introduced": "0.0.27",
+    "service": "dev.aetherscript.paper.api.AddonService",
+    "lookup": "Bukkit ServicesManager.load(AddonService.class)",
+    "registration": "register(Plugin owner, text namespace, text version, List<Callable>)",
+    "unregistration": "unregister(Plugin owner)",
+    "callable": {
+      "fields": [
+        "name",
+        "parameters: List<ScriptType>",
+        "result: ScriptType",
+        "playerRequired: boolean",
+        "documentation: text",
+        "handler: Handler"
+      ],
+      "handler": "ScriptValue invoke(Call call, List<ScriptValue> arguments) throws Exception",
+      "context": [
+        "featureId",
+        "revision",
+        "actorId: UUID",
+        "player: Player"
+      ]
+    },
+    "naming": {
+      "script": "<namespace>_<callable>",
+      "idAndCapability": "addon.<namespace>.<callable>"
+    },
+    "execution": "Synchronous main server thread; command host calls only. Trusted Java plugin code must bound work and implement effect cleanup.",
+    "discovery": [
+      "installed()",
+      "descriptors()"
+    ],
+    "example": {
+      "plugin": "PersonalWeatherAddon",
+      "namespace": "sky",
+      "version": "1.0.0",
+      "signature": "sky_weather(text) -> text",
+      "capability": "addon.sky.weather",
+      "playerRequired": true,
+      "commandPermission": "aetherscript.example.personalweather",
+      "modes": [
+        "rain",
+        "clear",
+        "reset"
+      ],
+      "limits": {
+        "activeOverrides": 128,
+        "expiryTicks": 200
+      },
+      "cleanup": [
+        "expiry",
+        "explicit reset",
+        "player quit",
+        "addon disable"
+      ],
+      "source": "examples/addons/personal-weather-addon",
+      "script": "examples/personal-weather.aether"
+    }
   }
 }

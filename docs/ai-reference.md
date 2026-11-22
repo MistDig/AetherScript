@@ -411,6 +411,19 @@ Run `red score` while a red member inside red: red advances by one and blue stay
 
 The sample demonstrates independent bookkeeping and owned entities. It does not automatically prevent cross-arena combat or friendly fire, assign kills to arenas, or award score from a death event. Those acceptance criteria remain open. Verify each claimed gameplay effect on Paper separately from compiler validation.
 
+
+## Owner-installed Java addons (0.0.27)
+
+An addon is a trusted Bukkit Java plugin installed by the server owner. It obtains `dev.aetherscript.paper.api.AddonService` through Bukkit's service manager and registers a versioned namespace of typed callables. Each callable declares parameter/result `ScriptType`s, whether a player is required, documentation and a handler returning `ScriptValue`. The handler receives the invoking feature ID, revision, actor UUID and player. Registration is a main-thread atomic batch, and names cannot shadow builtins or another addon.
+
+A namespace `sky` and callable `weather` produce `sky_weather(text) -> text` and capability/ID `addon.sky.weather`. Scripts need explicit grants for the functions they call, in addition to their command permission. The installed descriptor catalogue provides the signatures used for compilation and discovery; obtain it from the connected server rather than guessing from an external package's name. Registration does not grant scripts access automatically. Call handlers execute on the Paper main thread, so bound work and keep blocking I/O out of them.
+
+The standalone PersonalWeatherAddon example uses the actual Paper player-weather API. Its script command requires `aetherscript.example.personalweather`; its sole addon grant is `addon.sky.weather`. `sky_weather("rain")` or `sky_weather("clear")` changes only the invoking player's weather for 200 server ticks; `sky_weather("reset")` restores their previous personal weather immediately. The addon bounds active overrides at 128 and restores them on expiry, quit and addon disable. Global world weather and other players are unaffected by the intended operation. Normal runtime cleanup must be verified on Paper.
+
+The addon must implement cleanup for effects it creates. `unregister(owner)` withdraws its callable catalogue; plugin disable also removes registration. Script reload or revocation prevents future invocations but does not automatically undo effects created by Java code. In the weather example, earlier effects expire through the addon's own timer. This SDK is an owner-installed extension mechanism, not remote code installation, dependency resolution or a sandbox for Java plugins. External package distribution and typed addon events remain separate scope unless implemented and verified explicitly.
+
+See the standalone example's README for the pinned Java 25/Paper build recipe, JAR installation, exact permission/grant commands and two-player acceptance checks. Compare actual installed signatures and addon versions before generating a script.
+
 ## Reference priority
 
 Use this current reference, discovered tool schemas and the bundled authoring contract for generation. The following full-guide appendix includes human tutorials, historical test records and explicitly planned work. Historical release examples do not add current capabilities.
@@ -564,4 +577,3 @@ command menushop permission "aetherscript.example.menushop" sender player {
   }
 }
 ```
-

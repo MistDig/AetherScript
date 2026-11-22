@@ -25,27 +25,33 @@ public final class RevisionStore {
     private final Path root, revisions, manifest;
     private final int retain;
     private final Faults faults;
+    private final java.util.function.Supplier<FeatureParser> parsers;
     private volatile State state;
     private volatile boolean directoryFlushSupported = true;
 
-    public RevisionStore(Path root, int retain) throws IOException { this(root, retain, boundary -> {}); }
-    public RevisionStore(Path root, int retain, Faults faults) throws IOException {
+    public RevisionStore(Path root, int retain) throws IOException { this(root, retain, boundary -> {}, FeatureParser::new); }
+    public RevisionStore(Path root, int retain, java.util.function.Supplier<FeatureParser> parsers) throws IOException { this(root, retain, boundary -> {}, parsers); }
+    public RevisionStore(Path root, int retain, Faults faults) throws IOException { this(root, retain, faults, FeatureParser::new); }
+    public RevisionStore(Path root, int retain, Faults faults, java.util.function.Supplier<FeatureParser> parsers) throws IOException {
+        this.parsers = Objects.requireNonNull(parsers, "parsers");
         if (retain < 1 || retain > 50) throw new IllegalArgumentException("retainVersions must be 1..50");
         this.root = root.toAbsolutePath().normalize(); this.retain = retain; this.faults = faults;
         safeDirectory(this.root); revisions = this.root.resolve("revisions"); safeDirectory(revisions);
         manifest = this.root.resolve("manifest.json");
         state = Files.exists(manifest, LinkOption.NOFOLLOW_LINKS) ? readState() : new State(0, Map.of());
     }
+    public FeatureParser parser() { return Objects.requireNonNull(parsers.get(), "parser supplier result"); }
     public State state() { return state; }
     public boolean directoryFlushSupported() { return directoryFlushSupported; }
     public int retainVersions() { return retain; }
 
     public Plan prepare(Map<String, SourceFile> updates, Set<String> deactivate) throws IOException { return prepare(updates, deactivate, Map.of()); }
-    public Plan prepare(Map<String, SourceFile> updates, Set<String> deactivate, Map<String, Long> recovered) throws IOException {
+    public Plan prepare(Map<String, SourceFile> updates, Set<String> deactivate, Map<String, Long> recovered) throws IOException { return prepare(updates, deactivate, recovered, parser()); }
+    public Plan prepare(Map<String, SourceFile> updates, Set<String> deactivate, Map<String, Long> recovered, FeatureParser parser) throws IOException {
         State before = state; Map<String, History> next = new TreeMap<>(before.features());
         for (var entry : new TreeMap<>(updates).entrySet()) {
             String id = entry.getKey(); FeatureParser.requireId(id); SourceFile source = entry.getValue();
-            CompiledFeature feature = source.compile();
+            CompiledFeature feature = source.compile(parser);
             if (!feature.definition().id().equals(id)) throw new ValidationException("$.id", "Source ID does not match revision ID");
             History old = next.getOrDefault(id, new History(1, 0, false, List.of()));
             Revision active = old.activeRevision();
@@ -74,13 +80,14 @@ public final class RevisionStore {
         return new Plan(before, new State(Math.incrementExact(before.sequence()), next));
     }
     public Plan rollback(String id) throws IOException {
+        FeatureParser parser = parser();
         FeatureParser.requireId(id); State before = state; History history = before.features().get(id);
         if (history == null) throw new ValidationException("$.id", "No saved history for this feature");
         List<Revision> candidates = history.revisions().stream().filter(r -> history.active() == 0 || r.number() < history.active())
             .sorted(Comparator.comparingLong(Revision::number).reversed()).toList();
         for (Revision revision : candidates) {
             try {
-                load(id, revision); // Revalidate against current schema and capability allowlist.
+                load(id, revision, parser); // Revalidate against current schema and capability allowlist.
                 Map<String, History> next = new TreeMap<>(before.features());
                 next.put(id, new History(history.nextNumber(), revision.number(), true, trim(history.revisions(), revision.number())));
                 return new Plan(before, new State(Math.incrementExact(before.sequence()), next));
@@ -90,22 +97,24 @@ public final class RevisionStore {
     }
     /** Recovery fallback checks active first, then earlier versions; never chooses an uncommitted source file. */
     public Saved recover(String id) throws IOException {
+        FeatureParser parser = parser();
         FeatureParser.requireId(id); History history = state.features().get(id);
         if (history == null || history.active() == 0) return null;
         List<Revision> candidates = new ArrayList<>();
         if (history.activeRevision() != null) candidates.add(history.activeRevision());
         history.revisions().stream().filter(r -> r.number() < history.active()).sorted(Comparator.comparingLong(Revision::number).reversed()).forEach(candidates::add);
         for (Revision revision : candidates) {
-            try { return load(id, revision); } catch (IOException | ValidationException ignored) { }
+            try { return load(id, revision, parser); } catch (IOException | ValidationException ignored) { }
         }
         throw new IOException("STORAGE_CORRUPT: no readable saved revision for " + id);
     }
-    public Saved load(String id, Revision revision) throws IOException {
+    public Saved load(String id, Revision revision) throws IOException { return load(id, revision, parser()); }
+    public Saved load(String id, Revision revision, FeatureParser parser) throws IOException {
         FeatureParser.requireId(id); validateRevision(revision);
         byte[] bytes = readBounded(sourcePath(id, revision.hash()), sourceLimit(revision.format()));
         if (!FeatureParser.hash(bytes).equals(revision.hash())) throw new IOException("STORAGE_CORRUPT: source checksum mismatch for " + id);
         SourceFile source = new SourceFile(id + "." + revision.format(), revision.format(), bytes);
-        CompiledFeature compiled = source.compile();
+        CompiledFeature compiled = source.compile(parser);
         if (!compiled.definition().id().equals(id)) throw new IOException("STORAGE_CORRUPT: source ID mismatch");
         return new Saved(revision, source, compiled);
     }

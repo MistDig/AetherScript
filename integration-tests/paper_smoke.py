@@ -19,6 +19,7 @@ parser.add_argument('--packages', action='store_true', help='Exercise a multi-fi
 parser.add_argument('--economy', action='store_true', help='Exercise a contested purchase and scoped transactions (requires --homes)')
 parser.add_argument('--menus', action='store_true', help='Exercise real inventory menu packets (requires --homes)')
 parser.add_argument('--arenas', action='store_true', help='Exercise owned entity, combat and arena behavior (requires --homes)')
+parser.add_argument('--addon-jar', type=Path, help='Exercise an independent Java addon (requires --homes)')
 parser.add_argument('--client-dir', type=Path, help='External pinned ViaProxy/client dependency directory for --homes')
 parser.add_argument('--pairing', action='store_true', help='Pair the packaged MCP with this disposable server and check live status and revocation')
 parser.add_argument('--relay-config', type=Path, help='Optional path to a private relay.json for a live remote script-management test')
@@ -51,6 +52,8 @@ if args.arenas and (not args.homes or args.events or args.kits or args.packages 
     parser.error('--arenas requires --homes and runs separately from the other player fixtures')
 if args.homes and (args.runtime_control or args.browser_only or args.browser_008 or args.pairing or args.relay_config):
     parser.error('--homes is a separate test mode')
+if args.addon_jar and (not args.homes or any((args.events,args.kits,args.packages,args.economy,args.menus,args.arenas))):
+    parser.error('--addon-jar requires --homes and runs alone')
 if not args.accept_eula:
     parser.error('Review https://aka.ms/MinecraftEULA and pass --accept-eula')
 repo = Path(__file__).resolve().parents[1]
@@ -64,6 +67,9 @@ version = re.search(r'^version=(.+)$', (repo/'gradle.properties').read_text(), r
 (server/'plugins').mkdir(parents=True)
 shutil.copy2(jar, server/'paper.jar')
 shutil.copy2(repo/'plugin-paper/build/libs'/f'plugin-paper-{version}.jar', server/'plugins/AetherScript.jar')
+addon = server/'plugins/PersonalWeatherAddon.jar' if args.addon_jar else None
+if addon:
+    shutil.copy2(args.addon_jar.resolve(), addon)
 (server/'eula.txt').write_text('eula=true\n')
 (server/'server.properties').write_text('server-ip=127.0.0.1\nserver-port=25591\nonline-mode=false\nenforce-secure-profile=false\nview-distance=2\nsimulation-distance=2\nmax-players=2\nlevel-type=minecraft:flat\ngenerate-structures=false\nspawn-protection=0\n')
 if args.homes or args.native_mcp:
@@ -181,7 +187,7 @@ if args.homes:
     from homes_workflow import verify
     try:
         verify(command, start, stop, server, repo, args.java, evidence, args.client_dir.resolve(),
-               events=args.events, kits=args.kits, packages=args.packages, economy=args.economy, menus=args.menus, arenas=args.arenas)
+               events=args.events, kits=args.kits, packages=args.packages, economy=args.economy, menus=args.menus, arenas=args.arenas, addon=addon)
     except Exception as error:
         evidence.append(dict(test='homes-smoke', result='fail', detail=str(error)))
     finally:
@@ -191,7 +197,7 @@ if args.homes:
     if any(item['result'] == 'fail' for item in evidence):
         print(evidence[-1]['detail'], flush=True)
         raise SystemExit(1)
-    fixture = 'arena' if args.arenas else 'menu' if args.menus else 'economy' if args.economy else 'quest package' if args.packages else 'kit' if args.kits else 'gameplay event' if args.events else 'homes'
+    fixture = 'addon' if addon else 'arena' if args.arenas else 'menu' if args.menus else 'economy' if args.economy else 'quest package' if args.packages else 'kit' if args.kits else 'gameplay event' if args.events else 'homes'
     print(f'PASS: {len(evidence)} {fixture} checks; translated protocol clients', flush=True)
     raise SystemExit(0)
 if args.runtime_control:

@@ -28,6 +28,7 @@ client.on('open_window', packet => { openWindow = { id: packet.windowId, stateId
 client.on('window_items', packet => { if (openWindow?.id === packet.windowId) openWindow.stateId = packet.stateId })
 client.on('set_slot', packet => { if (openWindow?.id === packet.windowId) openWindow.stateId = packet.stateId })
 client.on('close_window', packet => { openWindow = null; emit('menu_close', packet) })
+client.on('game_state_change', packet => emit('weather', packet))
 client.on('kick_disconnect', packet => emit('kick', { packet }))
 client.on('disconnect', packet => emit('kick', { packet }))
 client.on('error', error => emit('error', { message: error.message }))

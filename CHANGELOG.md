@@ -2,6 +2,14 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.27] - 2026-11-22
+
+- Add a public Bukkit service for owner-installed Java plugins to register versioned typed callables, discover descriptors and withdraw registration.
+- Require explicit per-function script capabilities and preserve live command context and return-type checks.
+- Add a standalone PersonalWeatherAddon with real Paper player-weather calls, compile-only build recipe and bounded restoration, plus a runnable script.
+- Java 25 passed 383 tests with one Windows link test skipped. The addon compiled independently against the packaged SDK. Packaged authoring, wiki examples, MCP stdio, legacy hashes and documentation checks passed.
+- Paper 26.3 build 245 passed 11 checks across two boots. An approved script produced a personal-weather packet through the separate addon. After addon removal, the diagnostic identified the unavailable function and unrelated scripts still ran.
+
 ## [0.0.26] - 2026-11-22
 
 

@@ -1,0 +1,5 @@
+feature personal-weather version "1.0.0"
+command personalweather permission "aetherscript.example.personalweather" sender player {
+  arg mode: text = "rain"
+  send sky_weather(mode)
+}

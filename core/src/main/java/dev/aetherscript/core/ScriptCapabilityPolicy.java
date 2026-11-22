@@ -12,24 +12,31 @@ public final class ScriptCapabilityPolicy {
     public static final String MESSAGE = "runtime.message.send";
     public static final int MAX_BYTES = 65536, MAX_FEATURES = 128, MAX_CAPABILITIES = 32;
     private final Path file;
-    private final Set<String> known;
+    private final java.util.function.Supplier<Set<String>> known;
     private volatile Map<String, Set<String>> grants;
 
     public ScriptCapabilityPolicy(Path file, Set<String> knownCapabilities) throws IOException {
+        this(file, fixed(knownCapabilities));
+    }
+    private static java.util.function.Supplier<Set<String>> fixed(Set<String> capabilities) {
+        Set<String> snapshot = Set.copyOf(capabilities);
+        return () -> snapshot;
+    }
+    public ScriptCapabilityPolicy(Path file, java.util.function.Supplier<Set<String>> knownCapabilities) throws IOException {
         this.file = Objects.requireNonNull(file).toAbsolutePath().normalize();
-        known = Set.copyOf(knownCapabilities);
-        if (!known.contains(MESSAGE)) throw new IllegalArgumentException("Message capability must be known");
+        known = Objects.requireNonNull(knownCapabilities);
+        if (!known.get().contains(MESSAGE)) throw new IllegalArgumentException("Message capability must be known");
         safeParent();
         grants = Files.exists(this.file, LinkOption.NOFOLLOW_LINKS) ? read() : Map.of();
     }
-    private ScriptCapabilityPolicy() { file = null; known = Set.of(MESSAGE); grants = Map.of(); }
+    private ScriptCapabilityPolicy() { file = null; known = () -> Set.of(MESSAGE); grants = Map.of(); }
     /** Corrupt storage can use this immutable ceiling while the owner repairs it. */
     public static ScriptCapabilityPolicy messageOnly() { return new ScriptCapabilityPolicy(); }
     public Set<String> allowed(String id) { FeatureParser.requireId(id); return grants.getOrDefault(id, Set.of(MESSAGE)); }
     public boolean configured(String id) { FeatureParser.requireId(id); return grants.containsKey(id); }
     /** A fresh browser grant authorizes new features; explicit local ceilings still take priority. */
     public void validateConnection(CompiledFeature feature, Set<String> capabilities) {
-        if (!known.containsAll(capabilities) || !capabilities.containsAll(feature.definition().requires()))
+        if (!known.get().containsAll(capabilities) || !capabilities.containsAll(feature.definition().requires()))
             throw new ValidationException("$.requires", "CONNECTION_CAPABILITY_DENIED: reconnect and approve the required supported script capabilities");
         if (file == null || configured(feature.definition().id())) validate(feature);
     }
@@ -49,7 +56,7 @@ public final class ScriptCapabilityPolicy {
         String id = feature.definition().id();
         Set<String> ceiling = allowed(id);
         for (String capability : feature.definition().requires()) {
-            if (!known.contains(capability) || !ceiling.contains(capability))
+            if (!known.get().contains(capability) || !ceiling.contains(capability))
                 throw new ValidationException("$.requires", "Capability " + capability + " is not owner-approved for " + id + "; edit scripts/" + id + ".aether or ask the owner to update its capability ceiling");
         }
     }
@@ -99,13 +106,16 @@ public final class ScriptCapabilityPolicy {
                 if (!values.isArray() || values.size() > MAX_CAPABILITIES) throw new IOException("Invalid capability array");
                 Set<String> caps = new HashSet<>();
                 for (JsonNode value : values) if (!value.isTextual() || !caps.add(value.textValue())) throw new IOException("Invalid or duplicate capability");
-                loaded.put(entry.getKey(), checked(caps));
+                var installed = known.get();
+                if (caps.stream().anyMatch(cap -> !installed.contains(cap) && !cap.matches("addon\\.[a-z][a-z0-9_]{0,23}\\.[a-z][a-z0-9_]{0,31}")))
+                    throw new IOException("Unknown stored capability");
+                loaded.put(entry.getKey(), Set.copyOf(caps));
             }
             return Collections.unmodifiableMap(loaded);
         } catch (Exception failure) { throw new IOException("CAPABILITY_POLICY_CORRUPT: repair owner capability policy " + file.getFileName(), failure); }
     }
     private Set<String> checked(Set<String> capabilities) {
-        if (capabilities.size() > MAX_CAPABILITIES || !known.containsAll(capabilities)) throw new IllegalArgumentException("Unknown capability or more than 32 capabilities");
+        if (capabilities.size() > MAX_CAPABILITIES || !known.get().containsAll(capabilities)) throw new IllegalArgumentException("Unknown capability or more than 32 capabilities");
         return Set.copyOf(capabilities);
     }
     private static Map<String, List<String>> canonical(Map<String, Set<String>> values) {

@@ -169,14 +169,16 @@ final class GameplayRuntime implements AutoCloseable, Listener {
     private final PaperItems items;
     private final PaperMenus menus;
     private final PaperEntities ownedEntities;
+    private final PaperAddons addons;
     private volatile KitCooldowns kitCooldowns;
     private volatile SQLiteVariables state; // Accessed by the single existing plugin I/O worker.
     private volatile SQLiteVariables sharedState;
 
     GameplayRuntime(JavaPlugin plugin, Registry registry, ExecutorService io, RemoteScripts.Main main,
-                    Supplier<ScriptCapabilityPolicy> policy, BooleanSupplier ready, Path directory) {
+                    Supplier<ScriptCapabilityPolicy> policy, BooleanSupplier ready, Path directory, PaperAddons addons) {
         this.plugin = plugin; this.registry = registry; this.io = io; this.main = main;
         this.policy = policy; this.ready = ready; this.stateDirectory = directory;
+        this.addons = addons;
         this.worldDisplays = new PaperWorldDisplays(plugin.getServer());
         this.items = new PaperItems(plugin);
         this.menus = new PaperMenus(plugin);
@@ -215,8 +217,9 @@ final class GameplayRuntime implements AutoCloseable, Listener {
     }
     private boolean revisionActive(String id, String revision) {
         var feature = registry.snapshot().features().get(id);
-        return feature != null && feature.sourceHash().equals(revision)
-            && policy.get().allowed(id).containsAll(feature.definition().requires());
+        if (feature == null || !feature.sourceHash().equals(revision)) return false;
+        try { policy.get().validate(feature); return true; }
+        catch (ValidationException denied) { return false; }
     }
     @EventHandler public void quit(PlayerQuitEvent event) {
         UUID actor = event.getPlayer().getUniqueId();
@@ -258,9 +261,7 @@ final class GameplayRuntime implements AutoCloseable, Listener {
         }
         boolean current(boolean withDeadline) {
             if (closed || cancelled.get() || job != null && (!job.alive.getAsBoolean() || System.nanoTime() >= job.expires) || !Objects.equals(session, sessions.get(actor)) || withDeadline && System.nanoTime() >= deadline) return false;
-            CompiledFeature current = registry.snapshot().features().get(feature.definition().id());
-            return current != null && current.sourceHash().equals(feature.sourceHash())
-                && policy.get().allowed(feature.definition().id()).containsAll(feature.definition().requires());
+            return revisionActive(feature.definition().id(), feature.sourceHash());
         }
         Player player() {
             if (!current(true)) throw error("INVOCATION_RETIRED: revision, capability or deadline changed");
@@ -389,7 +390,10 @@ final class GameplayRuntime implements AutoCloseable, Listener {
                         return unit();
                     });
                 }
-                default -> throw error("UNSUPPORTED_HOST_OPERATION");
+                default -> {
+                    if (!descriptor.id().startsWith("addon.")) throw error("UNSUPPORTED_HOST_OPERATION");
+                    yield main.call(() -> addons.invoke(descriptor, values, context, player()));
+                }
             };
         }
         private ScriptValue chooseMenu(List<ScriptValue> values) throws Exception {

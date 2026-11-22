@@ -1,6 +1,7 @@
 package dev.aetherscript.paper;
 
 import dev.aetherscript.core.*;
+import dev.aetherscript.paper.api.AddonService;
 import net.kyori.adventure.text.Component;
 import org.bukkit.command.*;
 import org.bukkit.entity.Player;
@@ -23,6 +24,9 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
     private volatile EventRuntime events;
     private volatile ScriptCapabilityPolicy scriptPolicy = ScriptCapabilityPolicy.messageOnly();
     private volatile GameplayRuntime gameplay;
+    private PaperAddons addons;
+    private volatile FeatureParser parser = new FeatureParser();
+    private volatile Set<String> capabilities;
     private AuditLog audit;
     private PairedStatusBridge bridge;
     private volatile CloudRelayConnector cloud;
@@ -33,6 +37,10 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
 
     @Override public void onEnable() {
         running = true; busy.set(true);
+        addons = new PaperAddons(getServer(), StandardCallables.create().descriptors(), this::refreshAddons);
+        refreshAddons();
+        getServer().getPluginManager().registerEvents(addons, this);
+        getServer().getServicesManager().register(AddonService.class, addons, this, org.bukkit.plugin.ServicePriority.Normal);
         featureCommands = new FeatureCommands(getServer().getCommandMap(), registry, () -> ready, this::runFeature);
         Objects.requireNonNull(getCommand("ais")).setExecutor(this);
         Objects.requireNonNull(getCommand("ais")).setTabCompleter((s,c,a,args) -> List.of());
@@ -58,16 +66,16 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
                 copyDefault("examples/starter-protection.aether", examples.resolve("starter-protection.aether"));
                 EngineSettings settings = EngineSettings.load(data.resolve("config.yml"));
                 audit = new AuditLog(data.resolve("audit/local.jsonl"));
-                try { scriptPolicy = new ScriptCapabilityPolicy(data.resolve("script-capabilities.json"), executionCapabilities()); }
+                try { scriptPolicy = new ScriptCapabilityPolicy(data.resolve("script-capabilities.json"), this::executionCapabilities); }
                 catch (IOException failure) { getLogger().warning("Gameplay capability policy unavailable; message-only scripts remain enabled. Repair script-capabilities.json from an owner backup."); }
                 gameplay = onMain(() -> new GameplayRuntime(this, registry, io, new RemoteScripts.Main() {
                     public <T> T call(Callable<T> action) throws Exception { return onMain(action); }
-                }, () -> scriptPolicy, () -> ready, data.resolve("player-state")));
+                }, () -> scriptPolicy, () -> ready, data.resolve("player-state"), addons));
                 events = onMain(() -> {
                     EventRuntime listener = new EventRuntime(registry, () -> scriptPolicy, () -> ready, getLogger()::warning);
                     getServer().getPluginManager().registerEvents(listener, this); return listener;
                 });
-                manager = new FeatureManager(new ScriptStore(data.resolve("scripts")), new RevisionStore(data.resolve("storage"), settings.retainVersions()), feature -> scriptPolicy.validate(feature));
+                manager = new FeatureManager(new ScriptStore(data.resolve("scripts"), () -> parser), new RevisionStore(data.resolve("storage"), settings.retainVersions(), () -> parser), feature -> scriptPolicy.validate(feature));
                 var startup = manager.startup();
                 apply(null, "server", "startup", UUID.randomUUID().toString(), registry.snapshot(), startup);
                 onMain(() -> {
@@ -99,6 +107,10 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
         running = false; ready = false;
         if (events != null) events.close();
         if (gameplay != null) gameplay.close();
+        if (addons != null) {
+            getServer().getServicesManager().unregister(AddonService.class, addons);
+            addons.close();
+        }
         if (featureCommands != null) featureCommands.close();
         connectionServices.values().forEach(RemoteScripts::revoke); connectionServices.clear();
         if (shared != null) { shared.close(); shared = null; }
@@ -131,11 +143,16 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
         });
     }
     private String principal(CommandSender sender) { return sender instanceof Player p ? "player:" + p.getUniqueId() : "local:" + sender.getName(); }
-    private static Set<String> executionCapabilities() {
-        Set<String> capabilities = new TreeSet<>(remoteCapabilities());
-        StandardCallables.create().descriptors().forEach(call -> capabilities.addAll(call.requiredCapabilities()));
-        capabilities.addAll(CompiledFeature.EVENT_CAPABILITIES);
-        return Set.copyOf(capabilities);
+    private Set<String> executionCapabilities() { return capabilities; }
+    private void refreshAddons() {
+        CallableRegistry catalog = StandardCallables.create();
+        addons.descriptors().forEach(catalog::register);
+        Set<String> installed = new TreeSet<>(remoteCapabilities());
+        catalog.descriptors().forEach(call -> installed.addAll(call.requiredCapabilities()));
+        installed.addAll(CompiledFeature.EVENT_CAPABILITIES);
+        capabilities = Set.copyOf(installed);
+        parser = new FeatureParser(catalog);
+        if (running && gameplay != null) gameplay.reconcile();
     }
     /** Relay protocol v2 retains its established capability allowlist. */
     private static Set<String> remoteCapabilities() {
@@ -359,7 +376,9 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
     }
     private void apply(CommandSender sender, String who, String operation, String request, Registry.Snapshot before, FeatureManager.Change change, Runnable authorized) throws Exception {
         authorized.run();
-        if (!change.durable().changed() && before.features().equals(change.target())) {
+        boolean rebind = operation.equals("reload") && change.target().values().stream().anyMatch(
+            feature -> feature.definition().requires().stream().anyMatch(cap -> cap.startsWith("addon.")));
+        if (!rebind && !change.durable().changed() && before.features().equals(change.target())) {
             audit.append(request, who, operation, "UNCHANGED", before.generation(), before.features());
             List<String> messages = new ArrayList<>(change.messages());
             messages.add("UNCHANGED: no new revision; generation=" + before.generation());
@@ -434,7 +453,8 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
                 public Map<String, Object> describe() {
                     return Map.of("enabled", true, "capabilities", grant.capabilities().stream().sorted().toList(), "testPlayerId", grant.testPlayerId(),
                         "testMode", "Real player, asynchronous job; poll aether_scripts_test_status for actual messages, errors and effect receipts",
-                        "localOwnerCeilings", "Explicit ais permit/restrict ceilings override connection permissions");
+                        "localOwnerCeilings", "Explicit ais permit/restrict ceilings override connection permissions",
+                        "installedAddons", addons.installed());
                 }
             });
         });

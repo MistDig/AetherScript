@@ -23,15 +23,17 @@ public final class FeatureManager {
     /** Recheck an active program against the current owner policy before synthetic execution. */
     public void authorize(CompiledFeature feature) { policy.accept(feature); }
     public Change prepareText(String id, String text, Registry.Snapshot current) throws IOException {
-        CompiledFeature compiled = validateText(id, text, current);
+        FeatureParser parser = scripts.parser();
+        CompiledFeature compiled = validateText(id, text, current, parser);
         var source = new SourceFile(id + ".aether", "aether", text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         Map<String, CompiledFeature> target = new TreeMap<>(current.features()); target.put(id, compiled);
-        return new Change(store.prepare(Map.of(id, source), Set.of()), target, List.of());
+        return new Change(store.prepare(Map.of(id, source), Set.of(), Map.of(), parser), target, List.of());
     }
-    public CompiledFeature validateText(String id, String text, Registry.Snapshot current) {
+    public CompiledFeature validateText(String id, String text, Registry.Snapshot current) { return validateText(id, text, current, scripts.parser()); }
+    private CompiledFeature validateText(String id, String text, Registry.Snapshot current, FeatureParser parser) {
         FeatureParser.requireId(id);
         var source = new SourceFile(id + ".aether", "aether", text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        var compiled = source.compile();
+        var compiled = source.compile(parser);
         if (!id.equals(compiled.definition().id())) throw new ValidationException("$.id", "ID must match target");
         Map<String, CompiledFeature> target = new TreeMap<>(current.features()); target.put(id, compiled); validateTarget(target);
         return compiled;
@@ -40,7 +42,8 @@ public final class FeatureManager {
     private static boolean eventOnly(CompiledFeature feature) { return feature.program() != null && feature.program().eventOnly(); }
     public Change startup() throws IOException {
         scripts.recoverRemoteIntents(store);
-        Map<String, ScriptStore.Inspection> files = scripts.inspect(null);
+        FeatureParser parser = scripts.parser();
+        Map<String, ScriptStore.Inspection> files = scripts.inspect(null, parser);
         Map<String, CompiledFeature> target = new TreeMap<>();
         Map<String, SourceFile> updates = new TreeMap<>();
         Map<String, Long> recovered = new TreeMap<>();
@@ -64,7 +67,7 @@ public final class FeatureManager {
             else if (file != null && !file.valid()) messages.addAll(diagnostic(file));
             else if (file != null && file.valid() && !held) messages.add(id + ": duplicate command name in editable files; trying saved version");
             try {
-                RevisionStore.Saved saved = recoverAuthorized(id);
+                RevisionStore.Saved saved = recoverAuthorized(id, parser);
                 if (saved != null) {
                     Map<String, CompiledFeature> candidate = new TreeMap<>(target); candidate.put(id, saved.compiled()); validateTarget(candidate);
                     target.put(id, saved.compiled()); recovered.put(id, saved.revision().number());
@@ -76,15 +79,16 @@ public final class FeatureManager {
                 messages.add(display(id) + ": DISABLED - no readable, valid, nonconflicting saved revision");
             }
         }
-        return new Change(store.prepare(updates, deactivate, recovered), target, messages);
+        return new Change(store.prepare(updates, deactivate, recovered, parser), target, messages);
     }
     public Change reload(String selected, Registry.Snapshot current) throws IOException {
-        var files = validatedFiles(selected);
+        FeatureParser parser = scripts.parser();
+        var files = validatedFiles(selected, parser);
         Map<String, CompiledFeature> target = candidate(files, selected, current);
         Map<String, SourceFile> updates = new TreeMap<>(); files.forEach((id, file) -> updates.put(id, file.source()));
         Set<String> deactivate = new HashSet<>();
         if (selected == null) { deactivate.addAll(current.features().keySet()); deactivate.removeAll(target.keySet()); }
-        return new Change(store.prepare(updates, deactivate), target, List.of());
+        return new Change(store.prepare(updates, deactivate, Map.of(), parser), target, List.of());
     }
     public int validate(String selected, Registry.Snapshot current) throws IOException {
         var files = validatedFiles(selected); candidate(files, selected, current); return files.size();
@@ -97,8 +101,9 @@ public final class FeatureManager {
             "Editable file was not overwritten. /ais diff " + id + " shows the difference.",
             "Rollback stays active across restarts until you explicitly reload this feature."));
     }
-    private Map<String, ScriptStore.Inspection> validatedFiles(String selected) throws IOException {
-        var files = scripts.inspect(selected); List<String> diagnostics = new ArrayList<>();
+    private Map<String, ScriptStore.Inspection> validatedFiles(String selected) throws IOException { return validatedFiles(selected, scripts.parser()); }
+    private Map<String, ScriptStore.Inspection> validatedFiles(String selected, FeatureParser parser) throws IOException {
+        var files = scripts.inspect(selected, parser); List<String> diagnostics = new ArrayList<>();
         files.values().stream().filter(f -> !f.valid()).forEach(f -> diagnostics.addAll(diagnostic(f)));
         if (!diagnostics.isEmpty()) throw new Rejected(diagnostics);
         return files;
@@ -108,12 +113,12 @@ public final class FeatureManager {
         files.forEach((id, file) -> target.put(id, file.compiled())); validateTarget(target); return target;
     }
     private void validateTarget(Map<String, CompiledFeature> target) { target.values().forEach(policy); new Registry().replace(0, target); }
-    private RevisionStore.Saved recoverAuthorized(String id) throws IOException {
+    private RevisionStore.Saved recoverAuthorized(String id, FeatureParser parser) throws IOException {
         FeatureParser.requireId(id); var history = store.state().features().get(id);
         if (history == null || history.active() == 0) return null;
         var revisions = history.revisions().stream().filter(r -> r.number() <= history.active()).sorted(Comparator.comparingLong(RevisionStore.Revision::number).reversed()).toList();
         for (var revision : revisions) {
-            try { var saved = store.load(id, revision); policy.accept(saved.compiled()); return saved; }
+            try { var saved = store.load(id, revision, parser); policy.accept(saved.compiled()); return saved; }
             catch (IOException | ValidationException ignored) { }
         }
         throw new IOException("No authorized saved revision for " + id);
