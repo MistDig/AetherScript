@@ -30,7 +30,9 @@
     "world.weather.write",
     "state.shared.read",
     "state.shared.write",
-    "player.identity.self"
+    "player.identity.self",
+    "player.menu",
+    "player.inventory.exchange"
   ],
   "authoringRules": [
     "Match the feature ID to the filename.",
@@ -373,8 +375,8 @@
       "cooldown",
       "inventory_full"
     ],
-    "scope": "Invoking player storage slots only, excluding armor/offhand. Plain material items without ItemMeta; metadata items preserved and excluded from checks/removal/merging. Player commands only; unavailable in synchronous events.",
-    "failureSemantics": "Insufficient capacity/items leaves inventory unchanged. Full inventory preserves kit claim. Failed delivery compensates reservation. Crash after reservation before delivery can consume cooldown without reward; SQLite/player inventory share no transaction.",
+    "scope": "Invoking player storage slots only, excluding armor/offhand. Plain descriptors match plain items; custom descriptors match exact feature-owned ID, material and name. Unrelated metadata is preserved and excluded. Player commands only; unavailable in synchronous events.",
+    "failureSemantics": "Insufficient capacity/items leaves inventory unchanged. Full inventory preserves kit claim. Failed delivery compensates reservation. Crash after reservation before delivery can consume cooldown without reward; SQLite/player inventory share no transaction. kit_claim accepts plain descriptors only; custom bundles are rejected.",
     "clock": "Persisted wall-clock expiry isolated by feature/player/key; clock changes affect remaining duration. Fixed key required for daily limits.",
     "itemValues": "Equality, list/map values and persistence supported; item set elements/map keys unsupported."
   },
@@ -459,7 +461,7 @@
       {
         "signature": "bossbar_clear() -> unit",
         "capability": "player.display",
-        "description": "Clear this revision’s boss bar."
+        "description": "Clear this revision\u00e2\u20ac\u2122s boss bar."
       },
       {
         "signature": "scoreboard(list<text>) -> unit",
@@ -469,7 +471,7 @@
       {
         "signature": "scoreboard_clear() -> unit",
         "capability": "player.display",
-        "description": "Clear this revision’s scoreboard and restore the previous scoreboard when still active."
+        "description": "Clear this revision\u00e2\u20ac\u2122s scoreboard and restore the previous scoreboard when still active."
       }
     ],
     "timer": {
@@ -572,5 +574,39 @@
       "encodedValueBytes": 4096
     },
     "worldAuthority": "World UUID is captured when the player invocation starts."
+  },
+  "menusAndCustomItems": {
+    "introduced": "0.0.25",
+    "callables": [
+      {
+        "signature": "custom_item(id: text, material: text, name: text, amount: integer) -> item",
+        "capability": null,
+        "behavior": "Pure immutable descriptor; local ID is scoped by feature ID."
+      },
+      {
+        "signature": "menu_choose(title: text, items: list<item>) -> integer",
+        "capability": "player.menu",
+        "behavior": "Suspend player invocation; zero-based selected slot; -1 on close or replacement. Automatic chest rows."
+      },
+      {
+        "signature": "inventory_exchange(payment: item, reward: item) -> boolean",
+        "capability": "player.inventory.exchange",
+        "behavior": "One invoking-player storage inventory exchange: remove all payment and insert all reward, or leave inventory unchanged and return false."
+      }
+    ],
+    "limits": {
+      "localIdPattern": "[a-z][a-z0-9_]{0,63}",
+      "nameCharacters": "1..128",
+      "itemAmount": "1..2304",
+      "titleCharacters": "1..128",
+      "menuItems": "1..54",
+      "menuStack": "At most the material maximum stack size per slot."
+    },
+    "interaction": "Cancel all movement while the menu is open, including shift-click, drag, double-click, number-key and offhand transfers. Only normal left/right clicks on populated top slots select. Displayed items are previews, never inventory rewards.",
+    "lifecycle": "Owner session/revision authority is checked before continuation; quit, cancellation and revision retirement close owned menus. Menus are transient.",
+    "persistence": "Custom item descriptors support equality and typed state persistence. Stable identity is feature ID plus local custom ID; changing either creates another identity.",
+    "transactionBoundary": "inventory_exchange is atomic within the player storage inventory during the host operation. It does not transact with durable state or external systems.",
+    "exampleFile": "examples/menu-shop.aether",
+    "example": "feature menu-shop version \"1.0.0\"\ncommand menushop permission \"aetherscript.example.menushop\" sender player {\n  let reward = custom_item(\"cloud_token\", \"minecraft:paper\", \"Cloud token\", 1)\n  let choice = menu_choose(\"Cloud shop: token costs 1 emerald\", [reward])\n  if choice == 0 {\n    if inventory_exchange(item(\"minecraft:emerald\", 1), reward) {\n      send \"Purchased one Cloud token.\"\n    } else {\n      send \"You need one plain emerald and space for a Cloud token.\"\n    }\n  } else {\n    send \"Shop closed.\"\n  }\n}\n"
   }
 }

@@ -27,10 +27,20 @@ public record ScriptValue(ScriptType type, Object value) {
                 throw new IllegalArgumentException("Block outside supported world coordinate bounds");
         }
     }
-    /** Plain vanilla material descriptor; platform validation occurs at the inventory boundary. */
-    public record ItemDescriptor(String material, int amount) {
+    /** Immutable vanilla or feature-owned custom item descriptor. */
+    public record ItemDescriptor(String material, int amount, String featureId, String customId, String displayName) {
+        public ItemDescriptor(String material, int amount) { this(material, amount, null, null, null); }
+        public boolean custom() { return customId != null; }
+        @Override public String toString() {
+            return "ItemDescriptor[material=" + material + ", amount=" + amount + (custom() ? ", featureId=" + featureId + ", customId=" + customId + ", displayName=" + displayName : "") + "]";
+        }
         public ItemDescriptor {
             Objects.requireNonNull(material, "material");
+            if (featureId != null || customId != null || displayName != null) {
+                Objects.requireNonNull(featureId, "featureId"); FeatureParser.requireId(featureId);
+                if (customId == null || !customId.matches("[a-z][a-z0-9_]{0,63}")) throw new IllegalArgumentException("Custom item id must be a lowercase local identifier of 1..64 characters");
+                if (displayName == null || displayName.isBlank() || displayName.length() > 128 || displayName.codePoints().anyMatch(Character::isISOControl)) throw new IllegalArgumentException("Custom item name must be 1..128 visible characters");
+            }
             if (!material.matches("(?:minecraft:)?[a-z0-9_]{1,128}")) throw new IllegalArgumentException("Item material must be a vanilla lowercase material key");
             if (!material.startsWith("minecraft:")) material = "minecraft:" + material;
             if (amount < 1 || amount > 2304) throw new IllegalArgumentException("Item amount must be 1..2304");

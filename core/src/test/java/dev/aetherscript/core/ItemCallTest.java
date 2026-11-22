@@ -40,6 +40,35 @@ class ItemCallTest {
         }
         assertEquals(List.of("inventory_has", "inventory_give", "inventory_remove", "kit_claim", "claimed"), called);
     }
+    @Test void customItemsKeepPlainWireBytesAndRoundTripInCollections() {
+        var plain = new ScriptValue(ScriptType.ITEM, new ScriptValue.ItemDescriptor("bread", 16));
+        assertEquals("ASV1:CgAPbWluZWNyYWZ0OmJyZWFkAAAAEA==", ScriptValueCodec.encode(plain));
+        var custom = new ScriptValue(ScriptType.ITEM, new ScriptValue.ItemDescriptor("emerald", 2, "kits", "token", "Shop Token"));
+        assertTrue(custom.item().custom()); assertFalse(plain.item().custom());
+        assertEquals(custom, ScriptValueCodec.decode(ScriptValueCodec.encode(custom)));
+        var mixed = new ScriptValue(ScriptType.list(ScriptType.ITEM), List.of(plain, custom, plain));
+        assertEquals(mixed, ScriptValueCodec.decode(ScriptValueCodec.encode(mixed)));
+        assertNotEquals(custom, new ScriptValue(ScriptType.ITEM, new ScriptValue.ItemDescriptor("emerald", 2, "other", "token", "Shop Token")));
+        for (String id : List.of("", "Bad", "other:token", "a".repeat(65)))
+            assertThrows(IllegalArgumentException.class, () -> new ScriptValue.ItemDescriptor("emerald", 1, "kits", id, "Token"));
+        for (String name : List.of("", " ", "a".repeat(129), "bad\nname"))
+            assertThrows(IllegalArgumentException.class, () -> new ScriptValue.ItemDescriptor("emerald", 1, "kits", "token", name));
+    }
+    @Test void customConstructorAndMenuExchangeHaveTypedMetadata() throws Exception {
+        var compiled = compile("let token = custom_item(\"token\", \"emerald\", \"Shop Token\", 2)\nlet slot = menu_choose(\"Shop\", [token])\nlet bought = inventory_exchange(token, item(\"bread\", 1))");
+        assertEquals(Set.of("player.menu", "player.inventory.exchange", "runtime.message.send"), Set.copyOf(compiled.definition().requires()));
+        var context = new InvocationContext("kits", "rev", UUID.randomUUID(), Set.copyOf(compiled.definition().requires()), new ExecutionBudget(), () -> true,
+            (descriptor, args, invocation) -> {
+                var custom = descriptor.dslName().equals("menu_choose") ? args.get(1).list().getFirst().item() : args.getFirst().item();
+                assertEquals("kits", custom.featureId()); assertEquals("token", custom.customId()); assertEquals("Shop Token", custom.displayName());
+                return descriptor.dslName().equals("menu_choose") ? new ScriptValue(ScriptType.INTEGER, -1L) : new ScriptValue(ScriptType.BOOLEAN, true);
+            }, message -> {});
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) { executor.submit(() -> compiled.program().evaluate(List.of(), context)).get(); }
+        assertThrows(ValidationException.class, () -> compile("let bad = custom_item(1, \"bread\", \"Name\", 1)"));
+        assertThrows(ValidationException.class, () -> compile("let bad = custom_item(\"token\", \"bread\", \"Name\", 0)").program().evaluate(List.of()));
+        assertThrows(ValidationException.class, () -> compile("let bad = menu_choose(\"Shop\", [1])"));
+        assertThrows(ValidationException.class, () -> compile("let bad = inventory_exchange(item(\"bread\", 1), \"bread\")"));
+    }
     @Test void wrongTypesAndAmountsFailBeforeInventory() {
         assertThrows(ValidationException.class, () -> compile("let bad = item(1, 1)"));
         assertThrows(ValidationException.class, () -> compile("let bad = inventory_give(\"bread\")"));

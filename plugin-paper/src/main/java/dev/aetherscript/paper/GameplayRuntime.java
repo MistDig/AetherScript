@@ -166,6 +166,8 @@ final class GameplayRuntime implements AutoCloseable, Listener {
     }
     private volatile boolean closed;
     private final PaperWorldDisplays worldDisplays;
+    private final PaperItems items;
+    private final PaperMenus menus;
     private volatile KitCooldowns kitCooldowns;
     private volatile SQLiteVariables state; // Accessed by the single existing plugin I/O worker.
     private volatile SQLiteVariables sharedState;
@@ -175,6 +177,8 @@ final class GameplayRuntime implements AutoCloseable, Listener {
         this.plugin = plugin; this.registry = registry; this.io = io; this.main = main;
         this.policy = policy; this.ready = ready; this.stateDirectory = directory;
         this.worldDisplays = new PaperWorldDisplays(plugin.getServer());
+        this.items = new PaperItems(plugin);
+        this.menus = new PaperMenus(plugin);
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
         testExpiry.scheduleAtFixedRate(this::expireTests, 1, 1, TimeUnit.SECONDS);
     }
@@ -202,12 +206,13 @@ final class GameplayRuntime implements AutoCloseable, Listener {
     void reconcile() {
         expireTests();
         for (Run run : active) if (!run.current(false)) run.cancel();
-        var snapshot = registry.snapshot();
-        worldDisplays.reconcile(owner -> {
-            var feature = snapshot.features().get(owner.feature());
-            return feature != null && feature.sourceHash().equals(owner.revision())
-                && policy.get().allowed(owner.feature()).containsAll(feature.definition().requires());
-        });
+        worldDisplays.reconcile(owner -> revisionActive(owner.feature(), owner.revision()));
+        menus.reconcile(owner -> revisionActive(owner.feature(), owner.revision()));
+    }
+    private boolean revisionActive(String id, String revision) {
+        var feature = registry.snapshot().features().get(id);
+        return feature != null && feature.sourceHash().equals(revision)
+            && policy.get().allowed(id).containsAll(feature.definition().requires());
     }
     @EventHandler public void quit(PlayerQuitEvent event) {
         UUID actor = event.getPlayer().getUniqueId();
@@ -230,6 +235,7 @@ final class GameplayRuntime implements AutoCloseable, Listener {
         final Map<PersistentVariables.Key, Long> revisions = new HashMap<>(); // I/O worker confined.
         final Map<PersistentVariables.Key, SharedRead> sharedReads = new HashMap<>();
         final UUID startingWorld;
+        final UUID invocation = UUID.randomUUID();
         final InvocationContext context;
         volatile Thread worker;
         Run(CompiledFeature feature, UUID actor, UUID startingWorld, List<String> arguments, TestJob job) {
@@ -322,19 +328,16 @@ final class GameplayRuntime implements AutoCloseable, Listener {
                     Location place = player().getLocation();
                     return new ScriptValue(ScriptType.LOCATION, new ScriptValue.LocationSnapshot(place.getWorld().getUID(), place.getX(), place.getY(), place.getZ(), place.getYaw(), place.getPitch()));
                 });
-                case "player.inventory.has", "player.inventory.give", "player.inventory.remove" -> main.call(() -> {
+                case "player.inventory.has", "player.inventory.give", "player.inventory.remove", "player.inventory.exchange" -> main.call(() -> {
                     Player actorPlayer = player();
-                    var inventory = actorPlayer.getInventory();
-                    var item = inventoryItem(values.getFirst().item(), inventory.getMaxStackSize());
-                    var original = inventory.getStorageContents();
-                    var slots = inventorySlots(original, inventory.getMaxStackSize());
-                    if (descriptor.id().equals("player.inventory.has")) return new ScriptValue(ScriptType.BOOLEAN, InventoryPlan.has(slots, item));
-                    var plan = descriptor.id().equals("player.inventory.give") ? InventoryPlan.give(slots, List.of(item)) : InventoryPlan.remove(slots, item);
-                    if (plan == null) return new ScriptValue(ScriptType.BOOLEAN, false);
-                    inventory.setStorageContents(inventoryContents(original, slots, plan));
-                    receipt(Map.of("operation", descriptor.id(), "material", item.material(), "amount", item.amount(), "delivered", true));
-                    return new ScriptValue(ScriptType.BOOLEAN, true);
+                    boolean succeeded = items.inventory(descriptor.id(), actorPlayer.getInventory(), values, feature.definition().id());
+                    if (succeeded && !descriptor.id().equals("player.inventory.has")) {
+                        var item = values.getFirst().item();
+                        receipt(Map.of("operation", descriptor.id(), "material", item.material(), "amount", item.amount(), "delivered", true));
+                    }
+                    return new ScriptValue(ScriptType.BOOLEAN, succeeded);
                 });
+                case "player.menu.choose" -> chooseMenu(values);
                 case "player.kit.claim" -> claimKit(values);
                 case "player.identity.self" -> new ScriptValue(ScriptType.TEXT, "p" + actor.toString().replace("-", ""));
                 case "state.shared.read", "state.shared.commit" -> shared(descriptor.id(), values);
@@ -380,10 +383,25 @@ final class GameplayRuntime implements AutoCloseable, Listener {
                 default -> throw error("UNSUPPORTED_HOST_OPERATION");
             };
         }
+        private ScriptValue chooseMenu(List<ScriptValue> values) throws Exception {
+            String id = feature.definition().id();
+            var owner = new PaperMenus.Owner(id, feature.sourceHash(), invocation);
+            var options = values.get(1).list();
+            PaperMenus.size(values.getFirst().text(), options.size());
+            var result = main.call(() -> menus.choose(player(), owner, values.getFirst().text(),
+                options.stream().map(value -> items.icon(value.item(), id)).toList(), () -> {
+                    try { player(); return true; }
+                    catch (ValidationException denied) { return false; }
+                }));
+            int slot = await(result, () -> plugin.getServer().getScheduler().runTask(plugin, () -> menus.cancel(owner)));
+            return new ScriptValue(ScriptType.INTEGER, (long) slot);
+        }
         ScriptValue claimKit(List<ScriptValue> values) throws Exception {
             String name = values.getFirst().text(); long seconds = values.get(2).integer();
             if (!name.matches("[a-z][a-z0-9_]{0,63}") || seconds < 1 || seconds > 31536000) throw error("KIT_ARGUMENT_INVALID");
             var descriptors = values.get(1).list();
+            if (descriptors.stream().anyMatch(value -> value.item().custom()))
+                throw error("KIT_CUSTOM_ITEM_UNAVAILABLE: use plain material kit items");
             if (descriptors.isEmpty() || descriptors.size() > 64) throw error("KIT_ARGUMENT_INVALID: expected 1..64 items");
             // The worker owns reservation and compensation through completion, even after await is cancelled.
             CompletableFuture<ScriptValue> result = new CompletableFuture<>();
@@ -577,6 +595,7 @@ final class GameplayRuntime implements AutoCloseable, Listener {
         return result;
     }
     @Override public void close() {
+        menus.close();
         worldDisplays.reconcile(owner -> false);
         closed = true; testExpiry.shutdownNow(); sessions.clear(); active.forEach(Run::cancel); interpreters.shutdownNow(); HandlerList.unregisterAll(this);
     }

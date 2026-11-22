@@ -23,6 +23,11 @@ for (const name of ['systemChat', 'playerChat']) client.on(name, packet => emit(
 for (const name of ['action_bar', 'set_title_text', 'boss_bar', 'scoreboard_objective', 'sound_effect']) {
   client.on(name, packet => emit('display', { kind: name, packet }))
 }
+let openWindow = null
+client.on('open_window', packet => { openWindow = { id: packet.windowId, stateId: 0 }; emit('menu_open', packet) })
+client.on('window_items', packet => { if (openWindow?.id === packet.windowId) openWindow.stateId = packet.stateId })
+client.on('set_slot', packet => { if (openWindow?.id === packet.windowId) openWindow.stateId = packet.stateId })
+client.on('close_window', packet => { openWindow = null; emit('menu_close', packet) })
 client.on('kick_disconnect', packet => emit('kick', { packet }))
 client.on('disconnect', packet => emit('kick', { packet }))
 client.on('error', error => emit('error', { message: error.message }))
@@ -38,6 +43,16 @@ readline.createInterface({ input: process.stdin }).on('line', line => {
     const request = JSON.parse(line)
     if (request.op === 'quit') { client.end('test complete'); return }
     if (request.op === 'position') { emit('position_snapshot', { id: request.id, ...position }); return }
+    if (request.op === 'menu_click' && openWindow) {
+      client.write('window_click', { windowId: openWindow.id, stateId: openWindow.stateId,
+        slot: request.slot, mouseButton: request.button, mode: request.mode, changedSlots: [], cursorItem: null })
+      return
+    }
+    if (request.op === 'menu_close' && openWindow) {
+      client.write('close_window', { windowId: openWindow.id })
+      openWindow = null
+      return
+    }
     if (ready && (request.op === 'break' || request.op === 'place')) {
       const { x, y, z } = request
       if (![x, y, z].every(Number.isSafeInteger)) throw Error('Expected integer block coordinates')

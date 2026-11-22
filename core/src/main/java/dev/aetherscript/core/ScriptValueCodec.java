@@ -100,7 +100,11 @@ public final class ScriptValueCodec {
             }
             case WORLD -> writeUuid(out, value.world().worldId());
             case BLOCK -> { var b = value.block(); writeUuid(out, b.worldId()); out.writeInt(b.x()); out.writeInt(b.y()); out.writeInt(b.z()); }
-            case ITEM -> { out.writeUTF(value.item().material()); out.writeInt(value.item().amount()); }
+            case ITEM -> {
+                var item = value.item(); out.writeUTF(item.material());
+                out.writeInt(item.custom() ? -1 : item.amount());
+                if (item.custom()) { out.writeInt(item.amount()); out.writeUTF(item.featureId()); out.writeUTF(item.customId()); out.writeUTF(item.displayName()); }
+            }
             case UNIT -> { }
             case OPTIONAL -> { out.writeByte(value.optional().isPresent() ? 1 : 0); if (value.optional().isPresent()) writeValue(out, value.optional().orElseThrow(), budget); }
             case LIST -> { out.writeShort(value.list().size()); for (var item : value.list()) writeValue(out, item, budget); }
@@ -123,7 +127,10 @@ public final class ScriptValueCodec {
             case LOCATION -> new ScriptValue.LocationSnapshot(readUuid(in), in.readDouble(), in.readDouble(), in.readDouble(), in.readFloat(), in.readFloat());
             case WORLD -> new ScriptValue.WorldRef(readUuid(in));
             case BLOCK -> new ScriptValue.BlockRef(readUuid(in), in.readInt(), in.readInt(), in.readInt());
-            case ITEM -> new ScriptValue.ItemDescriptor(in.readUTF(), in.readInt());
+            case ITEM -> {
+                String material = in.readUTF(); int amount = in.readInt();
+                yield amount == -1 ? new ScriptValue.ItemDescriptor(material, in.readInt(), in.readUTF(), in.readUTF(), in.readUTF()) : new ScriptValue.ItemDescriptor(material, amount);
+            }
             case UNIT -> ScriptValue.Unit.INSTANCE;
             case OPTIONAL -> readFlag(in) ? Optional.of(readValue(in, type.element(), budget)) : Optional.empty();
             case LIST -> { int size = readSize(in); var list = new ArrayList<ScriptValue>(size); for (int i = 0; i < size; i++) list.add(readValue(in, type.element(), budget)); yield list; }

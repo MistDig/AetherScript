@@ -139,6 +139,10 @@ economy_valid, economy_invalid = calls([('aether_validate', {'format':'aether','
 assert economy_valid['valid'] and set(economy_valid['requiredCapabilities']) == {
     'runtime.message.send', 'state.shared.read', 'state.shared.write', 'player.identity.self'}
 assert not economy_invalid['valid'] and economy_invalid['line'] > 0 and economy_invalid['reason']
+shop = (repo / 'examples/menu-shop.aether').read_text(encoding='utf-8')
+shop_valid, = calls([('aether_validate', {'format':'aether','source':shop})])
+assert shop_valid['valid'] and set(shop_valid['requiredCapabilities']) == {
+    'runtime.message.send', 'player.menu', 'player.inventory.exchange'}
 print(json.dumps({"result":"pass","version":version,"checks":["discover template","validate template",
     "single-line edit changes behavior","comment preserves behavior","type error identifies line and column",
     "CLI and MCP agree on valid source","CLI and MCP agree on invalid source",
@@ -152,4 +156,5 @@ print(json.dumps({"result":"pass","version":version,"checks":["discover template
     "starter protection validates with local event capabilities", "unsupported cancellation identifies source location",
     "daily kit validates with local kit capability", "invalid cooldown type identifies source location",
     "quest package validates through CLI", "invalid quest module retains source filename and line",
-    "economy validates with scoped capabilities", "shared commit rejects invalid deletion list"]},indent=2))
+    "economy validates with scoped capabilities", "shared commit rejects invalid deletion list",
+    "menu shop validates with separate menu and exchange permissions"]},indent=2))

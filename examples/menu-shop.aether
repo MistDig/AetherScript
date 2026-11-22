@@ -1,0 +1,14 @@
+feature menu-shop version "1.0.0"
+command menushop permission "aetherscript.example.menushop" sender player {
+  let reward = custom_item("cloud_token", "minecraft:paper", "Cloud token", 1)
+  let choice = menu_choose("Cloud shop: token costs 1 emerald", [reward])
+  if choice == 0 {
+    if inventory_exchange(item("minecraft:emerald", 1), reward) {
+      send "Purchased one Cloud token."
+    } else {
+      send "You need one plain emerald and space for a Cloud token."
+    }
+  } else {
+    send "Shop closed."
+  }
+}

@@ -236,6 +236,18 @@ public final class TextFrontend {
             catch (IllegalArgumentException invalid) { throw token.error(invalid.getMessage()); }
         }
     }
+    private record CustomItemValue(String featureId, Expression id, Expression material, Expression name, Expression amount, Token token) implements Expression {
+        public ScriptType type() { return ScriptType.ITEM; }
+        public int depth() { return 1 + Math.max(Math.max(id.depth(), material.depth()), Math.max(name.depth(), amount.depth())); }
+        public ScriptValue evaluate(Execution execution) {
+            execution.step(token);
+            String localId = id.evaluate(execution).text(), key = material.evaluate(execution).text(), display = name.evaluate(execution).text();
+            long count = amount.evaluate(execution).integer();
+            if (count < 1 || count > 2304) throw token.error("Item amount must be 1..2304");
+            try { return new ScriptValue(ScriptType.ITEM, new ScriptValue.ItemDescriptor(key, (int) count, featureId, localId, display)); }
+            catch (IllegalArgumentException invalid) { throw token.error(invalid.getMessage()); }
+        }
+    }
     private record RecordValue(ScriptType type, List<Expression> fields, Token token) implements Expression {
         public int depth() { return 1 + fields.stream().mapToInt(Expression::depth).max().orElse(0); }
         public ScriptValue evaluate(Execution execution) {
@@ -561,6 +573,7 @@ public final class TextFrontend {
             case Unary unary -> usesName(unary.operand());
             case Binary binary -> usesName(binary.left()) || usesName(binary.right());
             case AsText conversion -> usesName(conversion.operand());
+            case CustomItemValue item -> usesName(item.id()) || usesName(item.material()) || usesName(item.name()) || usesName(item.amount());
             case ItemValue item -> usesName(item.material()) || usesName(item.amount());
             case ListValue list -> list.elements().stream().anyMatch(TextFrontend::usesName);
             case MapSetValue collection -> collection.elements().stream().anyMatch(TextFrontend::usesName);
@@ -621,6 +634,7 @@ public final class TextFrontend {
             case Unary unary -> List.of("unary", unary.operator().text(), expressionDescription(unary.operand()));
             case Binary binary -> List.of("binary", binary.operator().text(), expressionDescription(binary.left()), expressionDescription(binary.right()));
             case AsText conversion -> List.of("text", expressionDescription(conversion.operand()));
+            case CustomItemValue item -> List.of("custom-item-v1", item.featureId(), expressionDescription(item.id()), expressionDescription(item.material()), expressionDescription(item.name()), expressionDescription(item.amount()));
             case ItemValue item -> List.of("item", expressionDescription(item.material()), expressionDescription(item.amount()));
             case ListValue list -> List.of("list", list.type().name(), list.elements().stream().map(TextFrontend::expressionDescription).toList());
             case MapSetValue collection -> List.of("collection", collection.type().name(), collection.elements().stream().map(TextFrontend::expressionDescription).toList());
@@ -644,11 +658,12 @@ public final class TextFrontend {
         private final CallableRegistry callables;
         private final java.util.Set<String> capabilities = new java.util.TreeSet<>(List.of("runtime.message.send"));
         private boolean advanced, hostRequired;
+        private String currentFeatureId;
         private String eventKind;
         private int index, nodes, statements, blockDepth, expressionDepth, bindings, loopDepth;
         Parser(List<Token> tokens, CallableRegistry callables) { this.tokens = tokens; this.callables = callables; }
         CompiledFeature compile(byte[] original) {
-            newlines(); expect("feature"); String id = logicalId();
+            newlines(); expect("feature"); String id = logicalId(); currentFeatureId = id;
             expect("version"); Token versionToken = require(Kind.STRING, "Feature version must be double-quoted text");
             bounded(versionToken, 64, "Feature version"); lineEnd();
             while (matches("record") || matches("fn")) { if (matches("record")) recordDeclaration(); else function(); newlines(); }
@@ -1020,6 +1035,16 @@ public final class TextFrontend {
                     Expression value = expression(); requireType(value, field.getValue(), token, "Record field '" + field.getKey() + "' has the wrong type"); values.add(value);
                 }
                 expect(")"); advanced = true; return node(new RecordValue(type, List.copyOf(values), token), token);
+            }
+            if (token.text().equals("custom_item") && matches("(") && !functions.containsKey("custom_item")) {
+                if (eventKind != null) throw token.error("Synchronous event handlers do not support item descriptors");
+                take(); Expression id = expression(); expect(","); Expression material = expression(); expect(","); Expression name = expression(); expect(","); Expression amount = expression(); expect(")");
+                requireType(id, ScriptType.TEXT, token, "Custom item id must be text");
+                requireType(material, ScriptType.TEXT, token, "Item material must be text");
+                requireType(name, ScriptType.TEXT, token, "Custom item name must be text");
+                requireType(amount, ScriptType.INTEGER, token, "Item amount must be integer");
+                advanced = true;
+                return node(new CustomItemValue(currentFeatureId, id, material, name, amount, token), token);
             }
             if (token.text().equals("item") && matches("(") && !functions.containsKey("item")) {
                 if (eventKind != null) throw token.error("Synchronous event handlers do not support item descriptors");

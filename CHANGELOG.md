@@ -2,6 +2,14 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.25] - 2026-11-22
+
+- Add bounded player inventory menus with revision-owned sessions, cancelled inventory movement and selection continuations.
+- Add stable feature-owned custom-item IDs and display names, including typed item persistence and matching.
+- Add a runnable menu shop, machine-readable signatures and human/AI authoring guidance.
+- Java 25 passed 372 tests with one Windows link test skipped. Packaged discovery and validation, 22 wiki examples, legacy hashes, SQLite packaging and documentation checks passed.
+- Paper 26.3 build 245 passed 10 checks through a translated loopback client. Shift, double-click and drag input left item counts unchanged. A normal click exchanged one emerald for one tagged token. Closing or restricting the menu delivered no extra items.
+
 ## [0.0.24] - 2026-11-21
 
 - Add feature-owned typed shared server and world state, deletion, read-set revision checks and atomic writes.

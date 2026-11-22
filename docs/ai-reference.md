@@ -358,16 +358,16 @@ Test jobs retain at most 32 results globally and 8 per connection for up to 180 
 
 ## Items, inventories and daily kits (0.0.21)
 
-`item(material: text, amount: integer) -> item` constructs an immutable material/count descriptor. Use a lowercase material key such as `minecraft:bread`; an omitted namespace becomes `minecraft:`. Amounts range from 1 to 2304. Paper checks that the material is an available item. Items support equality, typed lists/map values and persistence, but cannot be set elements or map keys. Custom names, lore, enchantments, custom item IDs and inventory menus remain planned.
+`item(material: text, amount: integer) -> item` constructs an immutable material/count descriptor. Use a lowercase material key such as `minecraft:bread`; an omitted namespace becomes `minecraft:`. Amounts range from 1 to 2304. Paper checks that the material is an available item. Items support equality, typed lists/map values and persistence, but cannot be set elements or map keys. Custom names, stable custom-item IDs and inventory menus are supported from 0.0.25; lore and enchantment authoring remain planned.
 
 | Call | Result | Required capability |
 | --- | --- | --- |
-| `inventory_has(stack: item)` | `boolean`: sufficient matching plain items in storage slots | `player.inventory.read` |
+| `inventory_has(stack: item)` | `boolean`: sufficient matching items in storage slots | `player.inventory.read` |
 | `inventory_give(stack: item)` | `boolean`: true when the entire amount was inserted | `player.inventory.write` |
 | `inventory_remove(stack: item)` | `boolean`: true when the entire amount was removed | `player.inventory.write` |
 | `kit_claim(key: text, items: list<item>, cooldownSeconds: integer)` | `text`: `claimed`, `cooldown` or `inventory_full` | `player.kit.claim` |
 
-Only plain material stacks without item metadata match; custom metadata is preserved and excluded from checks, removal and merging. Inventory calls use the invoking player's storage slots, excluding armor and offhand. Give/remove return false without changing inventory when capacity/items are insufficient. These host calls require a player command and are unavailable in synchronous event handlers. Calls execute in source order; separate give, state and inventory calls do not form a transaction. Use `kit_claim` for the guarded cooldown-and-reward operation rather than combining a state flag with `inventory_give`.
+Plain descriptors match only plain material stacks without item metadata; custom descriptors match their exact feature-owned metadata. Unrelated metadata is preserved and excluded from checks, removal and merging. Inventory calls use the invoking player's storage slots, excluding armor and offhand. Give/remove return false without changing inventory when capacity/items are insufficient. These host calls require a player command and are unavailable in synchronous event handlers. Calls execute in source order; separate give, state and inventory calls do not form a transaction. Use `kit_claim` for the guarded cooldown-and-reward operation rather than combining a state flag with `inventory_give`.
 
 A kit key matches `[a-z][a-z0-9_]{0,63}`. Bundles contain 1–64 descriptors and cooldowns range from 1 to 31536000 seconds. The cooldown is isolated by feature ID, player UUID and kit key, uses elapsed wall-clock time, and survives normal restart. A full inventory returns `inventory_full` without consuming the claim. `player.kit.claim` authorizes bundled delivery without separately requiring inventory write or script state permissions. Kit records use a separate namespace from `state_save`; source rollback does not restore cooldowns. Use a fixed kit key: letting players choose fresh keys would bypass a daily limit. Changing the feature ID or kit key creates a separate claim.
 
@@ -463,4 +463,42 @@ java -cp AetherScript-MCP-0.0.23.jar dev.aetherscript.cli.Validate --package exa
 ```
 
 Package deployment is local-file administration. Hosted MCP authoring continues to accept one `.aether` source string; this release does not add multi-file apply tools, a remote package protocol, third-party dependency resolution or an addon loader.
+
+
+## Menus and custom items (0.0.25)
+
+`custom_item(id, material, name, amount)` constructs an immutable item descriptor. The local ID matches `[a-z][a-z0-9_]{0,63}` and is scoped by the feature ID. A name has 1–128 plain characters and amount is 1–2304. Material validation happens on Paper. Stable identity survives ordinary restart and reload; changing the feature ID or local ID creates another identity. Custom items support equality and typed persistence. Inventory matching includes their feature-owned ID, material and name; unrelated metadata is preserved. `kit_claim` currently accepts plain items only.
+
+`menu_choose(title, items) -> integer` needs `player.menu` and an invoking player. Supply 1–54 item descriptors and a title of 1–128 plain characters. The host chooses the chest row count. Each displayed descriptor must fit one material stack. The invocation waits for a zero-based slot, or `-1` when the player closes the menu or another menu replaces it. Only ordinary left/right clicks on populated top slots select. All inventory movement while open is cancelled, including shift-clicks, dragging, double-clicks, hotbar swaps and offhand transfers. Preview items are never granted to the player.
+
+Menus belong to an invocation and active revision. Quit, cancellation and revision retirement close owned sessions; authority is checked again before the selection continuation executes. Menus are transient and are not recovered after restart. Synchronous event handlers cannot open menus or perform inventory host calls.
+
+`inventory_exchange(payment, reward) -> boolean` needs `player.inventory.exchange`. It removes the entire payment and inserts the entire reward in one storage-inventory operation, excluding armor and offhand. If payment or capacity is insufficient, it returns `false` with inventory unchanged. Plain payment matches plain items, so a named or otherwise modified emerald does not count as the sample price. This operation is atomic within the inventory; it does not form a transaction with SQLite, shared state or another plugin.
+
+The shop uses an atomic exchange after selection. Closing or repeated movement attempts do not purchase anything. Install `examples/menu-shop.aether`, then approve and activate from the console:
+
+```text
+ais permit menu-shop player.menu,player.inventory.exchange
+ais validate menu-shop
+ais reload menu-shop
+```
+
+Grant the player `aetherscript.example.menushop` and run `/ais run menu-shop`. One plain emerald buys one Cloud token. A rejected exchange leaves payment and reward unchanged.
+
+```aether
+feature menu-shop version "1.0.0"
+command menushop permission "aetherscript.example.menushop" sender player {
+  let reward = custom_item("cloud_token", "minecraft:paper", "Cloud token", 1)
+  let choice = menu_choose("Cloud shop: token costs 1 emerald", [reward])
+  if choice == 0 {
+    if inventory_exchange(item("minecraft:emerald", 1), reward) {
+      send "Purchased one Cloud token."
+    } else {
+      send "You need one plain emerald and space for a Cloud token."
+    }
+  } else {
+    send "Shop closed."
+  }
+}
+```
 

@@ -38,6 +38,8 @@ public final class StandardCallables {
         add(registry, "state.shared.read", "shared_read", List.of(ScriptType.TEXT, ScriptType.TEXT, ScriptType.UNIT), ScriptType.UNIT, ASYNC_IO, "state.shared.read", "Read a typed value T in an authorized shared scope; infer T from fallback argument 3. Missing values return fallback; stored type mismatch fails.");
         add(registry, "state.shared.commit", "shared_commit", List.of(ScriptType.TEXT, ScriptType.map(ScriptType.TEXT, ScriptType.UNIT), ScriptType.list(ScriptType.TEXT)), ScriptType.BOOLEAN, ASYNC_IO, "state.shared.write", "Atomically commit a bounded map of typed writes and list of deleted keys in an authorized shared scope; infer T from writes argument 2. Unit is not persistable.");
         add(registry, "player.identity.self", "player_key", List.of(), ScriptType.TEXT, PAPER_MAIN, "player.identity.self", "Return the invoking player's stable storage key: p followed by the lowercase UUID without hyphens.");
+        add(registry, "player.menu.choose", "menu_choose", List.of(ScriptType.TEXT, ScriptType.list(ScriptType.ITEM)), ScriptType.INTEGER, PAPER_MAIN, "player.menu", "Open a read-only selection menu of 1..54 items; wait for a zero-based clicked slot or -1 on close. Selection grants no authority.");
+        add(registry, "player.inventory.exchange", "inventory_exchange", List.of(ScriptType.ITEM, ScriptType.ITEM), ScriptType.BOOLEAN, PAPER_MAIN, "player.inventory.exchange", "Atomically remove payment and give reward in the invoking player's storage; false leaves inventory unchanged.");
         return registry;
     }
     private static void add(CallableRegistry registry, String id, String name, List<ScriptType> parameters, ScriptType result,
