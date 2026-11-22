@@ -33,6 +33,10 @@ class AuthoringGuideTest {
             events.path("snapshotFields").path("all").properties().forEach(entry -> described.put(entry.getKey(), entry.getValue().asText()));
             if (kind.asText().startsWith("block_"))
                 events.path("snapshotFields").path("block_break/block_place").properties().forEach(entry -> described.put(entry.getKey(), entry.getValue().asText()));
+            if (kind.asText().startsWith("entity_")) {
+                events.path("snapshotFields").path("entity").properties().forEach(entry -> described.put(entry.getKey(), entry.getValue().asText()));
+                events.path("snapshotFields").path(kind.asText()).properties().forEach(entry -> described.put(entry.getKey(), entry.getValue().asText()));
+            }
             assertEquals(fields.keySet(), described.keySet());
             fields.forEach((name, type) -> assertEquals(type.name().toLowerCase(java.util.Locale.ROOT), described.get(name)));
         }

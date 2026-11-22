@@ -4,6 +4,9 @@ import dev.aetherscript.core.*;
 import net.kyori.adventure.text.Component;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Projectile;
+import org.bukkit.event.entity.*;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.*;
 import org.bukkit.event.block.*;
@@ -51,6 +54,48 @@ final class EventRuntime implements Listener, AutoCloseable {
     public void blockPlace(BlockPlaceEvent event) { block("block_place", event.getPlayer(), event.getBlockPlaced(), event); }
     @EventHandler public void join(PlayerJoinEvent event) { player("join", event.getPlayer()); }
     @EventHandler public void quit(PlayerQuitEvent event) { player("quit", event.getPlayer()); }
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void damage(EntityDamageEvent event) {
+        if (!interested("entity_damage")) return;
+        Entity attacker = event instanceof EntityDamageByEntityEvent by ? by.getDamager() : null;
+        if (attacker instanceof Projectile projectile && projectile.getShooter() instanceof Entity shooter) attacker = shooter;
+        Player actor = event.getEntity() instanceof Player victim ? victim : attacker instanceof Player player ? player : null;
+        if (actor == null) return;
+        Map<String, ScriptValue> fields = entityFields(actor, event.getEntity());
+        fields.put("cause", text(event.getCause().name()));
+        fields.put("damage_milli", integer(Math.max(0, Math.min(Long.MAX_VALUE, Math.round(event.getDamage() * 1000)))));
+        identity(fields, "attacker", attacker);
+        dispatch("entity_damage", actor, fields, event);
+    }
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void target(EntityTargetEvent event) {
+        if (!(event.getTarget() instanceof Player actor) || !interested("entity_target")) return;
+        Map<String, ScriptValue> fields = entityFields(actor, event.getEntity());
+        identity(fields, "target", event.getTarget()); fields.put("reason", text(event.getReason().name()));
+        dispatch("entity_target", actor, fields, event);
+    }
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void death(EntityDeathEvent event) {
+        if (!interested("entity_death")) return;
+        Player killer = event.getEntity().getKiller();
+        Player actor = event.getEntity() instanceof Player victim ? victim : killer;
+        if (actor == null) return;
+        Map<String, ScriptValue> fields = entityFields(actor, event.getEntity());
+        identity(fields, "killer", killer);
+        dispatch("entity_death", actor, fields, null);
+    }
+    private static Map<String, ScriptValue> entityFields(Player actor, Entity entity) {
+        Map<String, ScriptValue> fields = fields(actor);
+        fields.put("world", text(entity.getWorld().getKey().toString()));
+        identity(fields, "entity", entity);
+        var location = entity.getLocation();
+        fields.put("x", integer(location.getBlockX())); fields.put("y", integer(location.getBlockY())); fields.put("z", integer(location.getBlockZ()));
+        return fields;
+    }
+    private static void identity(Map<String, ScriptValue> fields, String prefix, Entity entity) {
+        fields.put(prefix + "_uuid", text(entity == null ? "" : entity.getUniqueId().toString()));
+        fields.put(prefix + "_type", text(entity == null ? "" : entity.getType().name()));
+    }
     private void block(String kind, Player player, Block block, Cancellable event) {
         if (event.isCancelled() || !interested(kind)) return;
         Map<String, ScriptValue> fields = fields(player);

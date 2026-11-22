@@ -348,6 +348,69 @@ command economy permission "aetherscript.example.economy" sender player {
 }
 ```
 
+
+## Entities, combat and regions (0.0.26)
+
+
+
+Use `entity_spawn(location, type, name) -> text` to create an owned entity and receive its UUID. `entity_health(uuid, hearts)` sets health, `entity_target_player(uuid) -> boolean` requests targeting of the invoking player, and `entity_remove(uuid) -> boolean` removes an owned entity. All four require `entity.own`. UUID strings are references; they grant no authority over another feature's entity or an entity from a retired revision. The supported types are zombie, skeleton, husk, stray, spider, cave_spider and slime. Names have at most 64 characters without controls; health ranges from 1 to 100 hearts. Limits are 64 entities per active feature revision and 256 globally. Spawning never loads a chunk.
+
+
+
+Owned entities are transient and nonpersistent. Reload, restriction, disable and chunk/world unload clean them up. A UUID saved in durable state does not preserve the entity or transfer ownership to a new revision. Treat a saved UUID as a potentially stale reference. A successful spawn is separate from a later shared-state commit; compensate an unsuccessful commit by removing the entity you just spawned.
+
+
+
+`team_join(key)`, `team_is(key) -> boolean` and `team_leave()` require `player.team`. A key matches `[a-z][a-z0-9_]{0,63}`. Membership belongs to a feature, revision and player; it is transient and clears on quit. The global membership cap is 4096. These are script team memberships: membership alone does not prevent friendly fire, enforce regions or change another plugin's teams.
+
+
+
+`inside_region(location, x1, y1, z1, x2, y2, z2) -> boolean` is a pure command expression. It floors location coordinates, normalizes reversed corners and includes boundary blocks. It checks coordinates only; choose world scope or check world identity separately when that matters. It does not consult an installed region-protection plugin.
+
+
+
+### Combat event snapshots
+
+
+
+`on entity_damage`, `on entity_target` and `on entity_death` require an explicit permission and infer `runtime.event.entity_damage`, `runtime.event.entity_target` and `runtime.event.entity_death`. Common immutable fields are `player_name`, `player_uuid`, `world`, `entity_uuid`, `entity_type` (text) and `x`, `y`, `z` (integer). Damage adds `cause`, `attacker_uuid`, `attacker_type` (text) and `damage_milli` (integer). Targeting adds `target_uuid`, `target_type`, `reason` (text). Death adds `killer_uuid`, `killer_type` (text), with empty strings when no killer is available.
+
+
+
+The event actor determines permission checking and message delivery. Damage uses the player victim, otherwise the player attacker. Death uses the player victim, otherwise the player killer. Targeting uses the player target. A qualifying player must exist for a handler to run. Entity damage and target handlers support `cancel` with `runtime.event.cancel`; entity death does not. Cancellation never clears cancellation made by another plugin. These handlers remain synchronous and pure: scalar expressions, messages and permitted cancellation are supported, but state writes, team calls and entity calls are unavailable. A death handler cannot increment a score in this release.
+
+
+
+### Two independent arenas
+
+
+
+Install `examples/two-arenas.aether`. The `red` arena covers x/z 0–15 and the `blue` arena covers x 32–47/z 0–15, each at block y -64–320. Use two players in the same world and provide a safe, already loaded play area. Run these console commands:
+
+
+
+```text
+
+ais permit two-arenas player.location.read,entity.own,player.team,state.shared.read,state.shared.write,runtime.event.entity_damage,runtime.event.entity_death,runtime.event.cancel
+
+ais validate two-arenas
+
+ais reload two-arenas
+
+```
+
+
+
+Grant `aetherscript.example.arenas` only to the intended example operators. Player one runs `/ais run two-arenas red join`, moves inside red, then runs `/ais run two-arenas red start`. Player two does the same for blue. The start response includes the distinct boss UUID. `show` reports the selected arena's score, stored boss UUID, membership and whether the player is inside its bounds. World-scoped shared keys isolate scores and boss references between worlds.
+
+
+
+Run `red score` while a red member inside red: red advances by one and blue stays unchanged. This is an explicit operator scoring command, not a death reward. Damage and death produce observable messages without changing scores. Run `red cleanup` to remove red's current boss and leave the invoking player's team; blue's boss and score remain. The example's permission allows either arena's cleanup, so it is an operator permission. Cleanup does not clear another player's membership or delete historical score data. Reload clears runtime memberships and owned entities while durable scores remain; stored boss UUIDs become stale and the next start replaces them.
+
+
+
+The sample demonstrates independent bookkeeping and owned entities. It does not automatically prevent cross-arena combat or friendly fire, assign kills to arenas, or award score from a death event. Those acceptance criteria remain open. Verify each claimed gameplay effect on Paper separately from compiler validation.
+
 ## Reference priority
 
 Use this current reference, discovered tool schemas and the bundled authoring contract for generation. The following full-guide appendix includes human tutorials, historical test records and explicitly planned work. Historical release examples do not add current capabilities.

@@ -1,0 +1,84 @@
+feature two-arenas version "1.0.0"
+command arenas permission "aetherscript.example.arenas" sender player {
+  arg arena: text = "red"
+  arg action: text = "show"
+  if arena == "red" || arena == "blue" {
+    let position = player_location()
+    let inside = inside_region(position, 0, -64, 0, 15, 320, 15)
+    let in_blue = inside_region(position, 32, -64, 0, 47, 320, 15)
+    let allowed = (arena == "red" && inside) || (arena == "blue" && in_blue)
+    let score_key = arena + "_score"
+    let boss_key = arena + "_boss"
+    let score = shared_read("world", score_key, 0)
+    let boss = shared_read("world", boss_key, "")
+    if action == "target" && team_is(arena) && allowed && boss != "" {
+      if entity_target_player(boss) {
+        send "Boss targeted " + arena
+      }
+    }
+    if action == "join" {
+      team_join(arena)
+      send "Joined " + arena
+    } else {
+      if action == "start" {
+        if team_is(arena) && allowed {
+          let created = entity_spawn(position, "zombie", arena + " arena boss")
+          entity_health(created, 20)
+          if shared_commit("world", put(map<text,text>(), boss_key, created), list<text>()) {
+            if boss != "" {
+              let removed = entity_remove(boss)
+            }
+            send "Started " + arena + " boss " + created
+          } else {
+            let removed = entity_remove(created)
+            send "Start conflict; retry."
+          }
+        } else {
+          send "Join this team and stand inside its arena first."
+        }
+      } else {
+        if action == "score" {
+          if team_is(arena) && allowed {
+            if shared_commit("world", put(map<text,integer>(), score_key, score + 1), list<text>()) {
+              send arena + " score " + text(score + 1)
+            } else {
+              send "Score conflict; retry."
+            }
+          } else {
+            send "Join this team and stand inside its arena first."
+          }
+        } else {
+          if action == "cleanup" {
+            if shared_commit("world", map<text,text>(), [boss_key]) {
+              if boss != "" {
+                let removed = entity_remove(boss)
+              }
+              team_leave()
+              send "Cleaned " + arena
+            } else {
+              send "Cleanup conflict; retry."
+            }
+          } else {
+            send arena + " score " + text(score)
+            send "Boss: " + boss
+            send "Member: " + text(team_is(arena))
+            send "Inside: " + text(allowed)
+          }
+        }
+      }
+    }
+  } else {
+    send "Choose red or blue."
+  }
+}
+on entity_damage permission "aetherscript.example.arenas" {
+  if world == "minecraft:overworld" && x >= 0 && x <= 15 && z >= 0 && z <= 15 {
+    send "Damage blocked in red."
+    cancel
+  } else {
+    send "Damage: " + entity_type + " " + text(damage_milli)
+  }
+}
+on entity_death permission "aetherscript.example.arenas" {
+  send "Death: " + entity_type + " " + entity_uuid
+}

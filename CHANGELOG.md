@@ -2,6 +2,19 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.26] - 2026-11-22
+
+
+
+- Add bounded revision-owned entities, transient player teams and inclusive coordinate-region checks.
+
+- Add typed damage, targeting and death snapshots with permission checks and permitted cancellation.
+
+- Add a two-arena example with independent world-scoped scores, owned boss references and explicit cleanup. Scores are operator-driven; death-triggered scoring and automatic combat isolation remain open.
+
+- Java 25 passed 377 tests with one Windows link test skipped. Packaged authoring, 22 wiki examples, MCP stdio, legacy hashes, SQLite packaging and documentation consistency passed.
+- Paper 26.3 build 245 passed 10 checks with two translated clients. Verified simultaneous arena bosses, separate scores and teams, boss targeting, region damage handling, selective cleanup and revocation.
+
 ## [0.0.25] - 2026-11-22
 
 - Add bounded player inventory menus with revision-owned sessions, cancelled inventory movement and selection continuations.

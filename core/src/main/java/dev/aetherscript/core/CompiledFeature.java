@@ -27,14 +27,25 @@ public record CompiledFeature(Feature definition, String sourceHash, String irHa
         String bypassPermission();
         EventResult evaluate(EventData data);
     }
-    public static final java.util.Set<String> EVENT_CAPABILITIES = java.util.Set.of("runtime.event.join", "runtime.event.quit", "runtime.event.block_break", "runtime.event.block_place", "runtime.event.cancel", "runtime.event.block_hearts");
+    public static final java.util.Set<String> EVENT_CAPABILITIES = java.util.Set.of("runtime.event.join", "runtime.event.quit", "runtime.event.block_break", "runtime.event.block_place", "runtime.event.cancel", "runtime.event.block_hearts", "runtime.event.entity_damage", "runtime.event.entity_death", "runtime.event.entity_target");
+    public static boolean cancellableEvent(String kind) { return java.util.Set.of("block_break", "block_place", "entity_damage", "entity_target").contains(kind); }
     public static java.util.Map<String, ScriptType> eventFields(String kind) {
-        if (!java.util.Set.of("join", "quit", "block_break", "block_place").contains(kind)) throw new IllegalArgumentException("Unsupported event: " + kind);
+        if (!java.util.Set.of("join", "quit", "block_break", "block_place", "entity_damage", "entity_death", "entity_target").contains(kind)) throw new IllegalArgumentException("Unsupported event: " + kind);
         var fields = new java.util.LinkedHashMap<String, ScriptType>();
         fields.put("player_name", ScriptType.TEXT); fields.put("player_uuid", ScriptType.TEXT); fields.put("world", ScriptType.TEXT);
         if (kind.startsWith("block_")) {
             fields.put("block_type", ScriptType.TEXT);
             fields.put("x", ScriptType.INTEGER); fields.put("y", ScriptType.INTEGER); fields.put("z", ScriptType.INTEGER);
+        }
+        if (kind.startsWith("entity_")) {
+            fields.put("entity_uuid", ScriptType.TEXT); fields.put("entity_type", ScriptType.TEXT);
+            fields.put("x", ScriptType.INTEGER); fields.put("y", ScriptType.INTEGER); fields.put("z", ScriptType.INTEGER);
+            switch (kind) {
+                case "entity_damage" -> { fields.put("cause", ScriptType.TEXT); fields.put("damage_milli", ScriptType.INTEGER); fields.put("attacker_uuid", ScriptType.TEXT); fields.put("attacker_type", ScriptType.TEXT); }
+                case "entity_death" -> { fields.put("killer_uuid", ScriptType.TEXT); fields.put("killer_type", ScriptType.TEXT); }
+                case "entity_target" -> { fields.put("target_uuid", ScriptType.TEXT); fields.put("target_type", ScriptType.TEXT); fields.put("reason", ScriptType.TEXT); }
+                default -> throw new IllegalArgumentException("Unsupported entity event");
+            }
         }
         return java.util.Collections.unmodifiableMap(fields);
     }

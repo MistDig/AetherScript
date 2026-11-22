@@ -403,4 +403,3 @@ command menushop permission "aetherscript.example.menushop" sender player {
   }
 }
 ```
-

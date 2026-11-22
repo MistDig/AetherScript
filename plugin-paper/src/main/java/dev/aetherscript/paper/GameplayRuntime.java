@@ -168,6 +168,7 @@ final class GameplayRuntime implements AutoCloseable, Listener {
     private final PaperWorldDisplays worldDisplays;
     private final PaperItems items;
     private final PaperMenus menus;
+    private final PaperEntities ownedEntities;
     private volatile KitCooldowns kitCooldowns;
     private volatile SQLiteVariables state; // Accessed by the single existing plugin I/O worker.
     private volatile SQLiteVariables sharedState;
@@ -179,6 +180,8 @@ final class GameplayRuntime implements AutoCloseable, Listener {
         this.worldDisplays = new PaperWorldDisplays(plugin.getServer());
         this.items = new PaperItems(plugin);
         this.menus = new PaperMenus(plugin);
+        this.ownedEntities = new PaperEntities(plugin.getServer());
+        plugin.getServer().getPluginManager().registerEvents(ownedEntities, plugin);
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
         testExpiry.scheduleAtFixedRate(this::expireTests, 1, 1, TimeUnit.SECONDS);
     }
@@ -208,6 +211,7 @@ final class GameplayRuntime implements AutoCloseable, Listener {
         for (Run run : active) if (!run.current(false)) run.cancel();
         worldDisplays.reconcile(owner -> revisionActive(owner.feature(), owner.revision()));
         menus.reconcile(owner -> revisionActive(owner.feature(), owner.revision()));
+        ownedEntities.reconcile(owner -> revisionActive(owner.feature(), owner.revision()));
     }
     private boolean revisionActive(String id, String revision) {
         var feature = registry.snapshot().features().get(id);
@@ -218,6 +222,7 @@ final class GameplayRuntime implements AutoCloseable, Listener {
         UUID actor = event.getPlayer().getUniqueId();
         sessions.remove(actor); // A reconnect with the same UUID must never revive an earlier invocation.
         worldDisplays.forget(actor);
+        ownedEntities.forget(actor);
         for (Run run : active) if (run.actor.equals(actor)) run.cancel();
     }
     private static ValidationException error(String message) { return new ValidationException("$", message); }
@@ -338,6 +343,10 @@ final class GameplayRuntime implements AutoCloseable, Listener {
                     return new ScriptValue(ScriptType.BOOLEAN, succeeded);
                 });
                 case "player.menu.choose" -> chooseMenu(values);
+                case "entity.own.spawn", "entity.own.remove", "entity.own.health", "entity.own.target_player",
+                     "player.team.join", "player.team.is", "player.team.leave" ->
+                    main.call(() -> ownedEntities.invoke(descriptor.id(), player(), values,
+                        new PaperEntities.Owner(feature.definition().id(), feature.sourceHash())));
                 case "player.kit.claim" -> claimKit(values);
                 case "player.identity.self" -> new ScriptValue(ScriptType.TEXT, "p" + actor.toString().replace("-", ""));
                 case "state.shared.read", "state.shared.commit" -> shared(descriptor.id(), values);
@@ -596,6 +605,7 @@ final class GameplayRuntime implements AutoCloseable, Listener {
     }
     @Override public void close() {
         menus.close();
+        ownedEntities.close();
         worldDisplays.reconcile(owner -> false);
         closed = true; testExpiry.shutdownNow(); sessions.clear(); active.forEach(Run::cancel); interpreters.shutdownNow(); HandlerList.unregisterAll(this);
     }

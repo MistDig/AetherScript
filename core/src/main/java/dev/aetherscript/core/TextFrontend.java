@@ -236,6 +236,19 @@ public final class TextFrontend {
             catch (IllegalArgumentException invalid) { throw token.error(invalid.getMessage()); }
         }
     }
+    private record InsideRegion(Expression location, List<Expression> corners, Token token) implements Expression {
+        public ScriptType type() { return ScriptType.BOOLEAN; }
+        public int depth() { return 1 + Math.max(location.depth(), corners.stream().mapToInt(Expression::depth).max().orElse(0)); }
+        public ScriptValue evaluate(Execution execution) {
+            execution.step(token); var point = location.evaluate(execution).location();
+            long[] bounds = new long[6];
+            for (int i = 0; i < 6; i++) bounds[i] = corners.get(i).evaluate(execution).integer();
+            double[] position = {Math.floor(point.x()), Math.floor(point.y()), Math.floor(point.z())};
+            boolean inside = true;
+            for (int i = 0; i < 3; i++) inside &= position[i] >= Math.min(bounds[i], bounds[i + 3]) && position[i] <= Math.max(bounds[i], bounds[i + 3]);
+            return new ScriptValue(ScriptType.BOOLEAN, inside);
+        }
+    }
     private record CustomItemValue(String featureId, Expression id, Expression material, Expression name, Expression amount, Token token) implements Expression {
         public ScriptType type() { return ScriptType.ITEM; }
         public int depth() { return 1 + Math.max(Math.max(id.depth(), material.depth()), Math.max(name.depth(), amount.depth())); }
@@ -573,6 +586,7 @@ public final class TextFrontend {
             case Unary unary -> usesName(unary.operand());
             case Binary binary -> usesName(binary.left()) || usesName(binary.right());
             case AsText conversion -> usesName(conversion.operand());
+            case InsideRegion region -> usesName(region.location()) || region.corners().stream().anyMatch(TextFrontend::usesName);
             case CustomItemValue item -> usesName(item.id()) || usesName(item.material()) || usesName(item.name()) || usesName(item.amount());
             case ItemValue item -> usesName(item.material()) || usesName(item.amount());
             case ListValue list -> list.elements().stream().anyMatch(TextFrontend::usesName);
@@ -634,6 +648,7 @@ public final class TextFrontend {
             case Unary unary -> List.of("unary", unary.operator().text(), expressionDescription(unary.operand()));
             case Binary binary -> List.of("binary", binary.operator().text(), expressionDescription(binary.left()), expressionDescription(binary.right()));
             case AsText conversion -> List.of("text", expressionDescription(conversion.operand()));
+            case InsideRegion region -> List.of("inside-region-v1", expressionDescription(region.location()), region.corners().stream().map(TextFrontend::expressionDescription).toList());
             case CustomItemValue item -> List.of("custom-item-v1", item.featureId(), expressionDescription(item.id()), expressionDescription(item.material()), expressionDescription(item.name()), expressionDescription(item.amount()));
             case ItemValue item -> List.of("item", expressionDescription(item.material()), expressionDescription(item.amount()));
             case ListValue list -> List.of("list", list.type().name(), list.elements().stream().map(TextFrontend::expressionDescription).toList());
@@ -702,7 +717,7 @@ public final class TextFrontend {
             while (matches("on")) {
                 Token start = take();
                 if (handlers.size() >= 16) throw start.error("A feature supports at most 16 event handlers");
-                Token kind = require(Kind.NAME, "Expected join, quit, block_break or block_place");
+                Token kind = require(Kind.NAME, "Expected a supported player, block or entity event");
                 Map<String, ScriptType> fields;
                 try { fields = CompiledFeature.eventFields(kind.text()); }
                 catch (IllegalArgumentException failure) { throw kind.error(failure.getMessage()); }
@@ -884,7 +899,7 @@ public final class TextFrontend {
                 lineEnd(); return new BlockHearts(count, start);
             }
             if (start.text().equals("cancel")) {
-                if (eventKind == null || !eventKind.startsWith("block_")) throw start.error("cancel requires a cancellable block_break or block_place handler");
+                if (eventKind == null || !CompiledFeature.cancellableEvent(eventKind)) throw start.error("cancel requires a cancellable event handler");
                 capabilities.add("runtime.event.cancel");
                 lineEnd(); return new Cancel(start);
             }
@@ -1035,6 +1050,14 @@ public final class TextFrontend {
                     Expression value = expression(); requireType(value, field.getValue(), token, "Record field '" + field.getKey() + "' has the wrong type"); values.add(value);
                 }
                 expect(")"); advanced = true; return node(new RecordValue(type, List.copyOf(values), token), token);
+            }
+            if (token.text().equals("inside_region") && matches("(") && !functions.containsKey("inside_region")) {
+                if (eventKind != null) throw token.error("Synchronous event handlers support only scalar expressions");
+                take(); Expression point = expression(); requireType(point, ScriptType.LOCATION, token, "Region point must be a location");
+                var corners = new ArrayList<Expression>();
+                for (int i = 0; i < 6; i++) { expect(","); Expression bound = expression(); requireType(bound, ScriptType.INTEGER, token, "Region bounds must be integers"); corners.add(bound); }
+                expect(")"); advanced = true;
+                return node(new InsideRegion(point, List.copyOf(corners), token), token);
             }
             if (token.text().equals("custom_item") && matches("(") && !functions.containsKey("custom_item")) {
                 if (eventKind != null) throw token.error("Synchronous event handlers do not support item descriptors");

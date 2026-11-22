@@ -143,6 +143,11 @@ shop = (repo / 'examples/menu-shop.aether').read_text(encoding='utf-8')
 shop_valid, = calls([('aether_validate', {'format':'aether','source':shop})])
 assert shop_valid['valid'] and set(shop_valid['requiredCapabilities']) == {
     'runtime.message.send', 'player.menu', 'player.inventory.exchange'}
+arenas = (repo / 'examples/two-arenas.aether').read_text(encoding='utf-8')
+arena_valid, = calls([('aether_validate', {'format':'aether','source':arenas})])
+assert arena_valid['valid'] and {
+    'entity.own', 'player.team', 'runtime.event.entity_damage', 'runtime.event.entity_death', 'runtime.event.cancel'
+} <= set(arena_valid['requiredCapabilities']), arena_valid
 print(json.dumps({"result":"pass","version":version,"checks":["discover template","validate template",
     "single-line edit changes behavior","comment preserves behavior","type error identifies line and column",
     "CLI and MCP agree on valid source","CLI and MCP agree on invalid source",
@@ -157,4 +162,5 @@ print(json.dumps({"result":"pass","version":version,"checks":["discover template
     "daily kit validates with local kit capability", "invalid cooldown type identifies source location",
     "quest package validates through CLI", "invalid quest module retains source filename and line",
     "economy validates with scoped capabilities", "shared commit rejects invalid deletion list",
-    "menu shop validates with separate menu and exchange permissions"]},indent=2))
+    "menu shop validates with separate menu and exchange permissions",
+    "two-arena example validates with entity, team and combat permissions"]},indent=2))

@@ -32,7 +32,12 @@
     "state.shared.write",
     "player.identity.self",
     "player.menu",
-    "player.inventory.exchange"
+    "player.inventory.exchange",
+    "entity.own",
+    "player.team",
+    "runtime.event.entity_damage",
+    "runtime.event.entity_death",
+    "runtime.event.entity_target"
   ],
   "authoringRules": [
     "Match the feature ID to the filename.",
@@ -234,7 +239,12 @@
       "world.weather.write",
       "state.shared.read",
       "state.shared.write",
-      "player.identity.self"
+      "player.identity.self",
+      "entity.own",
+      "player.team",
+      "runtime.event.entity_damage",
+      "runtime.event.entity_death",
+      "runtime.event.entity_target"
     ],
     "hostCatalogDiscovery": "CLI --language and local/hosted aether_capabilities expose the executable host-call catalog; live discovery includes the actual connection grant.",
     "approvalWindow": "Fresh ais connect browser approval chooses supported capabilities, all or selected scripts and an optional live test player. Explicit console ais permit/restrict ceilings remain authoritative.",
@@ -299,7 +309,10 @@
       "join",
       "quit",
       "block_break",
-      "block_place"
+      "block_place",
+      "entity_damage",
+      "entity_death",
+      "entity_target"
     ],
     "snapshotFields": {
       "all": {
@@ -312,6 +325,28 @@
         "x": "integer",
         "y": "integer",
         "z": "integer"
+      },
+      "entity": {
+        "entity_uuid": "text",
+        "entity_type": "text",
+        "x": "integer",
+        "y": "integer",
+        "z": "integer"
+      },
+      "entity_damage": {
+        "cause": "text",
+        "damage_milli": "integer",
+        "attacker_uuid": "text",
+        "attacker_type": "text"
+      },
+      "entity_target": {
+        "target_uuid": "text",
+        "target_type": "text",
+        "reason": "text"
+      },
+      "entity_death": {
+        "killer_uuid": "text",
+        "killer_type": "text"
       }
     },
     "permissions": "Explicit permission required. \"*\" applies to every player; optional bypass skips the handler when the player holds that permission. Checks use the event player.",
@@ -319,11 +354,11 @@
       "let name = expression",
       "send textExpression",
       "if booleanExpression { ... } else { ... }",
-      "cancel (block_break/block_place only)",
+      "cancel (block_break/block_place/entity_damage/entity_target only)",
       "block_hearts(integer) (block_break only)"
     ],
     "purity": "Synchronous immutable snapshots and pure scalar expressions only. No collection operations, arguments, mutable locals, loops, functions, user function calls, host calls, waits or persistent storage.",
-    "cancellation": "Only block events can cancel. Cancellation sets true and never clears an existing cancellation. Already cancelled block events are skipped.",
+    "cancellation": "Block break/place, entity damage and entity target are cancellable. Prior cancellation wins.",
     "threading": "Paper main thread, HIGHEST priority for block handlers; bounded evaluation before the event returns.",
     "ownership": "Subscriptions belong to the active revision and are replaced/removed with reload, rollback, disable and shutdown.",
     "capabilities": [
@@ -332,7 +367,10 @@
       "runtime.event.block_break",
       "runtime.event.block_place",
       "runtime.event.cancel",
-      "runtime.event.block_hearts"
+      "runtime.event.block_hearts",
+      "runtime.event.entity_damage",
+      "runtime.event.entity_death",
+      "runtime.event.entity_target"
     ],
     "limits": {
       "handlersPerFeature": 16,
@@ -461,7 +499,7 @@
       {
         "signature": "bossbar_clear() -> unit",
         "capability": "player.display",
-        "description": "Clear this revision\u00e2\u20ac\u2122s boss bar."
+        "description": "Clear this revisionâ€™s boss bar."
       },
       {
         "signature": "scoreboard(list<text>) -> unit",
@@ -471,7 +509,7 @@
       {
         "signature": "scoreboard_clear() -> unit",
         "capability": "player.display",
-        "description": "Clear this revision\u00e2\u20ac\u2122s scoreboard and restore the previous scoreboard when still active."
+        "description": "Clear this revisionâ€™s scoreboard and restore the previous scoreboard when still active."
       }
     ],
     "timer": {
@@ -608,5 +646,102 @@
     "transactionBoundary": "inventory_exchange is atomic within the player storage inventory during the host operation. It does not transact with durable state or external systems.",
     "exampleFile": "examples/menu-shop.aether",
     "example": "feature menu-shop version \"1.0.0\"\ncommand menushop permission \"aetherscript.example.menushop\" sender player {\n  let reward = custom_item(\"cloud_token\", \"minecraft:paper\", \"Cloud token\", 1)\n  let choice = menu_choose(\"Cloud shop: token costs 1 emerald\", [reward])\n  if choice == 0 {\n    if inventory_exchange(item(\"minecraft:emerald\", 1), reward) {\n      send \"Purchased one Cloud token.\"\n    } else {\n      send \"You need one plain emerald and space for a Cloud token.\"\n    }\n  } else {\n    send \"Shop closed.\"\n  }\n}\n"
+  },
+  "entitiesCombatAndRegions": {
+    "introduced": "0.0.26",
+    "callables": [
+      {
+        "signature": "inside_region(location, integer, integer, integer, integer, integer, integer) -> boolean",
+        "capability": null
+      },
+      {
+        "signature": "entity_spawn(location, text, text) -> text",
+        "capability": "entity.own"
+      },
+      {
+        "signature": "entity_remove(text) -> boolean",
+        "capability": "entity.own"
+      },
+      {
+        "signature": "entity_health(text, integer) -> unit",
+        "capability": "entity.own"
+      },
+      {
+        "signature": "entity_target_player(text) -> boolean",
+        "capability": "entity.own"
+      },
+      {
+        "signature": "team_join(text) -> unit",
+        "capability": "player.team"
+      },
+      {
+        "signature": "team_is(text) -> boolean",
+        "capability": "player.team"
+      },
+      {
+        "signature": "team_leave() -> unit",
+        "capability": "player.team"
+      }
+    ],
+    "events": {
+      "entity_damage": {
+        "cancellable": true,
+        "fields": [
+          "cause: text",
+          "damage_milli: integer",
+          "attacker_uuid: text",
+          "attacker_type: text"
+        ]
+      },
+      "entity_target": {
+        "cancellable": true,
+        "fields": [
+          "target_uuid: text",
+          "target_type: text",
+          "reason: text"
+        ]
+      },
+      "entity_death": {
+        "cancellable": false,
+        "fields": [
+          "killer_uuid: text",
+          "killer_type: text"
+        ]
+      }
+    },
+    "commonEventFields": [
+      "player_name: text",
+      "player_uuid: text",
+      "world: text",
+      "entity_uuid: text",
+      "entity_type: text",
+      "x: integer",
+      "y: integer",
+      "z: integer"
+    ],
+    "eventCapabilities": "runtime.event.<event-name>; cancel additionally requires runtime.event.cancel",
+    "eventsArePure": "Scalar expressions, messages and permitted cancellation only; no host/state/team/entity calls or automatic score mutations.",
+    "region": "Inclusive floored block coordinates with normalized corners; command expressions only. This checks coordinates, not a world or an installed protection-plugin region.",
+    "limits": {
+      "entitiesPerRevision": 64,
+      "entitiesGlobal": 256,
+      "entityTypes": [
+        "zombie",
+        "skeleton",
+        "husk",
+        "stray",
+        "spider",
+        "cave_spider",
+        "creeper",
+        "slime"
+      ],
+      "entityNameCharacters": "at most 64, no controls",
+      "healthHearts": "1..100",
+      "teamKeyPattern": "[a-z][a-z0-9_]{0,63}",
+      "teamMembershipsGlobal": 4096
+    },
+    "lifecycle": "Owned entity UUIDs require the same feature and active revision. Entities are nonpersistent; reload, restriction, disable, chunk/world unload clean up ownership. No chunk loading. Team membership is feature/revision/player scoped and transient; quit clears it.",
+    "exampleFile": "examples/two-arenas.aether",
+    "exampleSource": "feature two-arenas version \"1.0.0\"\ncommand arenas permission \"aetherscript.example.arenas\" sender player {\n  arg arena: text = \"red\"\n  arg action: text = \"show\"\n  if arena == \"red\" || arena == \"blue\" {\n    let position = player_location()\n    let inside = inside_region(position, 0, -64, 0, 15, 320, 15)\n    let in_blue = inside_region(position, 32, -64, 0, 47, 320, 15)\n    let allowed = (arena == \"red\" && inside) || (arena == \"blue\" && in_blue)\n    let score_key = arena + \"_score\"\n    let boss_key = arena + \"_boss\"\n    let score = shared_read(\"world\", score_key, 0)\n    let boss = shared_read(\"world\", boss_key, \"\")\n    if action == \"target\" && team_is(arena) && allowed && boss != \"\" {\n      if entity_target_player(boss) {\n        send \"Boss targeted \" + arena\n      }\n    }\n    if action == \"join\" {\n      team_join(arena)\n      send \"Joined \" + arena\n    } else {\n      if action == \"start\" {\n        if team_is(arena) && allowed {\n          let created = entity_spawn(position, \"zombie\", arena + \" arena boss\")\n          entity_health(created, 20)\n          if shared_commit(\"world\", put(map<text,text>(), boss_key, created), list<text>()) {\n            if boss != \"\" {\n              let removed = entity_remove(boss)\n            }\n            send \"Started \" + arena + \" boss \" + created\n          } else {\n            let removed = entity_remove(created)\n            send \"Start conflict; retry.\"\n          }\n        } else {\n          send \"Join this team and stand inside its arena first.\"\n        }\n      } else {\n        if action == \"score\" {\n          if team_is(arena) && allowed {\n            if shared_commit(\"world\", put(map<text,integer>(), score_key, score + 1), list<text>()) {\n              send arena + \" score \" + text(score + 1)\n            } else {\n              send \"Score conflict; retry.\"\n            }\n          } else {\n            send \"Join this team and stand inside its arena first.\"\n          }\n        } else {\n          if action == \"cleanup\" {\n            if shared_commit(\"world\", map<text,text>(), [boss_key]) {\n              if boss != \"\" {\n                let removed = entity_remove(boss)\n              }\n              team_leave()\n              send \"Cleaned \" + arena\n            } else {\n              send \"Cleanup conflict; retry.\"\n            }\n          } else {\n            send arena + \" score \" + text(score)\n            send \"Boss: \" + boss\n            send \"Member: \" + text(team_is(arena))\n            send \"Inside: \" + text(allowed)\n          }\n        }\n      }\n    }\n  } else {\n    send \"Choose red or blue.\"\n  }\n}\non entity_damage permission \"aetherscript.example.arenas\" {\n  if world == \"minecraft:overworld\" && x >= 0 && x <= 15 && z >= 0 && z <= 15 {\n    send \"Damage blocked in red.\"\n    cancel\n  } else {\n    send \"Damage: \" + entity_type + \" \" + text(damage_milli)\n  }\n}\non entity_death permission \"aetherscript.example.arenas\" {\n  send \"Death: \" + entity_type + \" \" + entity_uuid\n}\n"
   }
 }
