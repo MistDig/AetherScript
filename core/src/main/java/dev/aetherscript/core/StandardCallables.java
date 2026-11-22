@@ -47,6 +47,12 @@ public final class StandardCallables {
         add(registry, "player.team.join", "team_join", List.of(ScriptType.TEXT), ScriptType.UNIT, PAPER_MAIN, "player.team", "Join a bounded feature-owned team on the player's scoreboard.");
         add(registry, "player.team.is", "team_is", List.of(ScriptType.TEXT), ScriptType.BOOLEAN, PAPER_MAIN, "player.team", "Test membership in this feature's team.");
         add(registry, "player.team.leave", "team_leave", List.of(), ScriptType.UNIT, PAPER_MAIN, "player.team", "Leave this feature's team.");
+        add(registry, "integration.inspect", "integration_available", List.of(ScriptType.TEXT, ScriptType.TEXT), ScriptType.BOOLEAN, PAPER_MAIN, "integration.inspect", "Test an optional vault, permissions or worldguard provider against a numeric minimum version; missing/incompatible returns false.");
+        add(registry, "integration.economy.balance", "external_balance", List.of(), ScriptType.INTEGER, PAPER_MAIN, "integration.economy.read", "Read invoking player's Vault economy balance as exact minor units (100 per major unit); unsupported precision fails.");
+        add(registry, "integration.economy.deposit", "external_deposit", List.of(ScriptType.INTEGER), ScriptType.BOOLEAN, PAPER_MAIN, "integration.economy.write", "Deposit 1..100000000 minor units only to invoking player's Vault account; provider transaction failure returns false.");
+        add(registry, "integration.economy.withdraw", "external_withdraw", List.of(ScriptType.INTEGER), ScriptType.BOOLEAN, PAPER_MAIN, "integration.economy.write", "Withdraw 1..100000000 minor units only from invoking player's Vault account; provider transaction failure returns false.");
+        add(registry, "integration.permission.check", "external_permission", List.of(ScriptType.TEXT), ScriptType.BOOLEAN, PAPER_MAIN, "integration.permission", "Read invoking player's Bukkit permission; explicit lowercase dotted nodes only, max128, no wildcard.");
+        add(registry, "integration.worldguard.build", "external_can_build", List.of(ScriptType.LOCATION), ScriptType.BOOLEAN, PAPER_MAIN, "integration.worldguard.read", "Read WorldGuard7 region testBuild result for invoking player in their current world. Does not include session bypass or other protection plugins.");
         return registry;
     }
     private static void add(CallableRegistry registry, String id, String name, List<ScriptType> parameters, ScriptType result,

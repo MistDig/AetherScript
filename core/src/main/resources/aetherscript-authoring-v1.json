@@ -37,7 +37,12 @@
     "player.team",
     "runtime.event.entity_damage",
     "runtime.event.entity_death",
-    "runtime.event.entity_target"
+    "runtime.event.entity_target",
+    "integration.inspect",
+    "integration.economy.read",
+    "integration.economy.write",
+    "integration.permission",
+    "integration.worldguard.read"
   ],
   "authoringRules": [
     "Match the feature ID to the filename.",
@@ -244,7 +249,12 @@
       "player.team",
       "runtime.event.entity_damage",
       "runtime.event.entity_death",
-      "runtime.event.entity_target"
+      "runtime.event.entity_target",
+      "integration.inspect",
+      "integration.economy.read",
+      "integration.economy.write",
+      "integration.permission",
+      "integration.worldguard.read"
     ],
     "hostCatalogDiscovery": "CLI --language and local/hosted aether_capabilities expose the executable host-call catalog; live discovery includes the actual connection grant.",
     "approvalWindow": "Fresh ais connect browser approval chooses supported capabilities, all or selected scripts and an optional live test player. Explicit console ais permit/restrict ceilings remain authoritative.",
@@ -802,5 +812,72 @@
       "source": "examples/addons/personal-weather-addon",
       "script": "examples/personal-weather.aether"
     }
+  },
+  "externalIntegrations": {
+    "introduced": "0.0.28",
+    "callables": [
+      {
+        "signature": "integration_available(provider: text, minimumVersion: text) -> boolean",
+        "id": "integration.inspect",
+        "capability": "integration.inspect"
+      },
+      {
+        "signature": "external_balance() -> integer",
+        "id": "integration.economy.balance",
+        "capability": "integration.economy.read"
+      },
+      {
+        "signature": "external_deposit(integer) -> boolean",
+        "id": "integration.economy.deposit",
+        "capability": "integration.economy.write"
+      },
+      {
+        "signature": "external_withdraw(integer) -> boolean",
+        "id": "integration.economy.withdraw",
+        "capability": "integration.economy.write"
+      },
+      {
+        "signature": "external_permission(text) -> boolean",
+        "id": "integration.permission.check",
+        "capability": "integration.permission"
+      },
+      {
+        "signature": "external_can_build(location) -> boolean",
+        "id": "integration.worldguard.build",
+        "capability": "integration.worldguard.read"
+      }
+    ],
+    "availability": {
+      "providers": [
+        "vault",
+        "permissions",
+        "worldguard"
+      ],
+      "minimumVersion": "1..4 numeric segments, each 1..9 digits; numeric prefix comparison with zero padding; provider suffix permitted",
+      "false": "Provider missing, incompatible or older than requested minimum; does not grant permission.",
+      "versionIdentity": {
+        "vault": "Vault plugin version; economy provider name reported separately",
+        "permissions": "Bukkit API version",
+        "worldguard": "WorldGuard plugin version"
+      }
+    },
+    "economy": {
+      "actor": "Invoking player only",
+      "scale": 100,
+      "balance": "Exact integer minor units; no rounding",
+      "providerPrecision": "fractionalDigits = -1 or >=2; integer-only providers fail explicitly",
+      "mutationRange": "1..100000000 minor units per call",
+      "failure": "Provider transactionSuccess false returns false; missing/incompatible APIs fail with stable bounded diagnostics.",
+      "atomicity": "Each provider mutation is separate; no transaction across economy, inventory or durable state."
+    },
+    "permissions": "Invoking Player.hasPermission; explicit lowercase dotted node <=128 characters, no wildcards.",
+    "worldguard": "WorldGuard7 RegionQuery.testBuild only; invoking player current world; excludes session bypass and other protection plugins; does not perform or cancel a block action.",
+    "healthFields": [
+      "provider",
+      "version",
+      "status"
+    ],
+    "exampleFile": "examples/guarded-shop.aether",
+    "example": "feature guarded-shop version \"1.0.0\"\ncommand guardedshop permission \"aetherscript.example.guardedshop\" sender player {\n  arg action: text = \"quote\"\n  let vault_ready = integration_available(\"vault\", \"1.7\")\n  let permissions_ready = integration_available(\"permissions\", \"1\")\n  let regions_ready = integration_available(\"worldguard\", \"7.0\")\n  if vault_ready && permissions_ready && regions_ready {\n    if external_permission(\"aetherscript.shop.buy\") {\n      if external_can_build(player_location()) {\n        let price = 250\n        let balance = external_balance()\n        if action == \"buy\" {\n          if balance >= price {\n            if external_withdraw(price) {\n              if inventory_give(item(\"minecraft:bread\", 4)) {\n                send \"Purchased 4 bread for 250 minor units.\"\n              } else {\n                if external_deposit(price) {\n                  send \"Delivery failed; 250 minor units refunded.\"\n                } else {\n                  send \"Delivery and refund failed; contact the server owner.\"\n                }\n              }\n            } else {\n              send \"Payment rejected; no bread delivered.\"\n            }\n          } else {\n            send \"Insufficient balance; no payment attempted.\"\n          }\n        } else {\n          send \"Quote: 4 bread costs 250 minor units (2.50 major units).\"\n          send \"Balance in minor units: \" + text(balance)\n        }\n      } else {\n        send \"Shop requires WorldGuard build access here.\"\n      }\n    } else {\n      send \"Missing aetherscript.shop.buy permission.\"\n    }\n  } else {\n    send \"Required providers unavailable or incompatible.\"\n    send \"Vault >= 1.7: \" + text(vault_ready)\n    send \"Permissions >= 1: \" + text(permissions_ready)\n    send \"WorldGuard >= 7.0: \" + text(regions_ready)\n  }\n}\n"
   }
 }

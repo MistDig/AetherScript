@@ -3,6 +3,7 @@ version: ${version}
 main: dev.aetherscript.paper.AetherScriptPlugin
 api-version: '26.3'
 description: Bounded scripts with transactional in-memory hot reload
+softdepend: [Vault, WorldGuard]
 commands:
   ais:
     description: AetherScript local administration and feature dispatch

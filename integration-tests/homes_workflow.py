@@ -55,7 +55,7 @@ class Bot:
             try: self.request(op='quit'); self.p.wait(timeout=5)
             except (OSError,subprocess.TimeoutExpired): self.p.kill(); self.p.wait(timeout=5)
 
-def verify(command, start, stop, server, repo, java, evidence, client_dir, events=False, kits=False, packages=False, economy=False, menus=False, arenas=False, addon=None):
+def verify(command, start, stop, server, repo, java, evidence, client_dir, events=False, kits=False, packages=False, economy=False, menus=False, arenas=False, addon=None, bridge=False):
     server,repo,client_dir=map(Path,(server,repo,client_dir))
     proxy_jar=client_dir/'ViaProxy-3.4.14.jar'
     if hashlib.sha256(proxy_jar.read_bytes()).hexdigest()!=PROXY_SHA256: raise AssertionError('Unexpected ViaProxy checksum')
@@ -63,6 +63,8 @@ def verify(command, start, stop, server, repo, java, evidence, client_dir, event
     scripts=server/'plugins/AetherScript/scripts'; scripts.mkdir(parents=True,exist_ok=True)
     source=scripts/'homes.aether'; hello=scripts/'hello-ai.aether'
     original=(repo/'examples/homes.aether').read_text(encoding='utf-8').replace('Teleporting in one second...', 'Preparing teleport...')
+    if bridge:
+        original=original.replace('command home ', 'command aetherhome ')
     source.write_text(original,encoding='utf-8')
     bots=[]; proxy=None; proxy_log=None
     def passed(name, detail):
@@ -81,7 +83,8 @@ def verify(command, start, stop, server, repo, java, evidence, client_dir, event
     def connect(name):
         bot=Bot(client_dir,name,server/'homes-client.jsonl'); bots.append(bot); return bot
     def tp(bot,x,z):
-        command(f'tp {bot.name} {float(x)} 80.0 {float(z)}', 'Teleported')
+        teleport_command = 'minecraft:tp' if bridge else 'tp'
+        command(f'{teleport_command} {bot.name} {float(x)} 80.0 {float(z)}', 'Teleported')
         bot.wait(lambda e:e['event']=='position' and abs(e['x']-x)<.1 and abs(e['z']-z)<.1)
     def at(bot,x,z):
         pos=bot.position(); assert abs(pos['x']-x)<.2 and abs(pos['z']-z)<.2, pos
@@ -133,6 +136,10 @@ def verify(command, start, stop, server, repo, java, evidence, client_dir, event
         if addon:
             from addon_workflow import verify_addon
             verify_addon(command, check, connect, start, stop, passed, repo, scripts, addon)
+            return
+        if bridge:
+            from bridge_workflow import verify_bridge
+            verify_bridge(command, check, connect, tp, passed, repo, scripts)
             return
         a,b=connect('AetherHomeA'),connect('AetherHomeB')
         command('op AetherHomeA','operator'); command('op AetherHomeB','operator')

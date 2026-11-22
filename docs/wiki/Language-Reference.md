@@ -594,6 +594,45 @@ The addon must implement cleanup for effects it creates. `unregister(owner)` wit
 
 See the standalone example's README for the pinned Java 25/Paper build recipe, JAR installation, exact permission/grant commands and two-player acceptance checks. Compare actual installed signatures and addon versions before generating a script.
 
+
+## Optional external integrations (0.0.28)
+
+The built-in adapters expose a fixed set of invoking-player operations for Vault economy, Bukkit permissions and WorldGuard7. The owner installs compatible external plugins; scripts do not choose Java classes or member names. Optional dependencies are not bundled. Inspect installed provider health (provider, version and status) and validate against the connected server before using these calls. A script capability and an available provider are separate requirements.
+
+`integration_available(provider, minimumVersion) -> boolean` requires `integration.inspect`. Providers are `"vault"`, `"permissions"` and `"worldguard"`. A numeric minimum has 1–4 dot-separated segments, each 1–9 digits; numeric prefixes compare with zero padding, and provider versions may have a nonnumeric suffix. Missing, incompatible or older providers return false. Invalid provider names/version syntax are errors. Availability never grants another capability. Vault's version is the Vault adapter plugin version, while provider health identifies the actual registered economy provider. Permissions uses the Bukkit API version. A compatible adapter version does not certify every economy implementation or all WorldGuard deployments.
+
+| Call | Result | Capability |
+| --- | --- | --- |
+| `external_balance()` | integer minor-unit balance | `integration.economy.read` |
+| `external_deposit(amount)` | boolean provider transaction success | `integration.economy.write` |
+| `external_withdraw(amount)` | boolean provider transaction success | `integration.economy.write` |
+| `external_permission(node)` | invoking player's Bukkit permission result | `integration.permission` |
+| `external_can_build(location)` | WorldGuard7 build query result | `integration.worldguard.read` |
+
+Economy values use exactly 100 minor units per major unit: 250 means 2.50. Balance conversion is exact and never rounds. The provider must advertise at least two fractional digits or unrestricted precision (`-1`); integer-only providers fail explicitly. A mutation accepts 1–100000000 minor units per call. The account is always the invoking player's. A provider transaction failure returns false; unavailable/incompatible APIs fail with bounded stable diagnostics. Provider exception text is not exposed.
+
+`external_permission` delegates to `Player.hasPermission`, so the installed Bukkit permissions setup determines inheritance. Supply an explicit lowercase dotted node up to 128 characters without wildcards. `external_can_build` performs WorldGuard7's region `testBuild` query for the invoking player in their current world. It excludes WorldGuard session bypass and other protection plugins and neither performs nor cancels a block edit. Treat the result as that specific policy query, not universal permission to change a world.
+
+### Guarded shop example and delivery scope
+
+`examples/guarded-shop.aether` first checks Vault >=1.7, permissions >=1 and WorldGuard >=7.0, then checks `aetherscript.shop.buy` and WorldGuard build access at the player's location. The command permission is separately `aetherscript.example.guardedshop`. Quote mode reports a price of 250 minor units for four plain bread and the current balance. Buy mode re-reads balance and attempts withdrawal; it only attempts delivery after successful payment. The withdrawal result remains authoritative if balance changes after the read.
+
+Install the external providers and the example, then run these console commands:
+
+```text
+ais permit guarded-shop integration.inspect,integration.economy.read,integration.economy.write,integration.permission,integration.worldguard.read,player.location.read,player.inventory.write
+ais validate guarded-shop
+ais reload guarded-shop
+```
+
+Grant the two explicit example permission nodes through the installed permissions system. Run `/ais run guarded-shop quote` and `/ais run guarded-shop buy`.
+
+Item delivery uses the existing all-or-none `inventory_give` for the invoking player's storage inventory, excluding armor and offhand. It delivers four plain bread without changing unrelated metadata items. It is separate from the Vault transaction. A full inventory after payment triggers one compensating deposit; successful compensation reports the refund, while a rejected refund tells the player to contact the owner. There is no durable purchase journal, automatic refund retry or crash recovery in this example. A process failure after withdrawal can lose payment before delivery/refund; a process failure after delivery must not be treated as proof of failure and automatically refunded. This is not an atomic money-and-item exchange or an exactly-once purchase across crashes. `inventory_exchange` only combines two inventory descriptors and cannot make a Vault payment atomic.
+
+Minimum-provider guards prevent attempts when required dependencies are absent or too old. A provider can still disappear or fail after a guard, so host calls retain their own failure checks. The configured minimums are example prerequisites, not a tested compatibility matrix. Record actual Vault, economy-provider, permission-provider, WorldGuard, WorldEdit and Paper versions when verifying interoperability.
+
+The fixed adapter uses Vault's OfflinePlayer economy overloads and transaction result, Bukkit permission checks, and WorldGuard7's protection query. Source references: [Vault Economy API](https://github.com/MilkBowl/VaultAPI/blob/master/src/main/java/net/milkbowl/vault/economy/Economy.java) and [WorldGuard protection queries](https://worldguard.enginehub.org/en/latest/developer/regions/protection-query/). External dependency installation, compatibility and their own authorization remain owner responsibilities.
+
 ### Make another feature
 
 Copy an example to `scripts/welcome.aether` or `scripts/welcome.yml`. Set both feature ID and command name to `welcome`, choose the explicit permission `aetherscript.example.welcome`, and write your message. Validate, reload and invoke `/ais run welcome`.

@@ -170,6 +170,7 @@ final class GameplayRuntime implements AutoCloseable, Listener {
     private final PaperMenus menus;
     private final PaperEntities ownedEntities;
     private final PaperAddons addons;
+    private final PaperExternalIntegrations integrations;
     private volatile KitCooldowns kitCooldowns;
     private volatile SQLiteVariables state; // Accessed by the single existing plugin I/O worker.
     private volatile SQLiteVariables sharedState;
@@ -179,6 +180,7 @@ final class GameplayRuntime implements AutoCloseable, Listener {
         this.plugin = plugin; this.registry = registry; this.io = io; this.main = main;
         this.policy = policy; this.ready = ready; this.stateDirectory = directory;
         this.addons = addons;
+        this.integrations = new PaperExternalIntegrations(plugin.getServer());
         this.worldDisplays = new PaperWorldDisplays(plugin.getServer());
         this.items = new PaperItems(plugin);
         this.menus = new PaperMenus(plugin);
@@ -350,6 +352,9 @@ final class GameplayRuntime implements AutoCloseable, Listener {
                         new PaperEntities.Owner(feature.definition().id(), feature.sourceHash())));
                 case "player.kit.claim" -> claimKit(values);
                 case "player.identity.self" -> new ScriptValue(ScriptType.TEXT, "p" + actor.toString().replace("-", ""));
+                case "integration.inspect", "integration.economy.balance", "integration.economy.deposit",
+                     "integration.economy.withdraw", "integration.permission.check", "integration.worldguard.build" ->
+                    main.call(() -> integrate(descriptor.id(), player(), values));
                 case "state.shared.read", "state.shared.commit" -> shared(descriptor.id(), values);
                 case "world.from_location", "world.block.at", "world.block.material", "world.block.set",
                      "world.time.read", "world.time.set", "world.weather.read", "world.weather.set",
@@ -394,6 +399,25 @@ final class GameplayRuntime implements AutoCloseable, Listener {
                     if (!descriptor.id().startsWith("addon.")) throw error("UNSUPPORTED_HOST_OPERATION");
                     yield main.call(() -> addons.invoke(descriptor, values, context, player()));
                 }
+            };
+        }
+        private ScriptValue integrate(String operation, Player actor, List<ScriptValue> values) {
+            return switch (operation) {
+                case "integration.inspect" -> new ScriptValue(ScriptType.BOOLEAN,
+                    integrations.available(values.get(0).text(), values.get(1).text()));
+                case "integration.economy.balance" -> new ScriptValue(ScriptType.INTEGER, integrations.balance(actor));
+                case "integration.economy.deposit", "integration.economy.withdraw" -> new ScriptValue(ScriptType.BOOLEAN,
+                    integrations.transaction(actor, values.getFirst().integer(), operation.endsWith(".deposit")));
+                case "integration.permission.check" -> new ScriptValue(ScriptType.BOOLEAN,
+                    integrations.permission(actor, values.getFirst().text()));
+                case "integration.worldguard.build" -> {
+                    var location = values.getFirst().location();
+                    var world = plugin.getServer().getWorld(location.worldId());
+                    if (world == null || world != actor.getWorld()) throw error("INTEGRATION_WORLD_UNAVAILABLE");
+                    var point = new Location(world, location.x(), location.y(), location.z());
+                    yield new ScriptValue(ScriptType.BOOLEAN, integrations.canBuild(actor, point));
+                }
+                default -> throw error("UNSUPPORTED_INTEGRATION");
             };
         }
         private ScriptValue chooseMenu(List<ScriptValue> values) throws Exception {

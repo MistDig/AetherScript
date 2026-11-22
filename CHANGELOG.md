@@ -2,6 +2,14 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.28] - 2026-11-22
+
+- Add optional invoking-player Vault economy, Bukkit permission and WorldGuard7 build-query adapters with explicit capabilities and provider health.
+- Add numeric minimum-version availability checks, exact 100-minor-unit currency conversion and bounded deposit/withdraw operations.
+- Add a guarded quote/purchase example with explicit provider, permission and build-access checks and compensating refund on failed inventory delivery. Money and item changes remain separate operations with documented crash gaps.
+- Java 25 passed 387 tests with one Windows link test skipped. Packaged authoring, 22 wiki examples, MCP stdio, legacy hashes, SQLite packaging and documentation checks passed.
+- Paper 26.3 build 245 passed eight checks using Vault 1.7.3, EssentialsX 2.22.0, WorldEdit 7.4.6 and WorldGuard 7.0.21. The purchase debited 250 minor units and delivered four bread. WorldGuard denied a second purchase without changing inventory or balance. No actual AI client was exercised.
+
 ## [0.0.27] - 2026-11-22
 
 - Add a public Bukkit service for owner-installed Java plugins to register versioned typed callables, discover descriptors and withdraw registration.

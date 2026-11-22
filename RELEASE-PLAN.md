@@ -1,6 +1,6 @@
 # AetherScript language release plan
 
-An owner should be able to describe a Minecraft plugin to an AI, install it and judge it by playing. Common plugins should use native scripts. A capability outside the built-in language should have a documented path through an owner-installed Java addon. The addon SDK is a planned milestone.
+An owner should be able to describe a Minecraft plugin to an AI, install it and judge it by playing. Common plugins should use native scripts. A capability outside the built-in language should have a documented path through an owner-installed Java addon. The addon SDK is available from 0.0.27.
 
 ## Release tracker
 
@@ -16,7 +16,7 @@ An owner should be able to describe a Minecraft plugin to an AI, install it and 
 | 0.0.25 · Menus and custom items | [Released](https://github.com/MistDig/AetherScript/releases/tag/v0.0.25) | Paper verified a read-only shop menu and an atomic exchange for a custom item with a stable ID and display name. Shift-click, drag and double-click attempts left inventory unchanged. |
 | 0.0.26 · Entities, combat and regions | [Released](https://github.com/MistDig/AetherScript/releases/tag/v0.0.26) | Paper verified two arena bosses, teams, independent command-driven scores, player targeting, red-region damage cancellation and cleanup. Automatic kill scoring and cross-arena friendly-fire rules remain open. |
 | 0.0.27 · Addon SDK | [Released](https://github.com/MistDig/AetherScript/releases/tag/v0.0.27) | An independently built Java addon registered a typed personal-weather call. Paper verified approval, weather and clean recovery after removal. Addon-defined event declarations remain open. |
-| 0.0.28 · External plugin integrations | Planned | Build a shop using the installed economy, permissions and region protection. Resolve declared dependencies and explain missing or incompatible versions. |
+| 0.0.28 · External plugin integrations | [Release](https://github.com/MistDig/AetherScript/releases/tag/v0.0.28) | Paper verified a shop purchase using Vault, EssentialsX and Bukkit permission checks, plus a WorldGuard denial with no payment or delivery. Provider availability and minimum-version checks are built in. General package dependency resolution remains open. |
 | 0.0.29 · End-to-end AI authoring | Planned | From an empty feature, an authorized AI discovers available APIs, creates a multi-file quest shop, runs event scenarios, checks real effects and repairs a failed assertion. |
 | 0.0.30 · Version-matched AI onboarding and blind build challenge | Planned | Connect a fresh AI client through the public setup. With no pasted documentation, give it a previously unseen plugin request on Paper. It discovers the installed language and addon APIs, builds and tests the plugin, and the owner judges the result in Minecraft. |
 

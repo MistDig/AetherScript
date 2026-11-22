@@ -1,0 +1,46 @@
+feature guarded-shop version "1.0.0"
+command guardedshop permission "aetherscript.example.guardedshop" sender player {
+  arg action: text = "quote"
+  let vault_ready = integration_available("vault", "1.7")
+  let permissions_ready = integration_available("permissions", "1")
+  let regions_ready = integration_available("worldguard", "7.0")
+  if vault_ready && permissions_ready && regions_ready {
+    if external_permission("aetherscript.shop.buy") {
+      if external_can_build(player_location()) {
+        let price = 250
+        let balance = external_balance()
+        if action == "buy" {
+          if balance >= price {
+            if external_withdraw(price) {
+              if inventory_give(item("minecraft:bread", 4)) {
+                send "Purchased 4 bread for 250 minor units."
+              } else {
+                if external_deposit(price) {
+                  send "Delivery failed; 250 minor units refunded."
+                } else {
+                  send "Delivery and refund failed; contact the server owner."
+                }
+              }
+            } else {
+              send "Payment rejected; no bread delivered."
+            }
+          } else {
+            send "Insufficient balance; no payment attempted."
+          }
+        } else {
+          send "Quote: 4 bread costs 250 minor units (2.50 major units)."
+          send "Balance in minor units: " + text(balance)
+        }
+      } else {
+        send "Shop requires WorldGuard build access here."
+      }
+    } else {
+      send "Missing aetherscript.shop.buy permission."
+    }
+  } else {
+    send "Required providers unavailable or incompatible."
+    send "Vault >= 1.7: " + text(vault_ready)
+    send "Permissions >= 1: " + text(permissions_ready)
+    send "WorldGuard >= 7.0: " + text(regions_ready)
+  }
+}
