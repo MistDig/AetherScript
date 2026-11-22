@@ -520,7 +520,7 @@ Native files support `on join`, `on quit`, `on block_break` and `on block_place`
 
 Every handler receives immutable `player_name`, `player_uuid` and `world` text values. The `world` field is a namespaced key such as `minecraft:overworld`. Block events additionally receive `block_type` text (the material name) and signed integer `x`, `y`, `z`. Event bodies support `let`, `send`, `if`/`else` and pure scalar expressions. Collection operations are rejected. Only block handlers support `cancel`. Host calls, delay, state operations, arguments, mutation, loops and user function calls are rejected in handlers. At most 16 handlers are allowed per feature; each evaluation has an 8192-step and 32-message cap.
 
-Paper invokes handlers synchronously on its main thread. Block listeners use HIGHEST priority and skip events already cancelled by another plugin. AetherScript cancellation only sets the event's cancelled state; it never clears another cancellation. Active-revision subscriptions are replaced or removed during reload, rollback, disable and shutdown. Each handler infers `runtime.event.<id>`; `cancel` additionally requires `runtime.event.cancel`. The owner must approve these locally with console `ais permit`; browser capability choices and legacy remote grants remain unchanged and do not authorize events. Sending also requires `runtime.message.send`. This release introduces no MCP tools. Command-test tools do not simulate event dispatch; test actual gameplay on Paper.
+Paper invokes handlers synchronously on its main thread. Block listeners use HIGHEST priority and skip events already cancelled by another plugin. AetherScript cancellation only sets the event's cancelled state; it never clears another cancellation. Active-revision subscriptions are replaced or removed during reload, rollback, disable and shutdown. Each handler infers `runtime.event.<id>`; `cancel` additionally requires `runtime.event.cancel`. The owner approves these with console `ais permit` or fresh hosted browser approval for join, quit, block break, block place and cancellation. Older grants keep their original scope. Sending also requires `runtime.message.send`. The hosted `aether_events_preview` tool can simulate a typed snapshot. Test actual gameplay and permissions on Paper.
 
 ### Starter world protection
 
@@ -616,3 +616,11 @@ command menushop permission "aetherscript.example.menushop" sender player {
   }
 }
 ```
+
+## Hosted multi-file editing and event previews
+
+With a 0.0.29 Paper plugin and compatible hosted relay, call `aether_scripts_read`, `aether_scripts_validate` and `aether_scripts_apply` with `format: "aetherpack"`. Supply `source` as a JSON string mapping relative `.aether` filenames to their contents. Include one feature entry and every imported module. See the four files in `examples/quests.aetherpack`. Read and keep the current editable hash, use `ABSENT` for creation, and re-read after applying. The active compiled hash and editable hash can differ after an owner edit. Owner-created package directories stay read-only through MCP. Text scripts continue to use the default format.
+
+`aether_events_preview` takes a permitted feature ID plus an `event` with its `kind` and typed `fields`. Use the exact field names and types from the language reference. Results include simulated messages and cancellation intent for the active revision. A preview assumes the supplied snapshot reaches matching handlers. Verify real server permissions, other plugins, cancellation and world effects on Paper. A preview does not dispatch a live event.
+
+Fresh hosted approval can include join, quit, block break, block placement and cancellation. Cancellation permission is separate from permission to receive an event. Existing grants do not gain permissions or tools automatically. Other event and world capabilities still require local owner approval.

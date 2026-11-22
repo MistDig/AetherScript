@@ -14,7 +14,7 @@ import java.util.function.Consumer;
 /** Shared-service browser enrollment. Secrets stay in the local server identity file. */
 final class SharedRelayConnector implements AutoCloseable {
     static final URI ORIGIN = URI.create("https://aetherscript-relay.mistdig143.workers.dev");
-    static final Set<String> SCOPES = Set.of("status", "capabilities", "scripts.list", "scripts.read", "scripts.validate", "scripts.apply", "scripts.test", "scripts.test.status");
+    static final Set<String> SCOPES = Set.of("status", "capabilities", "scripts.list", "scripts.read", "scripts.validate", "scripts.apply", "scripts.test", "scripts.test.status", "events.preview");
     interface Handler { Map<String, Object> execute(ConnectionStore.Grant grant, String operation, Map<String, Object> arguments) throws Exception; }
     interface Transport { JsonNode post(String path, String token, Map<String, ?> body) throws Exception; }
     private final ConnectionStore store;
@@ -66,7 +66,7 @@ final class SharedRelayConnector implements AutoCloseable {
                 store.clearPending();
                 if (closed || epoch != enrollmentEpoch.get()) return;
                 var identity = store.state();
-                JsonNode result = transport.post("/v2/enrollments", null, Map.of("serverId", identity.serverId(), "serverToken", identity.serverToken(), "serverName", serverName, "allowedScriptIds", offeredTargets.stream().sorted().toList(), "allScripts", offeredTargets.isEmpty(), "scopes", SCOPES.stream().sorted().toList(), "availableCapabilities", offeredCapabilities.stream().sorted().toList(), "testPlayers", offeredPlayers));
+                JsonNode result = transport.post("/v2/enrollments", null, Map.of("serverId", identity.serverId(), "serverToken", identity.serverToken(), "serverName", serverName, "allowedScriptIds", offeredTargets.stream().sorted().toList(), "allScripts", offeredTargets.isEmpty(), "scopes", SCOPES.stream().sorted().toList(), "availableCapabilities", offeredCapabilities.stream().sorted().toList(), "testPlayers", offeredPlayers, "supportedFormats", List.of("aether", "aetherpack")));
                 String id = result.path("enrollmentId").asText(), browserUrl = result.path("browserUrl").asText();
                 URI url = URI.create(browserUrl);
                 if (!ORIGIN.getScheme().equals(url.getScheme()) || !ORIGIN.getAuthority().equals(url.getAuthority()) || !"/connect".equals(url.getPath()) || url.getRawQuery() != null || url.getRawFragment() == null || !url.getRawFragment().startsWith("code=")) throw new IOException("Invalid browser enrollment URL");

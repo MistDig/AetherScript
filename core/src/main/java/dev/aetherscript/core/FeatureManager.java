@@ -22,20 +22,24 @@ public final class FeatureManager {
     public ScriptStore scripts() { return scripts; }
     /** Recheck an active program against the current owner policy before synthetic execution. */
     public void authorize(CompiledFeature feature) { policy.accept(feature); }
-    public Change prepareText(String id, String text, Registry.Snapshot current) throws IOException {
+    public Change prepareText(String id, String text, Registry.Snapshot current) throws IOException { return prepareSource(id, "aether", text, current); }
+    public Change prepareSource(String id, String format, String text, Registry.Snapshot current) throws IOException {
         FeatureParser parser = scripts.parser();
-        CompiledFeature compiled = validateText(id, text, current, parser);
-        var source = new SourceFile(id + ".aether", "aether", text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        SourceFile source = SourceFile.authored(id, format, text, parser);
+        // Deny a directory or owner format migration before staging any durable revision.
+        scripts.editableSource(id, format, parser);
+        CompiledFeature compiled = validateSource(source, current, parser);
         Map<String, CompiledFeature> target = new TreeMap<>(current.features()); target.put(id, compiled);
         return new Change(store.prepare(Map.of(id, source), Set.of(), Map.of(), parser), target, List.of());
     }
-    public CompiledFeature validateText(String id, String text, Registry.Snapshot current) { return validateText(id, text, current, scripts.parser()); }
-    private CompiledFeature validateText(String id, String text, Registry.Snapshot current, FeatureParser parser) {
-        FeatureParser.requireId(id);
-        var source = new SourceFile(id + ".aether", "aether", text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    public CompiledFeature validateText(String id, String text, Registry.Snapshot current) { return validateSource(id, "aether", text, current); }
+    public CompiledFeature validateSource(String id, String format, String text, Registry.Snapshot current) {
+        FeatureParser parser = scripts.parser();
+        return validateSource(SourceFile.authored(id, format, text, parser), current, parser);
+    }
+    private CompiledFeature validateSource(SourceFile source, Registry.Snapshot current, FeatureParser parser) {
         var compiled = source.compile(parser);
-        if (!id.equals(compiled.definition().id())) throw new ValidationException("$.id", "ID must match target");
-        Map<String, CompiledFeature> target = new TreeMap<>(current.features()); target.put(id, compiled); validateTarget(target);
+        Map<String, CompiledFeature> target = new TreeMap<>(current.features()); target.put(compiled.definition().id(), compiled); validateTarget(target);
         return compiled;
     }
 

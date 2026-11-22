@@ -266,7 +266,12 @@
       "player.location.read",
       "player.teleport.self",
       "state.own",
-      "scheduler.delay"
+      "scheduler.delay",
+      "runtime.event.join",
+      "runtime.event.quit",
+      "runtime.event.block_break",
+      "runtime.event.block_place",
+      "runtime.event.cancel"
     ]
   },
   "remoteWorkflow": {
@@ -390,7 +395,7 @@
     "testing": "Existing command-test MCP tools do not simulate event dispatch. Validate source offline; test actual joins/quits/block actions on Paper.",
     "exampleFile": "starter-protection.aether",
     "example": "feature starter-protection version \"1.0.0\"\non block_break permission \"*\" bypass \"aetherscript.protection.bypass\" {\n  if world == \"minecraft:overworld\" {\n    send \"Block breaking is protected here.\"\n    cancel\n  }\n}\non block_place permission \"*\" bypass \"aetherscript.protection.bypass\" {\n  if world == \"minecraft:overworld\" {\n    send \"Block placing is protected here.\"\n    cancel\n  }\n}\n",
-    "authorization": "Local console ais permit/restrict only. Each handler infers runtime.event.<id>; cancel additionally infers runtime.event.cancel. Existing browser capability choices and legacy grants do not authorize events."
+    "authorization": "Approve event capabilities through actual console ais permit/restrict, or offer join, quit, block_break, block_place and cancel through fresh hosted browser approval. Older grants stay unchanged. Other event capabilities still require console approval."
   },
   "itemsAndKits": {
     "introduced": "0.0.21",
@@ -509,7 +514,7 @@
       {
         "signature": "bossbar_clear() -> unit",
         "capability": "player.display",
-        "description": "Clear this revisionâ€™s boss bar."
+        "description": "Clear this revisionÃ¢â‚¬â„¢s boss bar."
       },
       {
         "signature": "scoreboard(list<text>) -> unit",
@@ -519,7 +524,7 @@
       {
         "signature": "scoreboard_clear() -> unit",
         "capability": "player.display",
-        "description": "Clear this revisionâ€™s scoreboard and restore the previous scoreboard when still active."
+        "description": "Clear this revisionÃ¢â‚¬â„¢s scoreboard and restore the previous scoreboard when still active."
       }
     ],
     "timer": {
@@ -879,5 +884,24 @@
     ],
     "exampleFile": "examples/guarded-shop.aether",
     "example": "feature guarded-shop version \"1.0.0\"\ncommand guardedshop permission \"aetherscript.example.guardedshop\" sender player {\n  arg action: text = \"quote\"\n  let vault_ready = integration_available(\"vault\", \"1.7\")\n  let permissions_ready = integration_available(\"permissions\", \"1\")\n  let regions_ready = integration_available(\"worldguard\", \"7.0\")\n  if vault_ready && permissions_ready && regions_ready {\n    if external_permission(\"aetherscript.shop.buy\") {\n      if external_can_build(player_location()) {\n        let price = 250\n        let balance = external_balance()\n        if action == \"buy\" {\n          if balance >= price {\n            if external_withdraw(price) {\n              if inventory_give(item(\"minecraft:bread\", 4)) {\n                send \"Purchased 4 bread for 250 minor units.\"\n              } else {\n                if external_deposit(price) {\n                  send \"Delivery failed; 250 minor units refunded.\"\n                } else {\n                  send \"Delivery and refund failed; contact the server owner.\"\n                }\n              }\n            } else {\n              send \"Payment rejected; no bread delivered.\"\n            }\n          } else {\n            send \"Insufficient balance; no payment attempted.\"\n          }\n        } else {\n          send \"Quote: 4 bread costs 250 minor units (2.50 major units).\"\n          send \"Balance in minor units: \" + text(balance)\n        }\n      } else {\n        send \"Shop requires WorldGuard build access here.\"\n      }\n    } else {\n      send \"Missing aetherscript.shop.buy permission.\"\n    }\n  } else {\n    send \"Required providers unavailable or incompatible.\"\n    send \"Vault >= 1.7: \" + text(vault_ready)\n    send \"Permissions >= 1: \" + text(permissions_ready)\n    send \"WorldGuard >= 7.0: \" + text(regions_ready)\n  }\n}\n"
+  },
+  "hostedPackedAuthoring": {
+    "format": "aetherpack",
+    "source": "JSON string containing an object mapping relative AetherScript file names to UTF-8 source text.",
+    "edit": "Specify format in read, validate and apply. Pass the exact editable hash or ABSENT for new IDs. Owner directories stay read-only remotely.",
+    "preview": {
+      "tool": "aether_events_preview",
+      "input": {
+        "id": "feature-id",
+        "event": {
+          "kind": "join",
+          "fields": {
+            "player_name": "MistDig",
+            "world": "minecraft:overworld"
+          }
+        }
+      },
+      "output": "Simulated messages, cancellation intent, and evaluated handler count. This does not dispatch a Paper event."
+    }
   }
 }

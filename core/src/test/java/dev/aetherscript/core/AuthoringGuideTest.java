@@ -40,7 +40,12 @@ class AuthoringGuideTest {
             assertEquals(fields.keySet(), described.keySet());
             fields.forEach((name, type) -> assertEquals(type.name().toLowerCase(java.util.Locale.ROOT), described.get(name)));
         }
-        guide.path("capabilityPolicy").path("browserApprovedExecutionCeiling").forEach(node -> assertFalse(publishedCapabilities.contains(node.asText())));
+        var browserEvents = new java.util.HashSet<String>();
+        guide.path("capabilityPolicy").path("browserApprovedExecutionCeiling").forEach(node -> {
+            if (publishedCapabilities.contains(node.asText())) browserEvents.add(node.asText());
+        });
+        assertEquals(java.util.Set.of("runtime.event.join", "runtime.event.quit", "runtime.event.block_break",
+            "runtime.event.block_place", "runtime.event.cancel"), browserEvents);
     }
 }
 

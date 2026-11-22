@@ -130,6 +130,7 @@ final class ConnectionStore {
     }
     private static void capabilities(Set<String> values) throws IOException {
         Set<String> known = new HashSet<>(MESSAGE_ONLY);
+        known.addAll(Set.of("runtime.event.join", "runtime.event.quit", "runtime.event.block_break", "runtime.event.block_place", "runtime.event.cancel"));
         StandardCallables.create().descriptors().forEach(d -> known.addAll(d.requiredCapabilities()));
         if (values == null || !values.containsAll(MESSAGE_ONLY) || values.size() > 32 || !known.containsAll(values)) throw new IOException("Invalid execution capabilities");
     }

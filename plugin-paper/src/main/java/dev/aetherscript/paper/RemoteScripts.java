@@ -42,7 +42,8 @@ final class RemoteScripts {
         if (operation.equals("scripts.list")) {
             exact(args, Set.of()); Set<String> ids = new TreeSet<>(allowed);
             if (allScripts) for (var file : manager.scripts().inspect(null).values()) {
-                if (!Arrays.asList(file.fileName().split(" \\+ ")).contains(file.id() + ".aether")) continue;
+                var names = Arrays.asList(file.fileName().split(" \\+ "));
+                if (!names.contains(file.id() + ".aether") && !names.contains(file.id() + ".aetherpack")) continue;
                 try { FeatureParser.requireId(file.id()); ids.add(file.id()); } catch (ValidationException ignored) { }
             }
             return Map.of("ids", List.copyOf(ids), "allScripts", allScripts);
@@ -54,22 +55,23 @@ final class RemoteScripts {
         String id = string(args, "id"); FeatureParser.requireId(id);
         if (!allScripts && !allowed.contains(id)) throw new SecurityException("TARGET_DENIED");
         switch (operation) {
-            case "scripts.read" -> { exact(args, Set.of("id")); return read(id); }
+            case "scripts.read" -> { formatFields(args, Set.of("id")); return read(id, format(args)); }
             case "scripts.validate" -> {
-                exact(args, Set.of("id", "source")); var compiled = manager.validateText(id, string(args, "source"), registry.snapshot());
+                formatFields(args, Set.of("id", "source")); var compiled = manager.validateSource(id, format(args), string(args, "source"), registry.snapshot());
                 authorize(compiled);
                 return Map.of("valid", true, "hash", compiled.sourceHash());
             }
             case "scripts.apply" -> {
-                exact(args, Set.of("id", "source", "expectedHash"));
+                formatFields(args, Set.of("id", "source", "expectedHash"));
+                String format = format(args);
                 var before = registry.snapshot(); String source = string(args, "source"), expectedHash = string(args, "expectedHash");
-                var candidate = manager.validateText(id, source, before);
+                var candidate = manager.validateSource(id, format, source, before);
                 authorize(candidate);
-                var previous = textSource(id);
+                var previous = editableSource(id, format);
                 if (!Objects.equals(expectedHash, previous == null ? "ABSENT" : previous.hash())) throw new java.io.IOException("STALE_SOURCE");
-                authorized(); FeatureManager.Change change = manager.prepareText(id, source, before);
+                authorized(); FeatureManager.Change change = manager.prepareSource(id, format, source, before);
                 boolean needsIntent = change.durable().changed();
-                if (needsIntent) manager.scripts().beginRemoteIntent(id, expectedHash, source, change.durable().before().sequence());
+                if (needsIntent) manager.scripts().beginRemoteIntent(id, expectedHash, format, source, change.durable().before().sequence());
                 try { authorized(); activate.apply(before, change, () -> {
                     authorized();
                     try { authorize(candidate); }
@@ -82,13 +84,21 @@ final class RemoteScripts {
                     // Delivery/logging failure after commit must never roll a committed source back.
                 }
                 if (!needsIntent) { authorized(); authorize(candidate); }
-                try { manager.scripts().compareAndSwapText(id, expectedHash, source); }
+                try { manager.scripts().compareAndSwapSource(id, expectedHash, format, source); }
                 catch (java.io.IOException conflict) {
-                    if (needsIntent && ("STALE_SOURCE".equals(conflict.getMessage()) || "TEXT_SOURCE_REQUIRED".equals(conflict.getMessage()))) manager.scripts().finishRemoteIntent(id);
+                    if (needsIntent && ("STALE_SOURCE".equals(conflict.getMessage()) || "TEXT_SOURCE_REQUIRED".equals(conflict.getMessage()) || "PACKAGE_DIRECTORY_READ_ONLY".equals(conflict.getMessage()) || "SOURCE_FORMAT_MISMATCH".equals(conflict.getMessage()))) manager.scripts().finishRemoteIntent(id);
                     throw conflict;
                 }
                 if (needsIntent) manager.scripts().finishRemoteIntent(id);
-                return read(id);
+                return read(id, format);
+            }
+            case "events.preview" -> {
+                exact(args, Set.of("id", "event"));
+                var candidate = registry.snapshot().features().get(id);
+                if (candidate == null || candidate.program() == null) throw new IllegalArgumentException("EVENT_FEATURE_REQUIRED");
+                authorize(candidate);
+                manager.authorize(candidate);
+                return previewEvent(candidate, args.get("event"));
             }
             case "scripts.test.status" -> {
                 exact(args, Set.of("id", "testId"));
@@ -129,18 +139,62 @@ final class RemoteScripts {
         if (compiled.definition().requires().stream().anyMatch(capability -> !capability.equals(ScriptCapabilityPolicy.MESSAGE)))
             throw new SecurityException("REMOTE_CAPABILITY_DENIED: remote grants permit message-only scripts");
     }
-    private Map<String, Object> read(String id) throws Exception {
-        authorized(); var source = textSource(id); var snapshot = registry.snapshot(); var active = snapshot.features().get(id);
+    private Map<String, Object> read(String id, String format) throws Exception {
+        authorized(); var source = editableSource(id, format); var snapshot = registry.snapshot(); var active = snapshot.features().get(id);
         var history = manager.store().state().features().get(id);
-        return Map.of("id", id, "exists", source != null, "source", source == null ? "" : source.text(), "hash", source == null ? "ABSENT" : source.hash(),
+        return Map.of("id", id, "format", format, "exists", source != null, "source", source == null ? "" : source.text(), "hash", source == null ? "ABSENT" : source.hash(),
             "activeHash", active == null ? "" : active.sourceHash(), "generation", snapshot.generation(), "revision", history == null ? 0 : history.active());
     }
-    private SourceFile textSource(String id) throws java.io.IOException {
-        try { return manager.scripts().textSource(id); }
+    private SourceFile editableSource(String id, String format) throws java.io.IOException {
+        try { return manager.scripts().editableSource(id, format); }
         catch (java.io.IOException failure) {
             if ("TEXT_SOURCE_REQUIRED".equals(failure.getMessage())) throw new java.io.IOException("TEXT_SOURCE_REQUIRED: owner must convert this ID to a single safe .aether file first; legacy YAML/JSON and duplicate sources are never overwritten.");
             throw failure;
         }
+    }
+    private static void formatFields(Map<String, Object> args, Set<String> required) {
+        Set<String> fields = new HashSet<>(args.keySet()); fields.remove("format");
+        if (!fields.equals(required)) throw new IllegalArgumentException("INVALID_ARGUMENTS");
+    }
+    private static String format(Map<String, Object> args) {
+        String format = args.containsKey("format") ? string(args, "format") : "aether";
+        if (!Set.of("aether", "aetherpack").contains(format)) throw new IllegalArgumentException("SOURCE_FORMAT_UNSUPPORTED");
+        return format;
+    }
+    private Map<String, Object> previewEvent(CompiledFeature feature, Object raw) {
+        if (!(raw instanceof Map<?, ?> event) || !event.keySet().equals(Set.of("kind", "fields"))
+            || !(event.get("kind") instanceof String kind) || !(event.get("fields") instanceof Map<?, ?> fields))
+            throw new IllegalArgumentException("INVALID_EVENT_SNAPSHOT");
+        var expected = CompiledFeature.eventFields(kind);
+        if (!fields.keySet().equals(expected.keySet())) throw new IllegalArgumentException("INVALID_EVENT_FIELDS");
+        Map<String, ScriptValue> typed = new LinkedHashMap<>();
+        expected.forEach((name, type) -> {
+            Object value = fields.get(name);
+            if (type == ScriptType.INTEGER && (value instanceof Integer || value instanceof Long)) value = ((Number) value).longValue();
+            try { typed.put(name, new ScriptValue(type, value)); }
+            catch (IllegalArgumentException | NullPointerException failure) { throw new IllegalArgumentException("INVALID_EVENT_FIELD: " + name); }
+        });
+        var snapshot = new CompiledFeature.EventData(kind, typed);
+        List<String> messages = new ArrayList<>();
+        int messageChars = 0, hearts = 0, evaluated = 0;
+        boolean cancelled = false;
+        for (var handler : feature.program().eventHandlers()) {
+            if (!handler.kind().equals(kind)) continue;
+            authorized();
+            var result = handler.evaluate(snapshot);
+            evaluated++;
+            for (var message : result.messages()) {
+                messageChars += message.text().length();
+                if (messages.size() >= 32 || messageChars > 6144) throw new IllegalArgumentException("EVENT_PREVIEW_OUTPUT_LIMIT");
+                messages.add(message.text());
+            }
+            if (hearts == 0) hearts = result.blockHearts();
+            if (result.cancelled()) { cancelled = true; break; }
+        }
+        authorized();
+        return Map.of("simulated", true, "kind", kind, "sourceHash", feature.sourceHash(), "messages", messages,
+            "cancelled", cancelled, "hearts", cancelled ? 0 : hearts, "handlersEvaluated", evaluated,
+            "permissionModel", "Assumes the supplied snapshot reached each handler; no Bukkit permission, bypass, or world state is evaluated.");
     }
     private static List<String> invocationArguments(Map<String, Object> args) {
         if (!args.containsKey("arguments")) return List.of();

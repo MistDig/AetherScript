@@ -31,7 +31,10 @@ def verify(command, start, stop, server, repo, java, evidence, client_dir):
         raise AssertionError('Paper activation did not settle')
     def connect_bot():
         result = Bot(client_dir, 'AetherHomeA', server/'native-mcp-client.jsonl')
-        command('op AetherHomeA', 'operator'); settled()
+        command('op AetherHomeA', 'operator')
+        if os.environ.get('AETHER_PACKED_SMOKE')=='1':
+            command('gamemode creative AetherHomeA', 'Creative Mode')
+        settled()
         return result
     def tp(x, z):
         command(f'tp AetherHomeA {float(x)} 80.0 {float(z)}', 'Teleported')
@@ -134,6 +137,46 @@ def verify(command, start, stop, server, repo, java, evidence, client_dir):
                         return result
                     time.sleep(.25)
                 raise AssertionError('Native test did not terminate')
+
+            def exercise_packed():
+                format_args = {'id':'quests','format':'aetherpack'}
+                files = {path.name: path.read_text(encoding='utf-8') for path in (repo/'examples/quests.aetherpack').glob('*.aether')}
+                source = json.dumps(files, separators=(',', ':'))
+                assert call(token,'aether_scripts_read',format_args)['hash']=='ABSENT'
+                assert call(token,'aether_scripts_validate',dict(format_args,source=source))['valid']
+                edited = call(token,'aether_scripts_apply',dict(format_args,source=source,expectedHash='ABSENT'))
+                settled()
+                call(token,'aether_scripts_apply',dict(format_args,source=source,expectedHash='ABSENT'),False)
+                def run(expected):
+                    result = call(token,'aether_scripts_test',{'id':'quests','arguments':['show'],'expectedMessages':expected})
+                    deadline=time.monotonic()+120
+                    while result['status']=='pending' and time.monotonic()<deadline:
+                        time.sleep(.25)
+                        result=call(token,'aether_scripts_test_status',{'id':'quests','testId':result['testId']})
+                    assert result['status']=='completed'
+                    return result
+                failed=run(['Intentional mismatch'])
+                assert not failed['matched'] and any('Reward preview: 0 bread' in line for line in failed['actualMessages'])
+                files['rewards.aether']=files['rewards.aether'].replace('progress.stage * 2','progress.stage * 2 + 1')
+                fixed=json.dumps(files, separators=(',', ':'))
+                assert call(token,'aether_scripts_validate',dict(format_args,source=fixed))['valid']
+                assert json.loads(call(token,'aether_scripts_apply',dict(format_args,source=fixed,expectedHash=edited['hash']))['source'])==files
+                settled()
+                expected=[line.replace('Reward preview: 0 bread','Reward preview: 1 bread') for line in failed['actualMessages']]
+                assert run(expected)['matched']
+                passed('packed-quest-repair','Applied four files, rejected a stale write, observed a failed assertion, repaired one module and passed the retest.')
+            if os.environ.get('AETHER_PACKED_SMOKE')=='1':
+                exercise_packed()
+                protection=(repo/'examples/starter-protection.aether').read_text(encoding='utf-8')
+                call(token,'aether_scripts_apply',{'id':'starter-protection','source':protection,'expectedHash':'ABSENT'})
+                settled()
+                event={'kind':'block_break','fields':{'player_name':'AetherHomeA','player_uuid':actor,
+                    'world':'minecraft:overworld','block_type':'STONE','x':10,'y':80,'z':10}}
+                preview=call(token,'aether_events_preview',{'id':'starter-protection','event':event})
+                assert preview['simulated'] and preview['cancelled'] and preview['handlersEvaluated']==1
+                event['fields']['world']='minecraft:the_nether'
+                assert not call(token,'aether_events_preview',{'id':'starter-protection','event':event})['cancelled']
+                passed('event-preview','Approved event snapshots simulated cancellation only in the overworld, with no live block edits.')
             tp(11,13)
             saved_id = begin('set',['Home saved.']); saved = poll(saved_id)
             assert saved['matched'] and saved['actualMessages']==['Home saved.']

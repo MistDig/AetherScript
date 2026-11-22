@@ -27,6 +27,14 @@ Read the feature and retain its hash. Validate the complete replacement. Apply w
 
 On a stale-hash error, read again before deciding whether to merge the owner's edit. On timeout or network failure, read back first because the operation may have completed. A successful request can be followed by a failure delivering its reply.
 
+## Hosted multi-file editing and event previews
+
+With a 0.0.29 Paper plugin and compatible hosted relay, call `aether_scripts_read`, `aether_scripts_validate` and `aether_scripts_apply` with `format: "aetherpack"`. Supply `source` as a JSON string mapping relative `.aether` filenames to their contents. Include one feature entry and every imported module. See the four files in `examples/quests.aetherpack`. Read and keep the current editable hash, use `ABSENT` for creation, and re-read after applying. The active compiled hash and editable hash can differ after an owner edit. Owner-created package directories stay read-only through MCP. Text scripts continue to use the default format.
+
+`aether_events_preview` takes a permitted feature ID plus an `event` with its `kind` and typed `fields`. Use the exact field names and types from the language reference. Results include simulated messages and cancellation intent for the active revision. A preview assumes the supplied snapshot reaches matching handlers. Verify real server permissions, other plugins, cancellation and world effects on Paper. A preview does not dispatch a live event.
+
+Fresh hosted approval can include join, quit, block break, block placement and cancellation. Cancellation permission is separate from permission to receive an event. Existing grants do not gain permissions or tools automatically. Other event and world capabilities still require local owner approval.
+
 ## Test limitations
 
 `aether_scripts_test` uses the owner-approved online player for native or player-only commands; the player must hold the command's declared permission. The AI cannot choose or replace that actor. Tests can send messages, write own-player state, wait and teleport the approved player: these are real effects. A start response may return `status: "pending"` and `testId`; poll `aether_scripts_test_status` with `{id,testId}` until completion, then report actual messages, errors, effects and comparison. A pure `sender any` message program without an approved actor retains synthetic compatibility. Offline `aether_test` is always synthetic and host calls fail with `HOST_CONTEXT_REQUIRED`.

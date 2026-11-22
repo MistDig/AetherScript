@@ -9,9 +9,19 @@ public final class ScriptStore {
     public record Inspection(String id, String fileName, SourceFile source, CompiledFeature compiled, ValidationException error) {
         public boolean valid() { return error == null && compiled != null; }
     }
+    private static final com.fasterxml.jackson.databind.ObjectMapper INTENT_JSON = intentJson();
+    private static com.fasterxml.jackson.databind.ObjectMapper intentJson() {
+        var json = FeatureParser.JSON.copy();
+        json.getFactory().setStreamReadConstraints(com.fasterxml.jackson.core.StreamReadConstraints.builder().maxNestingDepth(FeatureParser.MAX_DEPTH).maxStringLength(AetherPackage.MAX_SNAPSHOT_BYTES).maxNumberLength(64).build());
+        return json;
+    }
+    private static final int MAX_INTENT_BYTES = AetherPackage.MAX_SNAPSHOT_BYTES * 6 + 4096;
     private final Path root;
     private final java.util.function.Supplier<FeatureParser> parsers;
-    public record RemoteIntent(String id, String expectedHash, String source, long baseSequence) { }
+    public record RemoteIntent(String id, String expectedHash, String source, long baseSequence, String format) {
+        public RemoteIntent(String id, String expectedHash, String source, long baseSequence) { this(id, expectedHash, source, baseSequence, "aether"); }
+        public RemoteIntent { if (format == null) format = "aether"; }
+    }
     public ScriptStore(Path root) { this(root, FeatureParser::new); }
     public ScriptStore(Path root, java.util.function.Supplier<FeatureParser> parsers) {
         this.root = root.toAbsolutePath().normalize(); this.parsers = Objects.requireNonNull(parsers, "parsers");
@@ -27,12 +37,15 @@ public final class ScriptStore {
     }
     /** Persist the candidate before touching the active registry or editable source. */
     public synchronized void beginRemoteIntent(String id, String expectedHash, String text, long baseSequence) throws IOException {
-        FeatureParser.requireId(id);
-        SourceFile current = textSource(id);
+        beginRemoteIntent(id, expectedHash, "aether", text, baseSequence);
+    }
+    public synchronized void beginRemoteIntent(String id, String expectedHash, String format, String text, long baseSequence) throws IOException {
+        SourceFile candidate = SourceFile.authored(id, format, text, parser());
+        SourceFile current = editableSource(id, format);
         if (!Objects.equals(expectedHash, current == null ? "ABSENT" : current.hash())) throw new IOException("STALE_SOURCE");
         Path directory = intents(), target = directory.resolve(id + ".json");
         if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) throw new IOException("REMOTE_RECOVERY_PENDING");
-        byte[] bytes = FeatureParser.JSON.writeValueAsBytes(new RemoteIntent(id, expectedHash, text, baseSequence));
+        byte[] bytes = INTENT_JSON.writeValueAsBytes(new RemoteIntent(id, expectedHash, candidate.text(), baseSequence, format));
         Path temporary = Files.createTempFile(directory, ".intent-", ".tmp");
         try {
             Files.write(temporary, bytes);
@@ -55,19 +68,19 @@ public final class ScriptStore {
                 if (!path.getFileName().toString().endsWith(".json")) continue;
                 if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) throw new IOException("Unsafe remote recovery intent");
                 byte[] bytes;
-                try (var input = Files.newInputStream(path, LinkOption.NOFOLLOW_LINKS)) { bytes = input.readNBytes(400001); }
-                if (bytes.length > 400000) throw new IOException("Remote recovery intent too large");
-                RemoteIntent intent = FeatureParser.JSON.readValue(bytes, RemoteIntent.class);
+                try (var input = Files.newInputStream(path, LinkOption.NOFOLLOW_LINKS)) { bytes = input.readNBytes(MAX_INTENT_BYTES + 1); }
+                if (bytes.length > MAX_INTENT_BYTES) throw new IOException("Remote recovery intent too large");
+                RemoteIntent intent = INTENT_JSON.readValue(bytes, RemoteIntent.class);
                 FeatureParser.requireId(intent.id());
                 if (!path.getFileName().toString().equals(intent.id() + ".json")) throw new IOException("Remote intent ID mismatch");
-                var candidate = new SourceFile(intent.id() + ".aether", "aether", intent.source().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                var candidate = SourceFile.authored(intent.id(), intent.format(), intent.source(), parser);
                 if (!candidate.compile(parser).definition().id().equals(intent.id())) throw new IOException("Remote intent source mismatch");
                 var history = store.state().features().get(intent.id());
-                if (store.state().sequence() > intent.baseSequence() && history != null && history.activeRevision() != null && history.activeRevision().hash().equals(candidate.hash())) {
-                    var inspection = inspect(null).get(intent.id());
-                    SourceFile current = inspection == null ? null : inspection.source();
-                    boolean safeText = inspection == null || (inspection.fileName().equals(intent.id() + ".aether") && current != null);
-                    if (safeText && Objects.equals(intent.expectedHash(), current == null ? "ABSENT" : current.hash())) compareAndSwapText(intent.id(), intent.expectedHash(), intent.source());
+                if (store.state().sequence() > intent.baseSequence() && history != null && history.activeRevision() != null && history.activeRevision().hash().equals(candidate.hash()) && history.activeRevision().format().equals(intent.format())) {
+                    try {
+                        SourceFile current = editableSource(intent.id(), intent.format());
+                        if (Objects.equals(intent.expectedHash(), current == null ? "ABSENT" : current.hash())) compareAndSwapSource(intent.id(), intent.expectedHash(), intent.format(), intent.source());
+                    } catch (IOException unsafeOwnerSource) { /* Owner format/directory changes win over journal recovery. */ }
                 }
                 Files.delete(path);
             }
@@ -79,34 +92,38 @@ public final class ScriptStore {
         try (var channel = java.nio.channels.FileChannel.open(directory, StandardOpenOption.READ)) { channel.force(true); }
         catch (IOException | UnsupportedOperationException ignored) { }
     }
-    /** Remote editing is deliberately restricted to text sources and exact content versions. */
-    public synchronized SourceFile textSource(String id) throws IOException {
+    /** Old text API remains deliberately format-restricted. */
+    public synchronized SourceFile textSource(String id) throws IOException { return editableSource(id, "aether"); }
+    public synchronized SourceFile editableSource(String id, String format) throws IOException {
+        return editableSource(id, format, parser());
+    }
+    synchronized SourceFile editableSource(String id, String format, FeatureParser parser) throws IOException {
         FeatureParser.requireId(id);
-        var files = inspect(null);
-        var file = files.get(id);
+        if (!Set.of("aether", "aetherpack").contains(format)) throw new IOException("WRITABLE_FORMAT_REQUIRED");
+        var file = inspect(null, parser).get(id);
         if (file == null) return null;
-        if (!file.fileName().equals(id + ".aether") || file.source() == null)
-            throw new IOException("TEXT_SOURCE_REQUIRED");
+        if (!file.fileName().equals(id + "." + format)) throw new IOException(format.equals("aether") ? "TEXT_SOURCE_REQUIRED" : "SOURCE_FORMAT_MISMATCH");
+        Path path = root.resolve(file.fileName());
+        if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) throw new IOException("PACKAGE_DIRECTORY_READ_ONLY");
+        if (file.source() == null || !Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) throw new IOException("EDITABLE_SOURCE_UNSAFE");
         return file.source();
     }
-    public synchronized SourceFile compareAndSwapText(String id, String expectedHash, String text) throws IOException {
-        FeatureParser parser = parser();
-        FeatureParser.requireId(id);
-        SourceFile next = new SourceFile(id + ".aether", "aether", text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        if (!id.equals(next.compile(parser).definition().id())) throw new ValidationException("$.id", "ID must match target");
-        SourceFile previous = textSource(id);
+    public synchronized SourceFile compareAndSwapText(String id, String expectedHash, String text) throws IOException { return compareAndSwapSource(id, expectedHash, "aether", text); }
+    public synchronized SourceFile compareAndSwapSource(String id, String expectedHash, String format, String text) throws IOException {
+        SourceFile next = SourceFile.authored(id, format, text, parser());
+        SourceFile previous = editableSource(id, format);
         if (!Objects.equals(expectedHash, previous == null ? "ABSENT" : previous.hash())) throw new IOException("STALE_SOURCE");
         if (previous != null && previous.hash().equals(next.hash())) return previous;
         Path temporary = Files.createTempFile(root, ".remote-", ".tmp");
         try {
             try (var channel = java.nio.channels.FileChannel.open(temporary, StandardOpenOption.WRITE)) {
                 var bytes = java.nio.ByteBuffer.wrap(next.bytes());
-                while (bytes.hasRemaining()) channel.write(bytes);
-                channel.force(true);
+                while (bytes.hasRemaining()) channel.write(bytes); channel.force(true);
             }
-            SourceFile checked = textSource(id);
+            SourceFile checked = editableSource(id, format);
             if (!Objects.equals(expectedHash, checked == null ? "ABSENT" : checked.hash())) throw new IOException("STALE_SOURCE");
             Files.move(temporary, root.resolve(next.fileName()), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            flushDirectory(root);
             return next;
         } finally { Files.deleteIfExists(temporary); }
     }
@@ -131,12 +148,12 @@ public final class ScriptStore {
                             new ValidationException("$.id", "Duplicate feature ID. Keep one editable .yml, .yaml, .json, or .aether file or .aetherpack directory for this ID.")));
                         continue;
                     }
-                    if (format.equals("aetherpack")) {
+                    if (format.equals("aetherpack") && Files.isDirectory(file, LinkOption.NOFOLLOW_LINKS)) {
                         source = AetherPackage.read(file);
                     } else {
                     if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS) || !file.toRealPath().getParent().equals(root)) throw new IOException("Unsafe source file");
                     byte[] bytes;
-                    try (InputStream stream = Files.newInputStream(file, LinkOption.NOFOLLOW_LINKS)) { bytes = stream.readNBytes(FeatureParser.MAX_BYTES + 1); }
+                    try (InputStream stream = Files.newInputStream(file, LinkOption.NOFOLLOW_LINKS)) { bytes = stream.readNBytes((format.equals("aetherpack") ? AetherPackage.MAX_SNAPSHOT_BYTES : FeatureParser.MAX_BYTES) + 1); }
                     source = new SourceFile(name, format, bytes);
                     }
                     CompiledFeature compiled = source.compile(parser);

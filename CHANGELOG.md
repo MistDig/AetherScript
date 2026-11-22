@@ -2,6 +2,12 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.29] - 2026-11-22
+
+- Hosted read, validate and apply can author a packed multi-file native feature with one revision and source hash.
+- Add pure snapshot previews for active event handlers. Fresh browser grants can explicitly offer join, quit, block-break, block-place and cancellation capabilities. Old grants stay unchanged.
+- Verification pending.
+
 ## [0.0.28] - 2026-11-22
 
 - Add optional invoking-player Vault economy, Bukkit permission and WorldGuard7 build-query adapters with explicit capabilities and provider health.

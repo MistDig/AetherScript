@@ -156,7 +156,8 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
     }
     /** Relay protocol v2 retains its established capability allowlist. */
     private static Set<String> remoteCapabilities() {
-        return Set.of(ScriptCapabilityPolicy.MESSAGE, "player.location.read", "player.teleport.self", "state.own", "scheduler.delay");
+        return Set.of(ScriptCapabilityPolicy.MESSAGE, "player.location.read", "player.teleport.self", "state.own", "scheduler.delay",
+            "runtime.event.join", "runtime.event.quit", "runtime.event.block_break", "runtime.event.block_place", "runtime.event.cancel");
     }
     private boolean runFeature(String id, List<String> arguments, CommandSender sender) {
         if (!ready) return false;
