@@ -14,9 +14,9 @@ class GrantLifecycleTest {
     @Test void staleWarningsAndTerminalRejectsAreDeduplicatedPerStateAndExpiryPersists() throws Exception {
         Path file = root.resolve("connections.json"); var store = new ConnectionStore(file);
         String initial = uuid(), active = uuid(); store.pending(initial, Set.of("hello-ai"), System.currentTimeMillis() + 60000);
-        store.accept(new ConnectionStore.Grant(active, "Existing", Set.of("hello-ai"), SharedRelayConnector.SCOPES, false), initial);
+        store.accept(new ConnectionStore.Grant(active, "Existing", Set.of("hello-ai"), SharedRelayConnector.LEGACY_SCOPES, false), initial);
         String expired = uuid(), unknown = uuid(); store.pending(expired, Set.of(), System.currentTimeMillis() - 1, true);
-        AtomicReference<Map<String, ?>> offered = new AtomicReference<>(Map.of("connectionId", unknown, "enrollmentId", expired, "name", "Stale", "allowedScriptIds", List.of("hello-ai"), "scopes", SharedRelayConnector.SCOPES, "revoked", false));
+        AtomicReference<Map<String, ?>> offered = new AtomicReference<>(Map.of("connectionId", unknown, "enrollmentId", expired, "name", "Stale", "allowedScriptIds", List.of("hello-ai"), "scopes", SharedRelayConnector.LEGACY_SCOPES, "revoked", false));
         AtomicInteger rejects = new AtomicInteger(); List<String> lines = new ArrayList<>();
         SharedRelayConnector.Transport transport = (path, token, body) -> {
             if (path.endsWith("/poll")) return FeatureParser.JSON.valueToTree(Map.of("grants", List.of(offered.get()), "requests", List.of()));
@@ -36,7 +36,7 @@ class GrantLifecycleTest {
         Path file = root.resolve("connections.json"); var store = new ConnectionStore(file);
         String old = uuid(), fresh = uuid(), connection = uuid(); store.pending(old, Set.of("old-note"), System.currentTimeMillis() + 60000);
         CountDownLatch enrolled = new CountDownLatch(1); AtomicInteger invoked = new AtomicInteger();
-        var offered = Map.of("connectionId", connection, "enrollmentId", fresh, "name", "Full", "allowedScriptIds", List.of(), "allScripts", true, "scopes", SharedRelayConnector.SCOPES, "revoked", false);
+        var offered = Map.of("connectionId", connection, "enrollmentId", fresh, "name", "Full", "allowedScriptIds", List.of(), "allScripts", true, "scopes", SharedRelayConnector.LEGACY_SCOPES, "revoked", false);
         SharedRelayConnector.Transport transport = (path, token, body) -> {
             if (path.equals("/v2/enrollments")) {
                 assertTrue(new ConnectionStore(file).state().pending().isEmpty()); assertEquals(true, body.get("allScripts"));
@@ -54,7 +54,7 @@ class GrantLifecycleTest {
     @Test void strippedRevokedOfferRevokesOriginalGrantAndServiceExactlyOnce() throws Exception {
         Path file = root.resolve("connections.json"); var store = new ConnectionStore(file); String enrollment = uuid(), connection = uuid();
         store.pending(enrollment, Set.of("hello-ai"), System.currentTimeMillis() + 60000);
-        store.accept(new ConnectionStore.Grant(connection, "Original", Set.of("hello-ai"), SharedRelayConnector.SCOPES, false), enrollment);
+        store.accept(new ConnectionStore.Grant(connection, "Original", Set.of("hello-ai"), SharedRelayConnector.LEGACY_SCOPES, false), enrollment);
         AtomicInteger callbacks = new AtomicInteger(); List<String> lines = new ArrayList<>();
         var revoked = Map.of("connectionId", connection, "enrollmentId", enrollment, "revoked", true, "allowedScriptIds", List.of(), "scopes", List.of());
         SharedRelayConnector.Transport transport = (path, token, body) -> FeatureParser.JSON.valueToTree(Map.of("grants", List.of(revoked), "requests", List.of()));
@@ -66,7 +66,7 @@ class GrantLifecycleTest {
     }
     @Test void unknownOfferRejectNetworkFailuresDoNotProduceRepeatedGrantWarnings() throws Exception {
         var store = new ConnectionStore(root.resolve("connections.json")); String pending = uuid(); store.pending(pending, Set.of("hello-ai"), System.currentTimeMillis() + 60000);
-        var offered = Map.of("connectionId", uuid(), "enrollmentId", uuid(), "name", "Unknown", "allowedScriptIds", List.of("hello-ai"), "scopes", SharedRelayConnector.SCOPES, "revoked", false);
+        var offered = Map.of("connectionId", uuid(), "enrollmentId", uuid(), "name", "Unknown", "allowedScriptIds", List.of("hello-ai"), "scopes", SharedRelayConnector.LEGACY_SCOPES, "revoked", false);
         List<String> lines = new ArrayList<>(); AtomicInteger attempts = new AtomicInteger();
         SharedRelayConnector.Transport transport = (path, token, body) -> {
             if (path.endsWith("/reject")) { attempts.incrementAndGet(); throw new java.io.IOException("offline"); }

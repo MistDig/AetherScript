@@ -6,10 +6,10 @@ PROXY_SHA256 = '2894bbfb2f4342f8fde887af6c689313efd5b0e46a8006775eea0e21e2948ab5
 CAPS = 'player.location.read,state.own,scheduler.delay,player.teleport.self'
 
 class Bot:
-    def __init__(self, client_dir, name, output):
+    def __init__(self, client_dir, name, output, proxy_port=25568):
         self.events, self.q, self.name = [], queue.Queue(), name
         script = Path(__file__).resolve().parent/'client/home_client.cjs'
-        self.p = subprocess.Popen(['node', str(script.resolve()), '25568', name], cwd=client_dir,
+        self.p = subprocess.Popen(['node', str(script.resolve()), str(proxy_port), name], cwd=client_dir,
             env=dict(os.environ, NODE_PATH=str(Path(client_dir).resolve()/'node_modules')),
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8', creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
         self.errors = []

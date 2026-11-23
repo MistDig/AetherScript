@@ -6,7 +6,8 @@ import assert from 'node:assert/strict';
 const dist = resolve(dirname(fileURLToPath(import.meta.url)), '../.vitepress/dist');
 const files = (path) => readdirSync(path).flatMap(name => { const p=resolve(path,name); return statSync(p).isDirectory()?files(p):[p] });
 const htmlFiles=files(dist).filter(p=>p.endsWith('.html'));
-assert.equal(htmlFiles.length,15,'Homepage, twelve guides, changelog and 404 must be generated');
+const guideCount=readdirSync(resolve(dist,'../../guide')).filter(name=>name.endsWith('.md')).length;
+assert.equal(htmlFiles.length,guideCount+3,'Homepage, generated guides, changelog and 404 must be generated');
 let checked=0;
 for(const file of htmlFiles){
  const html=readFileSync(file,'utf8');
@@ -41,11 +42,11 @@ assert.ok(search,'Local full-text search index must exist');
 const serialized=(await import(pathToFileURL(search).href)).default;
 const fields=Object.keys(JSON.parse(serialized).fieldIds);
 const searchEngine=MiniSearch.loadJSON(serialized,{fields});
-for(const [query,route] of [['rollback','recovery'],['permission','commands'],['cooldowns','roadmap'],['target','language'],['immutable','ai-authoring']]) {
+for(const [query,route] of [['rollback','recovery'],['permission','commands'],['cooldowns','roadmap'],['target','language'],['immutable','ai-authoring'],['cloud token','resourcepack-ai']]) {
  const matches=searchEngine.search(query,{prefix:true,fuzzy:0.2});
  assert.ok(matches.some(result=>result.id.includes(`/guide/${route}.html`)),`Search query ${query} did not find ${route}`);
 }
-console.log(JSON.stringify({result:'pass',htmlPages:htmlFiles.length,localTargetsChecked:checked,searchQueries:5,base:'/AetherScript/'},null,2));
+console.log(JSON.stringify({result:'pass',htmlPages:htmlFiles.length,localTargetsChecked:checked,searchQueries:6,base:'/AetherScript/'},null,2));
 
 const contract = readFileSync(resolve(dist, '../../../core/src/main/resources/aetherscript-authoring-v1.json'), 'utf8');
 assert.equal(readFileSync(resolve(dist, 'authoring-v1.json'), 'utf8'), contract);
@@ -64,3 +65,7 @@ const aiReference = readFileSync(resolve(dist, '../../../docs/ai-reference.md'),
 assert.ok(full.includes(aiReference));
 assert.ok(full.indexOf(aiReference) < full.indexOf('# Human wiki appendix'));
 assert.equal(readFileSync(resolve(dist, 'ai-reference.txt'), 'utf8').trim(), aiReference);
+
+const quickstart=readFileSync(resolve(dist,'../../../AI-QUICKSTART.md'),'utf8').trim();
+assert.ok(full.includes(quickstart));
+assert.ok(readFileSync(resolve(dist,'ai-quickstart.txt'),'utf8').includes(quickstart));

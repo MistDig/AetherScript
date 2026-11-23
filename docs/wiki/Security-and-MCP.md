@@ -1,10 +1,10 @@
-[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.17)
+[Home](https://github.com/MistDig/AetherScript/wiki/Home) · [Download](https://github.com/MistDig/AetherScript/releases/tag/v0.0.30)
 
 ---
 
 ## Connect your AI
 
-Install AetherScript 0.0.17 in the Minecraft server's plugins folder and start the server. Java 25 is required. Keep one plugin JAR installed.
+Install AetherScript 0.0.30 in the Minecraft server's plugins folder and start the server. Java 25 is required. Keep one plugin JAR installed.
 
 ### On the Minecraft computer
 
@@ -14,7 +14,7 @@ The plugin creates its own identity automatically. The shared AetherScript servi
 
 ### On the AI computer
 
-Choose your AI app on the page. Follow its setup instructions and use the same browser for its authorization screen. [Client paths and primary sources checked 17 November 2026](https://github.com/MistDig/AetherScript/blob/v0.0.17/docs/mcp-clients.md) distinguish supported setup from actual-client verification.
+Choose your AI app on the page. Follow its setup instructions and use the same browser for its authorization screen. [Client setup and verification status](https://github.com/MistDig/AetherScript/blob/main/docs/mcp-clients.md) distinguish supported setup from actual-client verification.
 
 For Codex, add the displayed URL in the app's MCP settings where available, or use the CLI commands below. An optional Windows ZIP helper registers the hosted server: extract it and double-click `Connect-AetherScript.cmd`, then follow OAuth sign-in if prompted. Java and a separate MCP JAR are unnecessary for this hosted connection.
 
@@ -29,7 +29,7 @@ codex mcp login aetherscript
 
 If AetherScript is already configured, run the login command. Complete authorization in the browser with the enrollment page and use `/mcp` in Codex to check the connection.
 
-For ChatGPT, follow the current account/workspace MCP setup path documented in the [client guide](https://github.com/MistDig/AetherScript/blob/v0.0.17/docs/mcp-clients.md). Availability depends on your account and workspace settings. For Cursor use the installation link. Claude Code and Cline can use the hosted OAuth address if the installed client supports it. Their dated primary setup sources and actual verification status are recorded in the [client guide](https://github.com/MistDig/AetherScript/blob/v0.0.17/docs/mcp-clients.md).
+For ChatGPT, follow the current account/workspace MCP setup path documented in the [client guide](https://github.com/MistDig/AetherScript/blob/main/docs/mcp-clients.md). Availability depends on your account and workspace settings. For Cursor use the installation link. Claude Code and Cline can use the hosted OAuth address if the installed client supports it. Their dated primary setup sources and actual verification status are recorded in the [client guide](https://github.com/MistDig/AetherScript/blob/main/docs/mcp-clients.md).
 
 ### Approve and check
 

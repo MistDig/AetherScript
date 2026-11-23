@@ -102,8 +102,8 @@ public final class ScriptValueCodec {
             case BLOCK -> { var b = value.block(); writeUuid(out, b.worldId()); out.writeInt(b.x()); out.writeInt(b.y()); out.writeInt(b.z()); }
             case ITEM -> {
                 var item = value.item(); out.writeUTF(item.material());
-                out.writeInt(item.custom() ? -1 : item.amount());
-                if (item.custom()) { out.writeInt(item.amount()); out.writeUTF(item.featureId()); out.writeUTF(item.customId()); out.writeUTF(item.displayName()); }
+                out.writeInt(item.model() != null ? -2 : item.custom() ? -1 : item.amount());
+                if (item.custom()) { out.writeInt(item.amount()); out.writeUTF(item.featureId()); out.writeUTF(item.customId()); out.writeUTF(item.displayName()); if (item.model() != null) out.writeUTF(item.model()); }
             }
             case UNIT -> { }
             case OPTIONAL -> { out.writeByte(value.optional().isPresent() ? 1 : 0); if (value.optional().isPresent()) writeValue(out, value.optional().orElseThrow(), budget); }
@@ -129,7 +129,10 @@ public final class ScriptValueCodec {
             case BLOCK -> new ScriptValue.BlockRef(readUuid(in), in.readInt(), in.readInt(), in.readInt());
             case ITEM -> {
                 String material = in.readUTF(); int amount = in.readInt();
-                yield amount == -1 ? new ScriptValue.ItemDescriptor(material, in.readInt(), in.readUTF(), in.readUTF(), in.readUTF()) : new ScriptValue.ItemDescriptor(material, amount);
+                if (amount == -1 || amount == -2) {
+                    yield new ScriptValue.ItemDescriptor(material, in.readInt(), in.readUTF(), in.readUTF(), in.readUTF(), amount == -2 ? in.readUTF() : null);
+                }
+                yield new ScriptValue.ItemDescriptor(material, amount);
             }
             case UNIT -> ScriptValue.Unit.INSTANCE;
             case OPTIONAL -> readFlag(in) ? Optional.of(readValue(in, type.element(), budget)) : Optional.empty();

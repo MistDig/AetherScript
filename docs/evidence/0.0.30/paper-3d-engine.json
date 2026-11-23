@@ -1,0 +1,7 @@
+[
+  {
+    "test": "3d-engine-model-and-coexistence",
+    "result": "pass",
+    "detail": "3D Engine listed the original OBJ and built assets, while an AetherScript command ran on the same Paper server. Client rendering untested."
+  }
+]

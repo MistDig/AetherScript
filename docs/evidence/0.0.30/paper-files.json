@@ -1,0 +1,32 @@
+[
+  {
+    "test": "native-mcp-versioned-docs",
+    "result": "pass",
+    "detail": "Hosted resources and tools matched the server version and returned identical quickstart content; rejected mismatched version."
+  },
+  {
+    "test": "native-mcp-scoped-config",
+    "result": "pass",
+    "detail": "Unlisted key and stale digest denied; pending review left the original unchanged; console approval changed the selected key."
+  },
+  {
+    "test": "native-mcp-jar-staging",
+    "result": "pass",
+    "detail": "The real RPEngine JAR stayed in the inbox until exact console approval; an incorrect digest was rejected."
+  },
+  {
+    "test": "native-mcp-resourcepack-model",
+    "result": "pass",
+    "detail": "Paper loaded RP Engine 0.2.91 and MC GUI 0.8.6. RP Engine built the item definition and its texture. AetherScript delivered the matching Paper model and ownership metadata. Visual rendering was not exercised."
+  },
+  {
+    "test": "native-mcp-persistent-file-rollback",
+    "result": "pass",
+    "detail": "Config restored byte-for-byte after restart. Windows blocked removal of the loaded JAR and preserved the reviewed file and receipt."
+  },
+  {
+    "test": "native-mcp-file-revocation",
+    "result": "pass",
+    "detail": "Revocation invalidated an already-staged proposal before console approval."
+  }
+]

@@ -16,7 +16,7 @@ class ProtocolTest {
     }
     @Test void lifecycleAndDiscovery() {
         assertEquals(-32002,request("tools/list",Map.of()).path("error").path("code").asInt()); initialize();
-        var tools=request("tools/list",Map.of()).path("result").path("tools"); assertEquals(4,tools.size());
+        var tools=request("tools/list",Map.of()).path("result").path("tools"); assertEquals(5,tools.size());
         for(var tool:tools) assertTrue(tool.path("annotations").path("readOnlyHint").asBoolean());
     }
     @Test void noMutationToolsOrFileTools() {

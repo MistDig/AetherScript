@@ -27,6 +27,7 @@ export default defineConfig({
       { text: 'START SMALL', items: [
         { text: 'Getting started', link: '/guide/getting-started' },
         { text: 'Language & examples', link: '/guide/language' },
+        { text: 'ResourcePack AI and custom models', link: '/guide/resourcepack-ai' },
         { text: 'Writing scripts with AI', link: '/guide/ai-authoring' },
         { text: 'Commands & permissions', link: '/guide/commands' }
       ] },

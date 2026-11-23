@@ -13,10 +13,10 @@ import java.util.*;
 final class ConnectionStore {
     static final Set<String> MESSAGE_ONLY = Set.of(ScriptCapabilityPolicy.MESSAGE);
     record Pending(String enrollmentId, Set<String> allowedScriptIds, long expiresAt, boolean allScripts,
-                   Set<String> availableCapabilities, Set<String> testPlayerIds) {
-        Pending(String enrollmentId, Set<String> allowedScriptIds, long expiresAt, boolean allScripts) { this(enrollmentId, allowedScriptIds, expiresAt, allScripts, MESSAGE_ONLY, Set.of()); }
+                   Set<String> availableCapabilities, Set<String> testPlayerIds, Set<String> scopes) {
+        Pending(String enrollmentId, Set<String> allowedScriptIds, long expiresAt, boolean allScripts) { this(enrollmentId, allowedScriptIds, expiresAt, allScripts, MESSAGE_ONLY, Set.of(), SharedRelayConnector.LEGACY_SCOPES); }
         Pending(String enrollmentId, Set<String> allowedScriptIds, long expiresAt) { this(enrollmentId, allowedScriptIds, expiresAt, false); }
-        Pending { allowedScriptIds = Set.copyOf(allowedScriptIds); availableCapabilities = availableCapabilities == null ? MESSAGE_ONLY : Set.copyOf(availableCapabilities); testPlayerIds = testPlayerIds == null ? Set.of() : Set.copyOf(testPlayerIds); }
+        Pending { allowedScriptIds = Set.copyOf(allowedScriptIds); availableCapabilities = availableCapabilities == null ? MESSAGE_ONLY : Set.copyOf(availableCapabilities); testPlayerIds = testPlayerIds == null ? Set.of() : Set.copyOf(testPlayerIds); scopes = scopes == null ? SharedRelayConnector.LEGACY_SCOPES : Set.copyOf(scopes); }
     }
     record Grant(String connectionId, String name, Set<String> allowedScriptIds, Set<String> scopes, boolean revoked, boolean allScripts,
                  Set<String> capabilities, String testPlayerId) {
@@ -53,9 +53,12 @@ final class ConnectionStore {
         pending(id, targets, expiresAt, allScripts, MESSAGE_ONLY, Set.of());
     }
     synchronized void pending(String id, Set<String> targets, long expiresAt, boolean allScripts, Set<String> capabilities, Set<String> players) throws IOException {
+        pending(id, targets, expiresAt, allScripts, capabilities, players, SharedRelayConnector.LEGACY_SCOPES);
+    }
+    synchronized void pending(String id, Set<String> targets, long expiresAt, boolean allScripts, Set<String> capabilities, Set<String> players, Set<String> scopes) throws IOException {
         uuid(id); ids(targets, true);
         if (allScripts && !targets.isEmpty()) throw new IOException("Invalid enrollment access");
-        save(new State(state.serverId(), state.serverToken(), Map.of(id, new Pending(id, Set.copyOf(targets), expiresAt, allScripts, capabilities, players)), state.grants()));
+        save(new State(state.serverId(), state.serverToken(), Map.of(id, new Pending(id, Set.copyOf(targets), expiresAt, allScripts, capabilities, players, scopes)), state.grants()));
     }
     synchronized Map<String, Pending> expirePending(long now) throws IOException {
         var pending = new HashMap<>(state.pending()); var expired = new HashMap<String, Pending>();
@@ -80,7 +83,7 @@ final class ConnectionStore {
         }
         Pending pending = state.pending().get(enrollmentId);
         if (pending == null || pending.expiresAt() <= System.currentTimeMillis() || (offered.allScripts() && !pending.allScripts()) || (!pending.allowedScriptIds().isEmpty() && !pending.allowedScriptIds().containsAll(offered.allowedScriptIds()))
-            || !pending.availableCapabilities().containsAll(offered.capabilities()) || (!offered.testPlayerId().isEmpty() && !pending.testPlayerIds().contains(offered.testPlayerId()))) throw new IOException("NO_LOCAL_ENROLLMENT");
+            || !pending.scopes().containsAll(offered.scopes()) || !pending.availableCapabilities().containsAll(offered.capabilities()) || (!offered.testPlayerId().isEmpty() && !pending.testPlayerIds().contains(offered.testPlayerId()))) throw new IOException("NO_LOCAL_ENROLLMENT");
         if (state.grants().size() >= 32) throw new IOException("Connection limit reached");
         var grants = new HashMap<>(state.grants()); grants.put(offered.connectionId(), offered);
         var nextPending = new HashMap<>(state.pending()); nextPending.remove(enrollmentId);
@@ -118,6 +121,7 @@ final class ConnectionStore {
             if (!entry.getKey().equals(pending.enrollmentId())) throw new IOException("Enrollment ID mismatch"); ids(pending.allowedScriptIds(), true);
             if (pending.allScripts() && !pending.allowedScriptIds().isEmpty()) throw new IOException("Invalid enrollment access");
             capabilities(pending.availableCapabilities());
+            if (pending.scopes().isEmpty() || !SharedRelayConnector.SCOPES.containsAll(pending.scopes())) throw new IOException("Invalid offered scopes");
             if (pending.testPlayerIds().size() > 128) throw new IOException("Too many test players");
             for (String player : pending.testPlayerIds()) uuid(player);
         }

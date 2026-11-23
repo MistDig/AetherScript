@@ -624,3 +624,7 @@ With a 0.0.29 Paper plugin and compatible hosted relay, call `aether_scripts_rea
 `aether_events_preview` takes a permitted feature ID plus an `event` with its `kind` and typed `fields`. Use the exact field names and types from the language reference. Results include simulated messages and cancellation intent for the active revision. A preview assumes the supplied snapshot reaches matching handlers. Verify real server permissions, other plugins, cancellation and world effects on Paper. A preview does not dispatch a live event.
 
 Fresh hosted approval can include join, quit, block break, block placement and cancellation. Cancellation permission is separate from permission to receive an event. Existing grants do not gain permissions or tools automatically. Other event and world capabilities still require local owner approval.
+
+## Connected documentation and approved files
+
+Use `aether_capabilities` for the connected Paper version, granted capabilities, installed addons and task routes. Fetch only the sections you need through `aether_docs_read`. The tool and MCP resource return identical pages. Read `configuration` for approved JSON/YAML keys and `artifacts` for reviewed inbox JARs. Each proposed write requires the server owner to approve the exact proposal in the console. For resource-pack model keys and the vendor-specific workflows, read `resourcepacks` or the ResourcePack AI guide in the human appendix.

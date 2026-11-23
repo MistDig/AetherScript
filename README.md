@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/assets/aetherscript-banner.png" alt="AetherScript — little scripts, big possibilities" width="1200"></p>
 
-<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.29"><b>Download 0.0.29</b></a> · <a href="https://mistdig.github.io/AetherScript/">Explore the docs</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
+<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.30"><b>Download 0.0.30</b></a> · <a href="https://mistdig.github.io/AetherScript/">Explore the docs</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
 
 [![Build](https://github.com/MistDig/AetherScript/actions/workflows/ci.yml/badge.svg)](https://github.com/MistDig/AetherScript/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/MistDig/AetherScript)](https://github.com/MistDig/AetherScript/releases)
@@ -11,6 +11,10 @@ An open-source Minecraft scripting engine with **live hot reloading**, saved wor
 ## Language foundation and the month goal
 
 The [17 November–17 December plan](docs/ecosystem/month-goal-2026-11-17.md) prioritizes the language, core Minecraft APIs and addon foundations, then gameplay adapters and reliability, with MCP expansion last. AI authors get canonical syntax, a machine-readable contract and precise errors; humans need not learn the DSL to request features. The one-month goal is a broad plugin language, with explicit acceptance gates rather than a guarantee of Java API parity. Release 0.0.23 adds records and local multi-file packages; 0.0.22 introduced ten-heart blocks, world actions, timers and player displays. Synchronous player join/quit and cancellable block break/place handlers remain available. Typed per-player SQLite save/load includes nested immutable collections; verification is recorded in the changelog. MCP validation uses the same compiler as Paper. Hosted MCP supports packed feature editing and event snapshot previews.
+
+## Version-matched AI guides and pack models
+
+Connect through `ais connect`, then use `aether_capabilities` for focused guide routes and the server's installed capabilities. Read a section with `aether_docs_read` or use the [AI quickstart](AI-QUICKSTART.md). Use optional `ais connect --files` for owner-listed third-party config keys and reviewed inbox JARs. The console confirms each proposed write. See the [MCP guide](docs/wiki/MCP-Reference.md) and [ResourcePack AI guide](docs/wiki/ResourcePack-AI.md).
 
 ## Shared state in 0.0.24
 
@@ -91,7 +95,7 @@ This experimental implementation supports sender messages, preparation-time lega
 
 ## Get started
 
-1. Stop Paper, back up existing AetherScript data, and install **AetherScript-0.0.29.jar** from the release. Keep only one plugin JAR installed.
+1. Stop Paper, back up existing AetherScript data, and install **AetherScript-0.0.30.jar** from the release. Keep only one plugin JAR installed.
 2. Start with Java 25 and wait for `Ready. Restored ...`. A new install creates and activates `plugins/AetherScript/scripts/hello-ai.yml`.
 3. Run `/ais run hello-ai`. Players need `aetherscript.example.hello` (operators by default).
 4. Edit its quoted `text`, save, then `/ais validate hello-ai` and `/ais reload hello-ai`.

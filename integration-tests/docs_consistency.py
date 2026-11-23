@@ -55,6 +55,12 @@ for text in (reference, commands, (root/"docs/wiki/MCP-Reference.md").read_text(
 full=(root/"site/public/llms-full.txt").read_text(encoding="utf8")
 assert "\ufffd" not in full, "Current AI documentation contains decoding replacement characters"
 assert reference.strip() in full
+quickstart=(root/"AI-QUICKSTART.md").read_text(encoding="utf8").strip()
+assert quickstart in full
+assert quickstart in (root/"site/public/ai-quickstart.txt").read_text(encoding="utf8")
+for path in (root/"docs/wiki").glob("*.md"):
+ if not path.name.startswith("_"):
+  assert path.read_text(encoding="utf8").strip() in full, f"Wiki page missing from AI export: {path.name}"
 assert full.index(reference.strip()) < full.index("# Human wiki appendix")
 for path in (root/"docs/evidence/0.0.9").glob("TEST-*.xml"):
  assert 'failures="0"' in path.read_text(encoding="utf8")

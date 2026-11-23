@@ -84,6 +84,11 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
                     return null;
                 });
                 try {
+                    try {
+                        serverFiles = new ServerFileOperations(new AuthorizedServerFiles(data.getParent(), data.resolve("file-management")));
+                    } catch (Exception unsafeFiles) {
+                        getLogger().warning("Third-party file management unavailable. Check the owner-managed file-management directory.");
+                    }
                     connections = new ConnectionStore(data.resolve("connections.json"));
                     Path serverDirectory = data.getParent() == null ? null : data.getParent().getParent();
                     String serverName = serverDirectory == null || serverDirectory.getFileName() == null ? "Minecraft server" : serverDirectory.getFileName().toString();
@@ -99,6 +104,13 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
             } finally { busy.set(false); }
         });
     }
+    private volatile ServerFileOperations serverFiles;
+
+    private boolean fileConnectionActive(String id) {
+        var grant = connections == null ? null : connections.state().grants().get(id);
+        return grant != null && grant.scopes().stream().anyMatch(SharedRelayConnector.FILE_SCOPES::contains) && connectionAlive(grant);
+    }
+
     private void copyDefault(String resource, Path destination) throws IOException {
         if (!Files.exists(destination, LinkOption.NOFOLLOW_LINKS))
             try (InputStream input = getResource(resource)) { Files.copy(Objects.requireNonNull(input), destination); }
@@ -177,8 +189,14 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
     @Override public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length < 1) { say(sender, "/ais <operation> [feature]; /ais run <feature> [arguments...]"); return true; }
         String op = args[0].toLowerCase(Locale.ROOT), selected = args.length >= 2 ? args[1] : null;
-        if ((!op.equals("run") && args.length > (op.equals("permit") ? 3 : 2)) || (op.equals("run") && args.length > InvocationArguments.MAX_COMMAND_LENGTH + 2)) {
-            say(sender, "Use /ais run <feature> [arguments], ais permit <feature> <comma-separated-capabilities>; other operations accept at most one value."); return true;
+        int maxArguments = switch (op) {
+            case "files" -> 6;
+            case "permit", "connect" -> 3;
+            case "run" -> InvocationArguments.MAX_COMMAND_LENGTH + 2;
+            default -> 2;
+        };
+        if (args.length > maxArguments) {
+            say(sender, "Too many arguments for /ais " + op); return true;
         }
         if (Set.of("permit", "restrict", "capabilities").contains(op)) {
             if (sender != getServer().getConsoleSender()) { say(sender, "CAPABILITIES_CONSOLE_ONLY"); return true; }
@@ -216,23 +234,45 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
             }); } catch (RejectedExecutionException failure) { busy.set(false); say(sender, "BUSY"); }
             return true;
         }
+        if (op.equals("files")) {
+            if (sender != getServer().getConsoleSender()) { say(sender, "FILES_CONSOLE_ONLY"); return true; }
+            var files = serverFiles;
+            if (!ready || files == null) { say(sender, "FILES_NOT_READY"); return true; }
+            if (!busy.compareAndSet(false, true)) { say(sender, "BUSY"); return true; }
+            try {
+                io.execute(() -> {
+                    try {
+                        reply(sender, files.console(args, this::fileConnectionActive));
+                    } catch (IllegalArgumentException rejected) {
+                        try { reply(sender, List.of(rejected.getMessage())); } catch (Exception ignored) { }
+                    } catch (Exception failed) {
+                        try { reply(sender, List.of("FILE_OPERATION_FAILED: inspect the specified target and file-management storage.")); } catch (Exception ignored) { }
+                    } finally { busy.set(false); }
+                });
+            } catch (RejectedExecutionException stopped) { busy.set(false); say(sender, "FILES_NOT_READY"); }
+            return true;
+        }
         if (Set.of("connect", "connections", "disconnect").contains(op)) {
             if (sender != getServer().getConsoleSender()) { say(sender, "CONNECTIONS_CONSOLE_ONLY"); return true; }
             if (!ready || shared == null || connections == null) { say(sender, "CONNECTIONS_NOT_READY"); return true; }
             if (op.equals("connect")) {
                 try {
-                    Set<String> targets = selected == null ? Set.of() : Set.copyOf(Arrays.asList(selected.split(",", -1)));
+                    boolean files = "--files".equals(selected);
+                    if (args.length > (files ? 3 : 2)) throw new IllegalArgumentException();
+                    if (files && serverFiles == null) { say(sender, "FILES_NOT_READY"); return true; }
+                    String targetList = files ? (args.length == 3 ? args[2] : null) : selected;
+                    Set<String> targets = targetList == null ? Set.of() : Set.copyOf(Arrays.asList(targetList.split(",", -1)));
                     if (targets.size() > 128) throw new IllegalArgumentException(); targets.forEach(FeatureParser::requireId);
                     List<Map<String, String>> players = getServer().getOnlinePlayers().stream().sorted(Comparator.comparing(Player::getName)).limit(128)
                         .map(player -> Map.of("uuid", player.getUniqueId().toString(), "name", player.getName())).toList();
-                    shared.enroll(targets, remoteCapabilities(), players); say(sender, "Creating a private browser approval link; no relay configuration is required.");
-                } catch (RuntimeException invalid) { say(sender, "Use /ais connect [feature-id[,feature-id]]; feature IDs must be exact."); }
+                    shared.enroll(targets, remoteCapabilities(), players, files); say(sender, "Creating a private browser approval link; no relay configuration is required.");
+                } catch (RuntimeException invalid) { say(sender, "Use /ais connect [--files] [feature-id[,feature-id]]; feature IDs must be exact."); }
             } else if (op.equals("connections")) {
                 if (selected != null) { say(sender, "Use /ais connections"); return true; }
                 say(sender, "Named connections (revoked entries stay revoked across restart):");
                 connections.state().grants().values().stream().sorted(Comparator.comparing(ConnectionStore.Grant::name)).forEach(grant ->
                     say(sender, grant.name() + " | " + grant.connectionId() + " | " + (grant.revoked() ? "REVOKED" : "APPROVED") + " | " + (grant.allScripts() ? "ALL NATIVE .aether SCRIPTS (including new IDs)" : grant.allowedScriptIds().stream().sorted().toList())
-                        + " | capabilities=" + new TreeSet<>(grant.capabilities()) + " | testPlayer=" + (grant.testPlayerId().isEmpty() ? "NONE" : grant.testPlayerId())));
+                        + " | scopes=" + new TreeSet<>(grant.scopes()) + " | capabilities=" + new TreeSet<>(grant.capabilities()) + " | testPlayer=" + (grant.testPlayerId().isEmpty() ? "NONE" : grant.testPlayerId())));
                 if (connections.state().grants().isEmpty()) say(sender, "No approved connections. Use /ais connect.");
             } else {
                 String id = null;
@@ -498,7 +538,17 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
             try {
                 if (shared == null || shared.blocked(id) || connectionServices.get(id) != service) throw new SecurityException("CONNECTION_REVOKED");
                 if (operation.equals("scripts.test")) audit.append(UUID.randomUUID().toString(), "connection:" + id, operation, "TEST_INTENT", registry.snapshot().generation(), Map.of());
-                var value = service.execute(operation, arguments);
+                Map<String, Object> value;
+                if (SharedRelayConnector.FILE_SCOPES.contains(operation)) {
+                    var files = serverFiles;
+                    if (files == null || !fileConnectionActive(id)) throw new SecurityException("FILE_ACCESS_DENIED");
+                    try { value = files.request(id, operation, arguments); }
+                    catch (IllegalArgumentException invalid) {
+                        String code = invalid.getMessage();
+                        if (code == null || !code.matches("[A-Z_]{1,80}")) code = "FILE_ARGUMENTS_INVALID";
+                        throw new ValidationException("$.files", code);
+                    } catch (IOException unreadable) { throw new ValidationException("$.files", "FILE_UNREADABLE"); }
+                } else value = service.execute(operation, arguments);
                 try { audit.append(UUID.randomUUID().toString(), "connection:" + id, operation, "SUCCEEDED", registry.snapshot().generation(), Map.of()); }
                 catch (IOException failedAudit) {
                     // An accepted test may already have real effects. Preserve its job ID so the

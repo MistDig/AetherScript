@@ -1,0 +1,17 @@
+[
+  {
+    "test": "native-mcp-versioned-docs",
+    "result": "pass",
+    "detail": "Hosted resources and tools matched the server version and returned identical quickstart content; rejected mismatched version."
+  },
+  {
+    "test": "native-mcp-actual-codex-discovery",
+    "result": "pass",
+    "detail": "codex-cli 0.171.0-alpha.13 discovered the connected guide from an empty directory, applied its own script, and called command tests and event preview."
+  },
+  {
+    "test": "native-mcp-actual-codex-paper",
+    "result": "pass",
+    "detail": "A translated client observed both command branches and a real join message from the feature authored by Codex."
+  }
+]

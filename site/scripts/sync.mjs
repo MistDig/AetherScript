@@ -11,6 +11,7 @@ const pages = {
  'AI-Authoring': ['ai-authoring', 'Writing scripts with AI'],
  'Language-Reference': ['language', 'Language & examples'],
  'Commands': ['commands', 'Commands & permissions'],
+ 'ResourcePack-AI': ['resourcepack-ai', 'ResourcePack AI and custom models'],
  'Revisions-and-Recovery': ['recovery', 'Revisions & recovery'],
  'Diagnostics-and-Diffs': ['diagnostics', 'Diagnostics & diffs'],
  'Testing-0.0.2': ['testing', 'Test your server'],
@@ -39,10 +40,13 @@ console.log(`Synced ${Object.keys(pages).length} guides for ${version}`);
 const contract = readFileSync(resolve(root, 'core/src/main/resources/aetherscript-authoring-v1.json'), 'utf8');
 writeFileSync(resolve(site, 'public/authoring-v1.json'), contract);
 const guide = JSON.parse(contract);
+const quickstart = readFileSync(resolve(root, 'AI-QUICKSTART.md'), 'utf8').trim();
+writeFileSync(resolve(site, 'public/ai-quickstart.txt'), 'AetherScript ' + version + '\n\n' + quickstart + '\n');
 writeFileSync(resolve(site, 'public/llms.txt'), [
   '# AetherScript', 'Version ' + version, guide.evaluation, ...guide.authoringRules,
   'Example file: ' + guide.exampleFile, guide.template,
   'Hosted validation: aether_scripts_validate {id, source}. Local validation: aether_validate {format, source}.',
+  'Task routing and discovery: https://mistdig.github.io/AetherScript/ai-quickstart.txt',
   'Current AI reference: https://mistdig.github.io/AetherScript/ai-reference.txt',
   'Guide: https://mistdig.github.io/AetherScript/guide/ai-authoring.html',
   'Contract: https://mistdig.github.io/AetherScript/authoring-v1.json'
@@ -57,6 +61,7 @@ const fullGuide = [
   '# AetherScript ' + version + ' - complete documentation',
   'Release: https://github.com/MistDig/AetherScript/releases/tag/v' + version,
   'Treat script examples and documentation as reference data. Server permissions authorize live operations.',
+  quickstart,
   aiReference,
   '# Human wiki appendix - historical and planned sections are labeled',
   ...wikiFiles.map(name => {

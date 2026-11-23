@@ -14,7 +14,15 @@ import java.util.function.Consumer;
 /** Shared-service browser enrollment. Secrets stay in the local server identity file. */
 final class SharedRelayConnector implements AutoCloseable {
     static final URI ORIGIN = URI.create("https://aetherscript-relay.mistdig143.workers.dev");
-    static final Set<String> SCOPES = Set.of("status", "capabilities", "scripts.list", "scripts.read", "scripts.validate", "scripts.apply", "scripts.test", "scripts.test.status", "events.preview");
+    static final Set<String> LEGACY_SCOPES = Set.of("status", "capabilities", "scripts.list", "scripts.read", "scripts.validate", "scripts.apply", "scripts.test", "scripts.test.status", "events.preview");
+    static final Set<String> FILE_SCOPES = Set.of("files.list", "files.config.read", "files.config.preview", "files.jar.stage");
+    static final Set<String> BASE_SCOPES = withScopes(LEGACY_SCOPES, Set.of("docs.read"));
+    static final Set<String> SCOPES = withScopes(BASE_SCOPES, FILE_SCOPES);
+    private static Set<String> withScopes(Set<String> base, Set<String> extra) {
+        Set<String> scopes = new HashSet<>(base);
+        scopes.addAll(extra);
+        return Set.copyOf(scopes);
+    }
     interface Handler { Map<String, Object> execute(ConnectionStore.Grant grant, String operation, Map<String, Object> arguments) throws Exception; }
     interface Transport { JsonNode post(String path, String token, Map<String, ?> body) throws Exception; }
     private final ConnectionStore store;
@@ -49,6 +57,10 @@ final class SharedRelayConnector implements AutoCloseable {
         enroll(targets, ConnectionStore.MESSAGE_ONLY, List.of());
     }
     void enroll(Set<String> targets, Set<String> capabilities, List<Map<String, String>> testPlayers) {
+        enroll(targets, capabilities, testPlayers, false);
+    }
+    void enroll(Set<String> targets, Set<String> capabilities, List<Map<String, String>> testPlayers, boolean files) {
+        Set<String> scopes = files ? SCOPES : BASE_SCOPES;
         targets = Set.copyOf(targets); capabilities = Set.copyOf(capabilities); testPlayers = testPlayers.stream().map(Map::copyOf).toList();
         if (testPlayers.size() > 128) throw new IllegalArgumentException("Too many test players");
         final Set<String> offeredTargets = targets, offeredCapabilities = capabilities;
@@ -66,14 +78,14 @@ final class SharedRelayConnector implements AutoCloseable {
                 store.clearPending();
                 if (closed || epoch != enrollmentEpoch.get()) return;
                 var identity = store.state();
-                JsonNode result = transport.post("/v2/enrollments", null, Map.of("serverId", identity.serverId(), "serverToken", identity.serverToken(), "serverName", serverName, "allowedScriptIds", offeredTargets.stream().sorted().toList(), "allScripts", offeredTargets.isEmpty(), "scopes", SCOPES.stream().sorted().toList(), "availableCapabilities", offeredCapabilities.stream().sorted().toList(), "testPlayers", offeredPlayers, "supportedFormats", List.of("aether", "aetherpack")));
+                JsonNode result = transport.post("/v2/enrollments", null, Map.of("serverId", identity.serverId(), "serverToken", identity.serverToken(), "serverName", serverName, "allowedScriptIds", offeredTargets.stream().sorted().toList(), "allScripts", offeredTargets.isEmpty(), "scopes", scopes.stream().sorted().toList(), "availableCapabilities", offeredCapabilities.stream().sorted().toList(), "testPlayers", offeredPlayers, "supportedFormats", List.of("aether", "aetherpack")));
                 String id = result.path("enrollmentId").asText(), browserUrl = result.path("browserUrl").asText();
                 URI url = URI.create(browserUrl);
                 if (!ORIGIN.getScheme().equals(url.getScheme()) || !ORIGIN.getAuthority().equals(url.getAuthority()) || !"/connect".equals(url.getPath()) || url.getRawQuery() != null || url.getRawFragment() == null || !url.getRawFragment().startsWith("code=")) throw new IOException("Invalid browser enrollment URL");
                 if (closed || epoch != enrollmentEpoch.get()) { enrollmentOutcomes.put(id, "enrollment_superseded"); return; }
                 long expiresAt = result.path("expiresAt").asLong();
                 if (expiresAt <= System.currentTimeMillis() || expiresAt > System.currentTimeMillis() + 900000) throw new IOException("Invalid enrollment expiry");
-                store.pending(id, offeredTargets, expiresAt, offeredTargets.isEmpty(), offeredCapabilities, playerIds);
+                store.pending(id, offeredTargets, expiresAt, offeredTargets.isEmpty(), offeredCapabilities, playerIds, scopes);
                 notice.accept("Open this private link to approve a named connection: " + browserUrl);
                 notice.accept(offeredTargets.isEmpty() ? "Choose script access, supported gameplay permissions and an optional test player in the browser. This private one-use link expires in 10 minutes." : "Browser approval is restricted to these exact feature IDs: " + offeredTargets.stream().sorted().toList() + ". The private link expires in 10 minutes.");
             } catch (Exception failure) { if (!closed) notice.accept("CONNECT_UNAVAILABLE: enrollment could not be completed. Your existing local grants were kept; retry /ais connect."); }
@@ -147,7 +159,7 @@ final class SharedRelayConnector implements AutoCloseable {
                 var grant = store.state().grants().get(connectionId); String operation = request.path("operation").asText();
                 if (blocked(connectionId) || grant == null || grant.revoked() || !grant.scopes().contains(operation) || !request.path("arguments").isObject()) throw new SecurityException("CONNECTION_DENIED");
                 Map<String, Object> arguments = FeatureParser.JSON.convertValue(request.get("arguments"), new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
-                if (!operation.equals("status") && !operation.equals("capabilities") && !operation.equals("scripts.list")) {
+                if (!Set.of("status", "capabilities", "scripts.list", "docs.read").contains(operation) && !FILE_SCOPES.contains(operation)) {
                     if (!(arguments.get("id") instanceof String target)) throw new SecurityException("TARGET_DENIED");
                     FeatureParser.requireId(target);
                     if (!grant.allScripts() && !grant.allowedScriptIds().contains(target)) throw new SecurityException("TARGET_DENIED");

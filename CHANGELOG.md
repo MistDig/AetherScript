@@ -2,6 +2,16 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.30] - 2026-11-23
+
+- Add version-matched hosted MCP documentation with concise task routes, focused guide reads, and quickstart and reference resources. The offline gateway retains its full authoring contract and serves its bundled version.
+- Add owner-listed JSON/YAML scalar keys and reviewed inbox JAR proposals. File access requires a separate browser scope. Each write needs an exact console approval. Targets and rollback receipts survive restart.
+- Add namespaced Minecraft item models to custom items, and document how to use ResourcePack AI Studio, RP Engine, MC GUI, Dialog Engine and 3D Engine.
+- Java 25 passed 397 tests with one Windows link test skipped. All 16 relay tests passed. Packaged MCP stdio, authoring, 23 wiki examples, legacy semantic hashes and SQLite packaging passed.
+- Paper 26.3 build 245 passed six hosted file and documentation checks. RP Engine 0.2.91 built the model and texture, and the AetherScript item carried the exact model component. MC GUI 0.8.6 was installed and its approved setting was edited and restored. Windows kept the loaded JAR protected and reported that rollback required stopping Paper.
+- A separate Paper run verified 3D Engine 0.1.6 loaded an original OBJ and built assets while AetherScript ran on the same server. The vendor's Dialog Engine download returned HTTP 403 in this environment.
+- Codex CLI 0.171.0-alpha.13 on Windows completed a blind build using a fresh feature-scoped bearer connection and two explicitly approved test tools. Paper delivered both argument-dependent messages and the real join message. This verifies the Codex CLI authoring workflow with a scripted browser OAuth fixture. Interactive setup on two PCs, client pack rendering, Dialog Engine and other AI apps remain unverified.
+
 ## [0.0.29] - 2026-11-23
 
 - Hosted read, validate and apply can author a packed multi-file native feature with one revision and source hash.

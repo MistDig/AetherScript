@@ -1,0 +1,9 @@
+feature cloud-token version "1.0.0"
+command cloudtoken permission "aetherscript.example.cloudtoken" sender player {
+  let token = custom_item("cloud_token", "minecraft:paper", "Cloud token", 1, "aetherdemo:cloud_token")
+  if inventory_give(token) {
+    send "Cloud token delivered."
+  } else {
+    send "Free an inventory slot."
+  }
+}

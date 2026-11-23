@@ -28,6 +28,7 @@ final class PaperItems {
                 throw new ValidationException("$", "CUSTOM_ITEM_OWNER_MISMATCH");
             stack.editMeta(meta -> {
                 meta.displayName(Component.text(descriptor.displayName()));
+                if (descriptor.model() != null) meta.setItemModel(Objects.requireNonNull(NamespacedKey.fromString(descriptor.model())));
                 meta.getPersistentDataContainer().set(idKey, PersistentDataType.STRING,
                     feature + ":" + descriptor.customId());
             });

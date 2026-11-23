@@ -7,6 +7,18 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ConnectionStoreTest {
     @TempDir Path root;
+    @Test void fileScopesRequireAnExplicitLocalOffer() throws Exception {
+        var store = new ConnectionStore(root.resolve("file-scopes.json"));
+        String enrollment = id(); String connection = id(); String actor = id();
+        var caps = ConnectionStore.MESSAGE_ONLY;
+        var offered = new ConnectionStore.Grant(connection, "Files", Set.of(), SharedRelayConnector.SCOPES, false, true, caps, actor);
+        store.pending(enrollment, Set.of(), System.currentTimeMillis() + 60000, true, caps, Set.of(actor), SharedRelayConnector.BASE_SCOPES);
+        assertThrows(java.io.IOException.class, () -> store.accept(offered, enrollment));
+        store.pending(enrollment, Set.of(), System.currentTimeMillis() + 60000, true, caps, Set.of(actor), SharedRelayConnector.SCOPES);
+        assertEquals(offered, store.accept(offered, enrollment));
+    }
+
+
     String id() { return UUID.randomUUID().toString(); }
     @Test void effectAuthorizationReadsDoNotWaitOnThePersistenceMonitor() throws Exception {
         var store = new ConnectionStore(root.resolve("snapshot.json"));
@@ -19,13 +31,13 @@ class ConnectionStoreTest {
         String enrollment = id(), connection = id(), player = id();
         Set<String> caps = Set.of("runtime.message.send", "state.own");
         store.pending(enrollment, Set.of(), System.currentTimeMillis() + 60000, true, caps, Set.of(player));
-        assertThrows(java.io.IOException.class, () -> store.accept(new ConnectionStore.Grant(id(), "Wrong actor", Set.of(), SharedRelayConnector.SCOPES, false, true, caps, id()), enrollment));
-        assertThrows(java.io.IOException.class, () -> store.accept(new ConnectionStore.Grant(id(), "Expanded", Set.of(), SharedRelayConnector.SCOPES, false, true, Set.of("runtime.message.send", "player.teleport.self"), player), enrollment));
-        var grant = new ConnectionStore.Grant(connection, "Native", Set.of(), SharedRelayConnector.SCOPES, false, true, caps, player);
+        assertThrows(java.io.IOException.class, () -> store.accept(new ConnectionStore.Grant(id(), "Wrong actor", Set.of(), SharedRelayConnector.LEGACY_SCOPES, false, true, caps, id()), enrollment));
+        assertThrows(java.io.IOException.class, () -> store.accept(new ConnectionStore.Grant(id(), "Expanded", Set.of(), SharedRelayConnector.LEGACY_SCOPES, false, true, Set.of("runtime.message.send", "player.teleport.self"), player), enrollment));
+        var grant = new ConnectionStore.Grant(connection, "Native", Set.of(), SharedRelayConnector.LEGACY_SCOPES, false, true, caps, player);
         store.accept(grant, enrollment);
         var reopened = new ConnectionStore(file);
         assertEquals(grant, reopened.state().grants().get(connection));
-        assertThrows(java.io.IOException.class, () -> reopened.accept(new ConnectionStore.Grant(connection, "Native", Set.of(), SharedRelayConnector.SCOPES, false, true, caps, ""), enrollment));
+        assertThrows(java.io.IOException.class, () -> reopened.accept(new ConnectionStore.Grant(connection, "Native", Set.of(), SharedRelayConnector.LEGACY_SCOPES, false, true, caps, ""), enrollment));
         reopened.revoke(connection);
         assertEquals(caps, reopened.state().grants().get(connection).capabilities());
         assertEquals(player, reopened.state().grants().get(connection).testPlayerId());
@@ -48,12 +60,12 @@ class ConnectionStoreTest {
         Path file = root.resolve("connections.json"); var store = new ConnectionStore(file);
         String enrollment = id(), connection = id();
         store.pending(enrollment, Set.of("hello-ai"), System.currentTimeMillis() + 60000);
-        var grant = new ConnectionStore.Grant(connection, "Codex", Set.of("hello-ai"), SharedRelayConnector.SCOPES, false);
+        var grant = new ConnectionStore.Grant(connection, "Codex", Set.of("hello-ai"), SharedRelayConnector.LEGACY_SCOPES, false);
         store.accept(grant, enrollment);
         var reopened = new ConnectionStore(file);
         assertEquals(store.state(), reopened.state()); assertTrue(reopened.state().pending().isEmpty());
-        assertThrows(java.io.IOException.class, () -> reopened.accept(new ConnectionStore.Grant(id(), "Other", Set.of("hello-ai"), SharedRelayConnector.SCOPES, false), enrollment));
-        assertThrows(java.io.IOException.class, () -> reopened.accept(new ConnectionStore.Grant(connection, "Codex", Set.of("other"), SharedRelayConnector.SCOPES, false), enrollment));
+        assertThrows(java.io.IOException.class, () -> reopened.accept(new ConnectionStore.Grant(id(), "Other", Set.of("hello-ai"), SharedRelayConnector.LEGACY_SCOPES, false), enrollment));
+        assertThrows(java.io.IOException.class, () -> reopened.accept(new ConnectionStore.Grant(connection, "Codex", Set.of("other"), SharedRelayConnector.LEGACY_SCOPES, false), enrollment));
         reopened.revoke(connection);
         assertTrue(new ConnectionStore(file).state().grants().get(connection).revoked());
         assertTrue(reopened.accept(grant, enrollment).revoked(), "Relay replay cannot reinstate a locally revoked grant");
@@ -61,9 +73,9 @@ class ConnectionStoreTest {
     @Test void browserDelegationAlwaysProducesFiniteNonemptyTargets() throws Exception {
         var store = new ConnectionStore(root.resolve("connections.json")); String enrollment = id();
         store.pending(enrollment, Set.of("hello-ai"), System.currentTimeMillis() + 60000);
-        assertThrows(java.io.IOException.class, () -> store.accept(new ConnectionStore.Grant(id(), "bad", Set.of("other"), SharedRelayConnector.SCOPES, false), enrollment));
-        assertThrows(java.io.IOException.class, () -> store.accept(new ConnectionStore.Grant(id(), "bad", Set.of("*"), SharedRelayConnector.SCOPES, false), enrollment));
-        assertThrows(java.io.IOException.class, () -> store.accept(new ConnectionStore.Grant(id(), "bad", Set.of(), SharedRelayConnector.SCOPES, false), enrollment));
+        assertThrows(java.io.IOException.class, () -> store.accept(new ConnectionStore.Grant(id(), "bad", Set.of("other"), SharedRelayConnector.LEGACY_SCOPES, false), enrollment));
+        assertThrows(java.io.IOException.class, () -> store.accept(new ConnectionStore.Grant(id(), "bad", Set.of("*"), SharedRelayConnector.LEGACY_SCOPES, false), enrollment));
+        assertThrows(java.io.IOException.class, () -> store.accept(new ConnectionStore.Grant(id(), "bad", Set.of(), SharedRelayConnector.LEGACY_SCOPES, false), enrollment));
         String unrestricted = id(); store.pending(unrestricted, Set.of(), System.currentTimeMillis() + 60000);
         var accepted = store.accept(new ConnectionStore.Grant(id(), "Browser selected", Set.of("new-note"), Set.of("scripts.read"), false), unrestricted);
         assertEquals(Set.of("new-note"), accepted.allowedScriptIds());
@@ -73,18 +85,18 @@ class ConnectionStoreTest {
         Path file = root.resolve("connections.json"); var store = new ConnectionStore(file);
         String enrollment = id(), connection = id();
         store.pending(enrollment, Set.of(), System.currentTimeMillis() + 60000, true);
-        var full = new ConnectionStore.Grant(connection, "Full", Set.of(), SharedRelayConnector.SCOPES, false, true);
+        var full = new ConnectionStore.Grant(connection, "Full", Set.of(), SharedRelayConnector.LEGACY_SCOPES, false, true);
         store.accept(full, enrollment); assertTrue(new ConnectionStore(file).state().grants().get(connection).allScripts());
-        assertThrows(java.io.IOException.class, () -> store.accept(new ConnectionStore.Grant(connection, "Full", Set.of("hello-ai"), SharedRelayConnector.SCOPES, false, false), enrollment));
+        assertThrows(java.io.IOException.class, () -> store.accept(new ConnectionStore.Grant(connection, "Full", Set.of("hello-ai"), SharedRelayConnector.LEGACY_SCOPES, false, false), enrollment));
         store.revoke(connection); assertTrue(new ConnectionStore(file).state().grants().get(connection).allScripts());
         String oldEnrollment = id(), restricted = id();
         store.pending(oldEnrollment, Set.of("hello-ai"), System.currentTimeMillis() + 60000);
-        store.accept(new ConnectionStore.Grant(restricted, "Old grant", Set.of("hello-ai"), SharedRelayConnector.SCOPES, false), oldEnrollment);
+        store.accept(new ConnectionStore.Grant(restricted, "Old grant", Set.of("hello-ai"), SharedRelayConnector.LEGACY_SCOPES, false), oldEnrollment);
         Files.writeString(file, Files.readString(file).replace(",\"allScripts\":false", ""));
         var reopened = new ConnectionStore(file); assertFalse(reopened.state().grants().get(restricted).allScripts());
-        assertThrows(java.io.IOException.class, () -> reopened.accept(new ConnectionStore.Grant(restricted, "Old grant", Set.of(), SharedRelayConnector.SCOPES, false, true), oldEnrollment));
+        assertThrows(java.io.IOException.class, () -> reopened.accept(new ConnectionStore.Grant(restricted, "Old grant", Set.of(), SharedRelayConnector.LEGACY_SCOPES, false, true), oldEnrollment));
         String restrictedLink = id(); reopened.pending(restrictedLink, Set.of("hello-ai"), System.currentTimeMillis() + 60000);
-        assertThrows(java.io.IOException.class, () -> reopened.accept(new ConnectionStore.Grant(id(), "Escalation", Set.of(), SharedRelayConnector.SCOPES, false, true), restrictedLink));
+        assertThrows(java.io.IOException.class, () -> reopened.accept(new ConnectionStore.Grant(id(), "Escalation", Set.of(), SharedRelayConnector.LEGACY_SCOPES, false, true), restrictedLink));
     }
     @Test void pendingReplacementAndExpiryAreDurableWithoutRevokingApprovedApps() throws Exception {
         Path file = root.resolve("connections.json"); var store = new ConnectionStore(file); String first = id(), second = id();
@@ -94,6 +106,6 @@ class ConnectionStoreTest {
         store.expirePending(System.currentTimeMillis() + 120000);
         assertTrue(new ConnectionStore(file).state().pending().isEmpty());
         String oldBare = id(); store.pending(oldBare, Set.of(), System.currentTimeMillis() + 60000);
-        assertThrows(java.io.IOException.class, () -> store.accept(new ConnectionStore.Grant(id(), "Old bare link", Set.of(), SharedRelayConnector.SCOPES, false, true), oldBare));
+        assertThrows(java.io.IOException.class, () -> store.accept(new ConnectionStore.Grant(id(), "Old bare link", Set.of(), SharedRelayConnector.LEGACY_SCOPES, false, true), oldBare));
     }
 }

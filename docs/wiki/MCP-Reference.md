@@ -6,11 +6,12 @@ Fresh 0.0.17 browser approval selects all or selected native feature IDs, an exp
 
 ## Available tools
 
-Start with `aether_server_status` to confirm which server is connected. A selected-script connection can access only its approved feature IDs. A full-access connection can create and edit any valid native .aether feature ID, including existing scripts.
+Start with `aether_server_status` to confirm which server is connected. A selected-script connection can access only its approved feature IDs. A full-access connection can create and edit any valid native feature ID, including existing .aether files and packed snapshots. Third-party file management uses a separate grant.
 
 | Tool | Input | Result and next step |
 | --- | --- | --- |
-| `aether_capabilities` | No arguments | Machine-readable callable/type guide, approved execution capabilities, targets and test-player boundaries. |
+| `aether_capabilities` | No arguments | Hosted version, task routes, live addon manifests, approved execution capabilities and test-player boundaries. Offline mode also retains the full local contract. |
+| `aether_docs_read` | `section`, optional `version` | Focused guide page for the connected Paper plugin. The offline gateway returns the guide for its own version. |
 | `aether_server_status` | No arguments | Current live registry generation and server grant. A connection failure is an error. |
 | `aether_scripts_list` | No arguments | Selected IDs, or existing native IDs under full access. Full access can create new valid IDs. |
 | `aether_scripts_read` | `id` | Editable source, source hash, active hash, revision and generation. Read before editing. |
@@ -20,6 +21,10 @@ Start with `aether_server_status` to confirm which server is connected. A select
 | `aether_scripts_test_status` | `id`, `testId` | Polls the same connection's test for actual messages, effects, error and exact comparison. |
 
 The separate local gateway also exposes `aether_validate` and `aether_test`. These can validate and test supplied source offline. Offline success does not imply server authorization.
+
+## Version-matched documentation
+
+Call `aether_capabilities` after checking the server status. The hosted `guide` names the version and section IDs for common tasks. Read the relevant section through `aether_docs_read` and follow `nextSection` when present. The resource URIs `aetherscript://docs/quickstart` and `aetherscript://docs/reference` return the same first page as the tool. The full structured reference is split into pages. Concatenate all `content` values in order before parsing it as JSON. A version mismatch returns an explicit error. Reconnect through `ais connect` on 0.0.30 to add the guide scope to an older grant.
 
 ## A reliable editing workflow
 
@@ -40,6 +45,24 @@ Fresh hosted approval can include join, quit, block break, block placement and c
 `aether_scripts_test` uses the owner-approved online player for native or player-only commands; the player must hold the command's declared permission. The AI cannot choose or replace that actor. Tests can send messages, write own-player state, wait and teleport the approved player: these are real effects. A start response may return `status: "pending"` and `testId`; poll `aether_scripts_test_status` with `{id,testId}` until completion, then report actual messages, errors, effects and comparison. A pure `sender any` message program without an approved actor retains synthetic compatibility. Offline `aether_test` is always synthetic and host calls fail with `HOST_CONTEXT_REQUIRED`.
 
 Test mismatch means actual messages differ from the expected list. Errors and completed effects remain observable; completed writes or teleports are not rolled back. Job IDs cannot be used across connections or features. Revocation, permission loss and stale active hashes retire pending tests.
+
+## Third-party files with console approval
+
+On the **Paper PC**, use the server console to define the exact target.
+
+| Command | Purpose |
+| --- | --- |
+| `ais files allow-config gui-settings MCGUI/config.yml yaml click-sound` | Approve one YAML file and the scalar `click-sound` key. Relative paths start under `plugins/`. Use `json` for JSON. |
+| `ais files allow-jar rp-engine RPEngine.jar RPEngine` | Allow an exact destination filename and plugin descriptor name. |
+| `ais connect --files` | Offer these operations for a fresh connection. Approve the separate third-party checkbox in your browser. |
+| `ais files pending` | Inspect each proposal's connection, target, before and after hashes, and selected config diff or JAR metadata. |
+| `ais files approve <change-token>` | Confirm one unexpired proposal from an active connection. |
+| `ais files deny <change-token>` | Discard that proposal. |
+| `ais files rollback <rollback-token>` | Restore the saved bytes if the current hash matches the applied version. |
+
+The app can use `aether_files_list`, `aether_files_config_read {target}` and `aether_files_config_preview {target,expectedHash,replacements}`. Only the approved top-level scalar keys are exposed or editable. A preview does not change the file. Applying a config may reformat the JSON or YAML, including losing comments. Restart or use the third-party plugin's own reload command to read the new values.
+
+For JARs, put a reviewed file in `plugins/AetherScript/file-management/inbox/` on the **Paper PC**. Give the app its filename and SHA-256 from a source you trust. The app calls `aether_files_jar_stage {target,filename,sha256}`. The console displays the plugin name, version, declared dependencies and review hashes. Approval copies the exact artifact to `plugins/`. Restart Paper manually to load it and check the version. Java plugins run with server privileges. AetherScript checks the artifact's identity and digest. Review its source and compatibility before approving. On Windows, a loaded JAR can be locked. If rollback reports `JAR_ROLLBACK_REQUIRES_STOP`, stop Paper and restore the saved bytes from `file-management/<rollback-token>.bak` for a replacement. For a new installation, remove the exact JAR you installed after confirming its SHA-256. The receipt and original backup stay available. Pending approvals expire in 15 minutes. Saved targets and rollback receipts survive restart. Ordinary MCP connections keep their script scopes.
 
 ## Boundaries and diagnostics
 

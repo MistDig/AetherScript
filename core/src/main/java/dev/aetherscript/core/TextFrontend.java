@@ -249,15 +249,15 @@ public final class TextFrontend {
             return new ScriptValue(ScriptType.BOOLEAN, inside);
         }
     }
-    private record CustomItemValue(String featureId, Expression id, Expression material, Expression name, Expression amount, Token token) implements Expression {
+    private record CustomItemValue(String featureId, Expression id, Expression material, Expression name, Expression amount, Expression model, Token token) implements Expression {
         public ScriptType type() { return ScriptType.ITEM; }
-        public int depth() { return 1 + Math.max(Math.max(id.depth(), material.depth()), Math.max(name.depth(), amount.depth())); }
+        public int depth() { return 1 + Math.max(Math.max(id.depth(), material.depth()), Math.max(Math.max(name.depth(), amount.depth()), model == null ? 0 : model.depth())); }
         public ScriptValue evaluate(Execution execution) {
             execution.step(token);
             String localId = id.evaluate(execution).text(), key = material.evaluate(execution).text(), display = name.evaluate(execution).text();
             long count = amount.evaluate(execution).integer();
             if (count < 1 || count > 2304) throw token.error("Item amount must be 1..2304");
-            try { return new ScriptValue(ScriptType.ITEM, new ScriptValue.ItemDescriptor(key, (int) count, featureId, localId, display)); }
+            try { return new ScriptValue(ScriptType.ITEM, new ScriptValue.ItemDescriptor(key, (int) count, featureId, localId, display, model == null ? null : model.evaluate(execution).text())); }
             catch (IllegalArgumentException invalid) { throw token.error(invalid.getMessage()); }
         }
     }
@@ -1061,13 +1061,16 @@ public final class TextFrontend {
             }
             if (token.text().equals("custom_item") && matches("(") && !functions.containsKey("custom_item")) {
                 if (eventKind != null) throw token.error("Synchronous event handlers do not support item descriptors");
-                take(); Expression id = expression(); expect(","); Expression material = expression(); expect(","); Expression name = expression(); expect(","); Expression amount = expression(); expect(")");
+                take(); Expression id = expression(); expect(","); Expression material = expression(); expect(","); Expression name = expression(); expect(","); Expression amount = expression();
+                Expression model = null;
+                if (matches(",")) { take(); model = expression(); requireType(model, ScriptType.TEXT, token, "Item model must be text"); }
+                expect(")");
                 requireType(id, ScriptType.TEXT, token, "Custom item id must be text");
                 requireType(material, ScriptType.TEXT, token, "Item material must be text");
                 requireType(name, ScriptType.TEXT, token, "Custom item name must be text");
                 requireType(amount, ScriptType.INTEGER, token, "Item amount must be integer");
                 advanced = true;
-                return node(new CustomItemValue(currentFeatureId, id, material, name, amount, token), token);
+                return node(new CustomItemValue(currentFeatureId, id, material, name, amount, model, token), token);
             }
             if (token.text().equals("item") && matches("(") && !functions.containsKey("item")) {
                 if (eventKind != null) throw token.error("Synchronous event handlers do not support item descriptors");

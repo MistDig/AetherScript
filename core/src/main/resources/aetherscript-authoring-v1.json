@@ -632,7 +632,7 @@
     "introduced": "0.0.25",
     "callables": [
       {
-        "signature": "custom_item(id: text, material: text, name: text, amount: integer) -> item",
+        "signature": "custom_item(id: text, material: text, name: text, amount: integer[, model: text]) -> item",
         "capability": null,
         "behavior": "Pure immutable descriptor; local ID is scoped by feature ID."
       },
@@ -903,5 +903,29 @@
       },
       "output": "Simulated messages, cancellation intent, and evaluated handler count. This does not dispatch a Paper event."
     }
+  },
+  "resourcePackIntegration": {
+    "modelConstructor": "custom_item(id: text, material: text, name: text, amount: integer[, model: text]) -> item",
+    "modelExample": "custom_item(\"cloud_token\", \"minecraft:paper\", \"Cloud token\", 1, \"aetherdemo:cloud_token\")",
+    "modelKey": "The exact namespaced item definition provided by the active client pack. Paper writes the item_model component.",
+    "routes": {
+      "Studio": "Use a separate ResourcePack AI connection to upload/generate and export. https://resourcepack.ai/docs/api-reference",
+      "RP Engine": "Define server item metadata and inspect the published model ID. https://resourcepack.ai/docs/rp-engine/items",
+      "MC GUI": "Import the page and configure a permitted player command to invoke the script. https://resourcepack.ai/docs/mcgui",
+      "Dialog Engine": "Use its YAML and player command actions or an owner-installed Java addon. https://resourcepack.ai/docs/dialog-engine",
+      "3D Engine": "Use its documented import and model runtime. https://resourcepack.ai/docs/3d-engine"
+    }
+  },
+  "ownedFileManagement": {
+    "connection": "Console ais connect --files [feature IDs], plus the browser checkbox for third-party plugin files.",
+    "configs": "Owner defines a target ID, path inside a third-party plugin directory, JSON/YAML type and explicit top-level scalar keys. Read its hash, preview selected replacement values and wait for separate console approval.",
+    "jars": "Owner defines a destination JAR and expected plugin name, then places a reviewed artifact in plugins/AetherScript/file-management/inbox and verifies SHA-256 from its trusted source. MCP proposes exact bytes; console approval stages them for an owner-controlled restart.",
+    "tools": [
+      "aether_files_list",
+      "aether_files_config_read",
+      "aether_files_config_preview",
+      "aether_files_jar_stage"
+    ],
+    "rollback": "The console can restore the saved bytes using the rollback token if the current file has the expected applied hash. Restart Paper after staging or reverting a JAR."
   }
 }

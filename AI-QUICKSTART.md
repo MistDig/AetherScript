@@ -1,0 +1,25 @@
+# AetherScript AI quickstart
+
+Call `aether_server_status` to identify the server, then call `aether_capabilities` for its version, permissions and task routes. Use `aether_docs_read` with the needed section ID and the reported version. Follow `nextSection` when a guide spans pages. A version mismatch is an error. Each response names its release.
+
+| Task | Stable section ID |
+| --- | --- |
+| Author and validate commands | basics |
+| Functions, arguments and collections | runtime |
+| Player and shared data | state |
+| World effects and timers | world |
+| Assertions and real effects | tests |
+| Kits and starter bundles | kits |
+| Welcome, spawn protection, combat events | events |
+| Installed addon callables | addons |
+| Menus and custom-item shops | menus |
+| Shared ledgers and optional economy | economy |
+| Resource-pack tools | resourcepacks |
+| Configuration and local approval | configuration |
+| Plugin and MCP JARs | artifacts |
+| Multi-file packages | packages |
+| Complete machine-readable reference | reference |
+
+Section pages are UTF-8 bounded. Follow `nextSection` to read subsequent pages; request only sections needed for the task. Summary omits the full contract and manual. Validate complete edited source before activation, preserve permissions, and discover live tool/provider availability rather than inventing APIs. This router does not grant execution authority.
+
+Maintained data lives in `aetherscript-ai-sections-v1.json`. Focused reads select the current bundled authoring contract objects and generated callable descriptors at runtime. Absent optional contract keys remain listed as unavailable; maintained notes do not add unsupported signatures. Historical versions must use their release-specific documentation artifact; this runtime serves its bundled build only. The offline gateway also retains its original full authoring contract and labels its documentation with its own version.

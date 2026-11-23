@@ -28,6 +28,13 @@ class ScriptValueCodecTest {
             assertEquals(value, ScriptValueCodec.decode(wire));
         });
     }
+    @Test void itemModelRoundTripsBesideVanillaAndExistingCustomItems() {
+        roundTrip(new ScriptValue(ScriptType.ITEM, new ScriptValue.ItemDescriptor("paper", 2)));
+        roundTrip(new ScriptValue(ScriptType.ITEM, new ScriptValue.ItemDescriptor("paper", 2, "test", "token", "Token")));
+        roundTrip(new ScriptValue(ScriptType.ITEM, new ScriptValue.ItemDescriptor("paper", 2, "test", "token", "Token", "test:tokens/cloud")));
+        assertThrows(IllegalArgumentException.class, () -> new ScriptValue.ItemDescriptor("paper", 2, "test", "token", "Token", "test:../token"));
+    }
+
     @Test void roundTripsClosedTypesAndEmptyContainers() {
         for (var value : List.of(integer(Long.MIN_VALUE), integer(Long.MAX_VALUE), text("hello\n\u0000雪😀"), new ScriptValue(ScriptType.BOOLEAN, true),
             new ScriptValue(ScriptType.UUID, UUID.randomUUID()), new ScriptValue(ScriptType.UNIT, ScriptValue.Unit.INSTANCE),

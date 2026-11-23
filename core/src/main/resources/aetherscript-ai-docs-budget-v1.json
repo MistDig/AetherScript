@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "baseline": "AuthoringGuide.metadata().toString() UTF-8",
+  "candidate": "AiDocs.summary(BuildInfo.VERSION) UTF-8",
+  "tokenEstimate": "ceil(utf8Bytes / 4), deterministic comparison proxy, not a tokenizer measurement",
+  "maximumSummaryBytes": 4096,
+  "maximumSummaryToFullRatio": 0.15,
+  "maximumResponseBytes": 20000
+}

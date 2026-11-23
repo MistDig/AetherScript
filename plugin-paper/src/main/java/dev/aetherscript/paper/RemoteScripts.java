@@ -50,7 +50,13 @@ final class RemoteScripts {
         }
         if (operation.equals("capabilities")) {
             exact(args, Set.of());
-            return Map.of("authoring", AuthoringGuide.metadata(), "native", nativeAccess == null ? Map.of("enabled", false) : nativeAccess.describe());
+            return Map.of("guide", FeatureParser.JSON.readTree(AiDocs.summary(BuildInfo.VERSION)),
+                "native", nativeAccess == null ? Map.of("enabled", false) : nativeAccess.describe());
+        }
+        if (operation.equals("docs.read")) {
+            exact(args, args.containsKey("version") ? Set.of("section", "version") : Set.of("section"));
+            String version = args.containsKey("version") ? string(args, "version") : BuildInfo.VERSION;
+            return FeatureParser.JSON.readValue(AiDocs.read(version, string(args, "section")), new com.fasterxml.jackson.core.type.TypeReference<Map<String,Object>>() {});
         }
         String id = string(args, "id"); FeatureParser.requireId(id);
         if (!allScripts && !allowed.contains(id)) throw new SecurityException("TARGET_DENIED");

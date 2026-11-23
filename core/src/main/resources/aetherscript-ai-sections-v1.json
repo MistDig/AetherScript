@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "sections": [
+    {
+      "id": "basics",
+      "title": "Author and validate a command",
+      "contractKeys": [
+        "languageVersion",
+        "format",
+        "fileExtension",
+        "template",
+        "entryPoint",
+        "authoringRules",
+        "validation",
+        "capabilityPolicy"
+      ],
+      "callPrefixes": [
+        "runtime.message"
+      ],
+      "note": "Write the complete source, validate with discovered tools, and preserve explicit permissions. Validation alone does not activate a feature."
+    },
+    {
+      "id": "kits",
+      "title": "Give a kit or starter bundle",
+      "contractKeys": [
+        "itemsAndKits"
+      ],
+      "callPrefixes": [
+        "player.inventory",
+        "player.kit"
+      ],
+      "note": "Use typed item descriptors and kit_claim for durable cooldowns. Read the exact callable signatures before authoring."
+    },
+    {
+      "id": "events",
+      "title": "Welcome players or protect spawn",
+      "contractKeys": [
+        "events",
+        "entitiesCombatAndRegions"
+      ],
+      "callPrefixes": [],
+      "note": "Join welcome and spawn protection use synchronous event snapshots. Require explicit event permission and local capability approval; cancellation applies only to cancellable event kinds."
+    },
+    {
+      "id": "addons",
+      "title": "Use a locally installed addon",
+      "contractKeys": [
+        "compilerExtension"
+      ],
+      "callPrefixes": [],
+      "note": "Inspect the installed addon catalog and provider health. Addon availability and capability approval are separate; never invent an absent callable."
+    },
+    {
+      "id": "menus",
+      "title": "Build a menu or custom-item shop",
+      "contractKeys": [
+        "menusAndCustomItems"
+      ],
+      "callPrefixes": [
+        "player.menu",
+        "player.inventory.exchange"
+      ],
+      "note": "menu_choose returns a zero-based selected slot or -1 on close. A selection grants no authority. inventory_exchange handles an atomic item-for-item trade."
+    },
+    {
+      "id": "economy",
+      "title": "Use shared state or an economy integration",
+      "contractKeys": [
+        "sharedState",
+        "externalIntegrations"
+      ],
+      "callPrefixes": [
+        "state.shared",
+        "integration.economy",
+        "integration.inspect"
+      ],
+      "note": "Distinguish feature-owned shared-state ledgers from optional Vault economy. Optional integrations require discovered providers and explicit owner capability approval. No atomicity is implied across economy and inventory calls."
+    },
+    {
+      "id": "resourcepacks",
+      "title": "Create and publish resource-pack assets",
+      "contractKeys": [
+        "resourcePackIntegration"
+      ],
+      "callPrefixes": [
+        "player.inventory",
+        "player.menu",
+        "player.sound"
+      ],
+      "note": "Get the exact exported model key first. Read the vendor route before authoring, then validate your script on the installed server."
+    },
+    {
+      "id": "configuration",
+      "title": "Configure server execution and capabilities",
+      "contractKeys": [
+        "capabilityPolicy",
+        "remoteWorkflow",
+        "ownedFileManagement"
+      ],
+      "callPrefixes": [],
+      "note": "The running plugin configuration and owner console permissions are authoritative. Inspect the installed configuration schema or version-matched plugin resources. Configure ais permit/restrict locally; browser grants do not bypass local ceilings."
+    },
+    {
+      "id": "artifacts",
+      "title": "Find plugin and MCP JARs",
+      "contractKeys": [
+        "ownedFileManagement"
+      ],
+      "callPrefixes": [],
+      "note": "Use the exact version release link in this response. The Paper plugin and local MCP gateway are separate artifacts. Verify checksums supplied by the release and use the declared Paper target; do not substitute an older Minecraft version."
+    },
+    {
+      "id": "packages",
+      "title": "Author a multi-file feature",
+      "contractKeys": [
+        "recordsAndPackages",
+        "hostedPackedAuthoring"
+      ],
+      "callPrefixes": [],
+      "note": "Read the version-matched package contract before authoring. Local package directories and remote package snapshots have different mutation rules. Flat .aether module names, bounded source, explicit imports, validation and stale-hash protection apply."
+    },
+    {
+      "id": "runtime",
+      "title": "Functions, arguments and control flow",
+      "contractKeys": [
+        "runtimeArguments",
+        "runtimeControl",
+        "collections",
+        "valueTypes",
+        "optionalOperations"
+      ],
+      "callPrefixes": [],
+      "note": "Use typed runtime expressions and explicit loop bounds. Validate each entry before applying."
+    },
+    {
+      "id": "state",
+      "title": "Persist player data, cooldowns or shared records",
+      "contractKeys": [
+        "typedPlayerStorage",
+        "sharedState",
+        "itemsAndKits"
+      ],
+      "callPrefixes": [
+        "state.own",
+        "state.shared",
+        "player.kit"
+      ],
+      "note": "Keep owner IDs and keys stable across revisions. Use shared commits for multi-key atomicity."
+    },
+    {
+      "id": "world",
+      "title": "World edits, timers, displays and sound",
+      "contractKeys": [
+        "worldAndDisplays",
+        "entitiesCombatAndRegions"
+      ],
+      "callPrefixes": [
+        "world",
+        "scheduler",
+        "player.display",
+        "entity"
+      ],
+      "note": "Check live owner capabilities before using operations with world or player effects."
+    },
+    {
+      "id": "tests",
+      "title": "Validate, test and observe server effects",
+      "contractKeys": [
+        "validation",
+        "remoteWorkflow",
+        "hostedPackedAuthoring"
+      ],
+      "callPrefixes": [],
+      "note": "Test output and real effect receipts separately. Event previews use supplied snapshots. Clean up test data through authorized operations."
+    },
+    {
+      "id": "reference",
+      "title": "Read the complete authoring contract",
+      "contractKeys": [],
+      "callPrefixes": [],
+      "note": "Paginated full machine-readable reference. Request reference:2 and subsequent pages as advertised. Existing offline long-form reference APIs remain available."
+    }
+  ]
+}

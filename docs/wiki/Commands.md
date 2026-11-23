@@ -8,7 +8,8 @@ Use `/ais` in game, or `ais` in console. Script administration requires **`aethe
 
 | Command | Behavior |
 | :--- | :--- |
-| `ais connect [feature-ids]` | Server console. Open a browser approval link; optional comma-separated IDs constrain the browser choice. |
+| `ais connect [--files] [feature-ids]` | Server console. Open a browser approval link; optional comma-separated IDs constrain the browser choice. |
+| `ais files <operation>` | Actual console. Define, review, approve and roll back specific third-party files. See the [MCP file guide](https://github.com/MistDig/AetherScript/wiki/MCP-Reference#third-party-files-with-console-approval). |
 | `ais connections` | Server console. List connection IDs, names, permissions and revocations. |
 | `ais disconnect [connection-id]` | Server console. Revoke one connection or all connections. Wait for saved confirmation. |
 | `ais capabilities <feature>` | Actual server console. Inspect the local execution capability ceiling. |

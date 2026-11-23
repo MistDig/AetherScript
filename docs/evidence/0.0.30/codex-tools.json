@@ -1,0 +1,116 @@
+{
+  "version": "codex-cli 0.171.0-alpha.13",
+  "exitCode": 0,
+  "toolNames": [
+    "aether_capabilities",
+    "aether_docs_read",
+    "aether_docs_read",
+    "aether_docs_read",
+    "aether_docs_read",
+    "aether_scripts_read",
+    "aether_docs_read",
+    "aether_docs_read",
+    "aether_docs_read",
+    "aether_scripts_validate",
+    "aether_scripts_validate",
+    "aether_scripts_apply",
+    "aether_scripts_read",
+    "aether_scripts_test",
+    "aether_scripts_test",
+    "aether_events_preview",
+    "aether_scripts_test_status",
+    "aether_scripts_test_status"
+  ],
+  "calls": [
+    {
+      "tool": "aether_capabilities",
+      "status": "completed",
+      "classification": null
+    },
+    {
+      "tool": "aether_docs_read",
+      "status": "failed",
+      "classification": "(error details withheld)"
+    },
+    {
+      "tool": "aether_docs_read",
+      "status": "failed",
+      "classification": "(error details withheld)"
+    },
+    {
+      "tool": "aether_docs_read",
+      "status": "failed",
+      "classification": "(error details withheld)"
+    },
+    {
+      "tool": "aether_docs_read",
+      "status": "completed",
+      "classification": null
+    },
+    {
+      "tool": "aether_scripts_read",
+      "status": "completed",
+      "classification": null
+    },
+    {
+      "tool": "aether_docs_read",
+      "status": "completed",
+      "classification": null
+    },
+    {
+      "tool": "aether_docs_read",
+      "status": "completed",
+      "classification": null
+    },
+    {
+      "tool": "aether_docs_read",
+      "status": "completed",
+      "classification": null
+    },
+    {
+      "tool": "aether_scripts_validate",
+      "status": "failed",
+      "classification": "(error details withheld)"
+    },
+    {
+      "tool": "aether_scripts_validate",
+      "status": "completed",
+      "classification": null
+    },
+    {
+      "tool": "aether_scripts_apply",
+      "status": "completed",
+      "classification": null
+    },
+    {
+      "tool": "aether_scripts_read",
+      "status": "completed",
+      "classification": null
+    },
+    {
+      "tool": "aether_scripts_test",
+      "status": "completed",
+      "classification": null
+    },
+    {
+      "tool": "aether_scripts_test",
+      "status": "completed",
+      "classification": null
+    },
+    {
+      "tool": "aether_events_preview",
+      "status": "completed",
+      "classification": null
+    },
+    {
+      "tool": "aether_scripts_test_status",
+      "status": "completed",
+      "classification": null
+    },
+    {
+      "tool": "aether_scripts_test_status",
+      "status": "completed",
+      "classification": null
+    }
+  ]
+}

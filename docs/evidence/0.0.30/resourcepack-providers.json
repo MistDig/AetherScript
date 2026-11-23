@@ -1,0 +1,25 @@
+{
+  "paper": "26.3 build 245",
+  "providers": [
+    {
+      "artifact": "RPEngine.jar",
+      "version": "0.2.91",
+      "source": "https://cdn.resourcepack.ai/RPEngine.jar",
+      "sha256": "9cd324cc62316f67799f5b213611d94955ebe2bd3af6918c3c62c05f420426fc"
+    },
+    {
+      "artifact": "MCGUI-0.8.6.jar",
+      "version": "0.8.6",
+      "source": "https://cdn.resourcepack.ai/MCGUI-0.8.6.jar",
+      "sha256": "69a454291cc27c36cdbc680bfbde245a90a3913de53cc1591c502a5a49124300"
+    },
+    {
+      "artifact": "3DEngine.jar",
+      "version": "0.1.6",
+      "source": "https://cdn.resourcepack.ai/3DEngine.jar",
+      "sha256": "6752985b1a756a2e26fca310ea264639661bfcc1da21ce4be513c8412c0e0fc9"
+    }
+  ],
+  "studioJavaExport": "Separate ResourcePack AI MCP built an existing test pack. Authenticated download and client rendering were not exercised.",
+  "dialogEngine": "Published download returned HTTP 403 in this environment; no execution or rendering claim."
+}

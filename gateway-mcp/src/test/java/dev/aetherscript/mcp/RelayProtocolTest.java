@@ -27,7 +27,7 @@ class RelayProtocolTest {
         request(main, "initialize", Map.of("protocolVersion", "2025-06-18", "capabilities", Map.of(), "clientInfo", Map.of()));
         main.handle(FeatureParser.JSON.valueToTree(Map.of("jsonrpc", "2.0", "method", "notifications/initialized")));
         JsonNode tools = request(main, "tools/list", Map.of()).path("result").path("tools");
-        assertEquals(10, tools.size());
+        assertEquals(11, tools.size());
         JsonNode apply = null;
         for (JsonNode tool : tools) {
             if (tool.path("name").asText().equals("aether_scripts_apply")) apply = tool;

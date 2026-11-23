@@ -6,6 +6,7 @@ dependencies {
 }
 
 tasks.processResources {
+    from(rootProject.file("AI-QUICKSTART.md"))
     inputs.property("version", project.version)
     filesMatching("aetherscript-build.properties") { expand("version" to project.version) }
 }

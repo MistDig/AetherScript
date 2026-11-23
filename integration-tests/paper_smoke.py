@@ -20,6 +20,7 @@ parser.add_argument('--economy', action='store_true', help='Exercise a contested
 parser.add_argument('--menus', action='store_true', help='Exercise real inventory menu packets (requires --homes)')
 parser.add_argument('--arenas', action='store_true', help='Exercise owned entity, combat and arena behavior (requires --homes)')
 parser.add_argument('--provider-dir', type=Path, help='Exercise installed Vault/EssentialsX/WorldGuard bridge JARs (requires --homes)')
+parser.add_argument('--3d-engine-jar', dest='engine3d_jar', type=Path, help='Check a local 3D Engine build and OBJ import on Paper (requires --aether)')
 parser.add_argument('--addon-jar', type=Path, help='Exercise an independent Java addon (requires --homes)')
 parser.add_argument('--client-dir', type=Path, help='External pinned ViaProxy/client dependency directory for --homes')
 parser.add_argument('--pairing', action='store_true', help='Pair the packaged MCP with this disposable server and check live status and revocation')
@@ -29,6 +30,8 @@ parser.add_argument('--browser-only', action='store_true', help='Test a fresh in
 args = parser.parse_args()
 if not 30 <= args.startup_timeout <= 900:
     parser.error('--startup-timeout must be 30..900 seconds')
+if args.engine3d_jar and (not args.aether or any((args.native_mcp,args.homes,args.pairing,args.relay_config,args.runtime_control,args.browser_008,args.browser_only))):
+    parser.error('--3d-engine-jar requires --aether and runs alone')
 if args.existing_json and args.aether:
     parser.error('Choose --existing-json or --aether')
 if args.runtime_control and not args.aether:
@@ -73,11 +76,21 @@ shutil.copy2(repo/'plugin-paper/build/libs'/f'plugin-paper-{version}.jar', serve
 addon = server/'plugins/PersonalWeatherAddon.jar' if args.addon_jar else None
 if addon:
     shutil.copy2(args.addon_jar.resolve(), addon)
+if args.engine3d_jar:
+    shutil.copy2(args.engine3d_jar.resolve(), server/'plugins/3DEngine.jar')
+    engine = server/'plugins/3DEngine'
+    models = engine/'models'
+    models.mkdir(parents=True)
+    (engine/'config.yml').write_text('pack:\n  host: none\n  send: false\ntelemetry: false\nupdate-check: false\n', encoding='utf-8')
+    (models/'aether-prop.obj').write_text('o aetherprop\nv 0 0 0\nv 1 0 0\nv 0 1 0\nv 0 0 1\nf 1 2 3\nf 1 4 2\nf 2 4 3\nf 3 4 1\n', encoding='utf-8')
 if args.provider_dir:
     for name in ('Vault.jar', 'EssentialsX-2.22.0.jar', 'worldedit.jar', 'worldguard.jar'):
         shutil.copy2(args.provider_dir.resolve()/name, server/'plugins'/name)
 (server/'eula.txt').write_text('eula=true\n')
-(server/'server.properties').write_text('server-ip=127.0.0.1\nserver-port=25591\nonline-mode=false\nenforce-secure-profile=false\nview-distance=2\nsimulation-distance=2\nmax-players=2\nlevel-type=minecraft:flat\ngenerate-structures=false\nspawn-protection=0\n')
+port = int(os.environ.get('AETHER_SMOKE_PORT','25591'))
+if not 1024 <= port <= 65535:
+    parser.error('AETHER_SMOKE_PORT must be 1024..65535')
+(server/'server.properties').write_text(f'server-ip=127.0.0.1\nserver-port={port}\nonline-mode=false\nenforce-secure-profile=false\nview-distance=2\nsimulation-distance=2\nmax-players=2\nlevel-type=minecraft:flat\ngenerate-structures=false\nspawn-protection=0\n')
 if args.homes or args.native_mcp:
     with (server/'server.properties').open('a') as properties:
         properties.write('allow-flight=true\nwhite-list=true\nenforce-whitelist=true\n')  # Loopback protocol clients do not run vanilla client physics.
@@ -171,6 +184,23 @@ def edit(message):
     source.write_text(changed, encoding='utf-8')
 def history():
     return json.loads((data/'storage/manifest.json').read_text())['state']['features']['hello-ai']
+if args.engine3d_jar:
+    from zipfile import ZipFile
+    try:
+        start()
+        command('version 3DEngine', '3DEngine version')
+        command('3d list', 'aether-prop')
+        command('helloai', 'Hello from AetherScript!')
+        with ZipFile(server/'plugins/3DEngine/pack.zip') as built:
+            assert any(name.startswith('assets/3dengine/') for name in built.namelist()), 'Built pack has no 3D Engine assets'
+        evidence.append(dict(test='3d-engine-model-and-coexistence',result='pass',
+            detail='3D Engine listed the original OBJ and built assets, while an AetherScript command ran on the same Paper server. Client rendering untested.'))
+    finally:
+        stop()
+    (server/'smoke-results.json').write_text(json.dumps(evidence,indent=2),encoding='utf-8')
+    print('PASS: 3D Engine OBJ build and AetherScript coexistence')
+    raise SystemExit(0)
+
 if args.native_mcp:
     from native_mcp_workflow import verify
     try:
@@ -187,7 +217,8 @@ if args.native_mcp:
     if any(item['result'] == 'fail' for item in evidence):
         print(evidence[-1]['detail'], flush=True)
         raise SystemExit(1)
-    print(f'PASS: {len(evidence)} native MCP HTTP/browser protocol checks; 26.1 clients translated to 26.3; actual AI apps untested', flush=True)
+    client = 'actual Codex CLI exercised' if any(row['test']=='native-mcp-actual-codex-paper' for row in evidence) else 'actual AI apps untested'
+    print(f'PASS: {len(evidence)} native MCP checks; 26.1 clients translated to 26.3; {client}', flush=True)
     raise SystemExit(0)
 if args.homes:
     from homes_workflow import verify

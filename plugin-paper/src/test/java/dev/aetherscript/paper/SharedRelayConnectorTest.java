@@ -14,7 +14,7 @@ class SharedRelayConnectorTest {
         Path file = root.resolve("connections.json"); var store = new ConnectionStore(file);
         String enrollment = UUID.randomUUID().toString(), connection = UUID.randomUUID().toString();
         store.pending(enrollment, Set.of("hello-ai"), System.currentTimeMillis() + 60000);
-        var grant = Map.of("connectionId", connection, "enrollmentId", enrollment, "name", "Codex", "allowedScriptIds", List.of("hello-ai"), "scopes", SharedRelayConnector.SCOPES, "revoked", false);
+        var grant = Map.of("connectionId", connection, "enrollmentId", enrollment, "name", "Codex", "allowedScriptIds", List.of("hello-ai"), "scopes", SharedRelayConnector.LEGACY_SCOPES, "revoked", false);
         AtomicReference<Map<String, ?>> offered = new AtomicReference<>(grant);
         AtomicReference<String> requestedTarget = new AtomicReference<>("hello-ai");
         var calls = new ArrayList<String>(); AtomicInteger invoked = new AtomicInteger();
@@ -50,7 +50,7 @@ class SharedRelayConnectorTest {
         };
         try (var connector = new SharedRelayConnector(store, (g,o,a) -> Map.of(), g -> {}, line -> { if (line.contains("private link")) link.countDown(); if (line.contains("revocation saved locally")) revoked.countDown(); }, transport)) {
             connector.enroll(Set.of()); assertTrue(link.await(5, TimeUnit.SECONDS)); assertTrue(store.state().pending().containsKey(enrollment));
-            store.accept(new ConnectionStore.Grant(connection, "Codex", Set.of("hello-ai"), SharedRelayConnector.SCOPES, false), enrollment);
+            store.accept(new ConnectionStore.Grant(connection, "Codex", Set.of("hello-ai"), SharedRelayConnector.LEGACY_SCOPES, false), enrollment);
             connector.disconnect(connection); assertTrue(connector.blocked(connection)); assertTrue(revoked.await(5, TimeUnit.SECONDS));
             assertTrue(new ConnectionStore(root.resolve("connections.json")).state().grants().get(connection).revoked());
         }
@@ -59,7 +59,7 @@ class SharedRelayConnectorTest {
         var store = new ConnectionStore(root.resolve("diagnostics.json"));
         String enrollment = UUID.randomUUID().toString(), connection = UUID.randomUUID().toString();
         store.pending(enrollment, Set.of("hello-ai"), System.currentTimeMillis() + 60000);
-        var grant = new ConnectionStore.Grant(connection, "Client", Set.of("hello-ai"), SharedRelayConnector.SCOPES, false);
+        var grant = new ConnectionStore.Grant(connection, "Client", Set.of("hello-ai"), SharedRelayConnector.LEGACY_SCOPES, false);
         store.accept(grant, enrollment);
         AtomicReference<Map<String, ?>> response = new AtomicReference<>();
         SharedRelayConnector.Transport transport = (path, token, body) -> {
