@@ -29,10 +29,10 @@ def verify(command, start, stop, server, repo, java, evidence, client_dir):
             if 'busy=false' in command('ais status', 'AetherScript '): return
             time.sleep(.2)
         raise AssertionError('Paper activation did not settle')
-    def connect_bot():
+    def connect_bot(first_login=False):
         result = Bot(client_dir, 'AetherHomeA', server/'native-mcp-client.jsonl')
         command('op AetherHomeA', 'operator')
-        if os.environ.get('AETHER_PACKED_SMOKE')=='1':
+        if first_login and os.environ.get('AETHER_PACKED_SMOKE')=='1':
             command('gamemode creative AetherHomeA', 'Creative Mode')
         settled()
         return result
@@ -55,7 +55,7 @@ def verify(command, start, stop, server, repo, java, evidence, client_dir):
                 break
             except OSError: time.sleep(.25)
         else: raise AssertionError('Proxy readiness timeout')
-        bot = connect_bot()
+        bot = connect_bot(first_login=True)
         actor = str(uuid.UUID(bytes=hashlib.md5(b'OfflinePlayer:AetherHomeA').digest(), version=3))
         line = command('ais connect', '/connect#code=')
         link = re.search(r'https://[^\s]+/connect#code=[^\s]+', line).group()

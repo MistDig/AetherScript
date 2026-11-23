@@ -17,12 +17,8 @@ An owner should be able to describe a Minecraft plugin to an AI, install it and 
 | 0.0.26 · Entities, combat and regions | [Released](https://github.com/MistDig/AetherScript/releases/tag/v0.0.26) | Paper verified two arena bosses, teams, independent command-driven scores, player targeting, red-region damage cancellation and cleanup. Automatic kill scoring and cross-arena friendly-fire rules remain open. |
 | 0.0.27 · Addon SDK | [Released](https://github.com/MistDig/AetherScript/releases/tag/v0.0.27) | An independently built Java addon registered a typed personal-weather call. Paper verified approval, weather and clean recovery after removal. Addon-defined event declarations remain open. |
 | 0.0.28 · External plugin integrations | [Release](https://github.com/MistDig/AetherScript/releases/tag/v0.0.28) | Paper verified a shop purchase using Vault, EssentialsX and Bukkit permission checks, plus a WorldGuard denial with no payment or delivery. Provider availability and minimum-version checks are built in. General package dependency resolution remains open. |
-| 0.0.29 · End-to-end AI authoring | In verification | From an empty feature, an authorized AI discovers available APIs, creates a multi-file quest shop, runs event scenarios, checks real effects and repairs a failed assertion. |
+| 0.0.29 · End-to-end AI authoring | [Release](https://github.com/MistDig/AetherScript/releases/tag/v0.0.29) | Hosted MCP applied a four-file quest, rejected a stale edit, repaired a failed assertion and previewed an event. Paper verified real player effects, restart and revocation. An actual AI application and an interactive quest shop remain open. |
 | 0.0.30 · Version-matched AI onboarding and blind build challenge | Planned | Connect a fresh AI client through the public setup. With no pasted documentation, give it a previously unseen plugin request on Paper. It discovers the installed language and addon APIs, builds and tests the plugin, and the owner judges the result in Minecraft. |
-
-### 0.0.29 checkpoint
-
-Packed source storage, hosted read/validate/apply, and pure event previews are implemented. The relay suite passed 13 tests. A fresh Paper connection completed hosted OAuth and single-file authoring. Finish the packed quest repair and event preview run before tagging this version. The fixture now puts the test actor in creative mode because a hostile mob killed the actor during the first run. Commands and effects still need verification with an actual AI application.
 
 ### 0.0.30 AI guide delivery
 

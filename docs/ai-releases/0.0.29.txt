@@ -3370,11 +3370,12 @@ Update the Paper plugin to 0.0.8. The connector logs each rejected grant state o
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
-## [0.0.29] - 2026-11-22
+## [0.0.29] - 2026-11-23
 
 - Hosted read, validate and apply can author a packed multi-file native feature with one revision and source hash.
 - Add pure snapshot previews for active event handlers. Fresh browser grants can explicitly offer join, quit, block-break, block-place and cancellation capabilities. Old grants stay unchanged.
-- Verification pending.
+- Java 25 passed 391 tests with one Windows link test skipped. All 13 relay tests passed. Packaged authoring, MCP stdio, 22 wiki examples, legacy hashes and SQLite packaging passed.
+- A scripted browser and MCP client passed nine checks on Paper 26.3 build 245 through the hosted relay, including a four-file quest repair, a scoped event preview, real player effects, restart and disconnect. AI application discovery and an unseen prompt remain open.
 
 ## [0.0.28] - 2026-11-22
 
