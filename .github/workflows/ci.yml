@@ -14,6 +14,7 @@ jobs:
           cache-dependency-path: relay/package-lock.json
       - run: npm ci --prefix relay
       - run: npm test --prefix relay
+      - run: npm test --prefix aether-ai
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

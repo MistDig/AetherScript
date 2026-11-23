@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101b32">
+<title>Aether AI · Minecraft Feature Builder</title>
+<link rel="icon" href="/favicon.svg">
+<link rel="stylesheet" href="/theme.css">
+<script type="module" src="/chat.mjs"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to workspace</a>
+<header class="top">
+  <a class="brand" href="/"><img src="/favicon.svg" alt="" width="36" height="36"> Aether<span>AI</span></a>
+  <a class="docs" href="https://mistdig.github.io/AetherScript/">AetherScript docs ↗</a>
+</header>
+<main id="main" class="shell">
+  <aside class="sidebar" aria-label="Workspace">
+    <div class="profile">
+      <div class="avatar"><img id="cloud" src="/cloud.png" alt="Aether, the smiling cloud" width="120" height="120"></div>
+      <p id="cloud-state" class="cloud-state">Ready when you are</p>
+    </div>
+    <div class="nav">
+      <a href="#build-heading" class="selected">Build with Aether AI</a>
+      <a href="https://mistdig.github.io/AetherScript/guide/security.html">Connect my AI ↗</a>
+    </div>
+    <section class="connection" aria-labelledby="connect-heading" hidden id="connection">
+      <h2 id="connect-heading">Paper connection</h2>
+      <p id="connection-state" role="status">No server connected</p>
+      <button id="open-pair" type="button" class="secondary">Connect server</button>
+      <button id="disconnect" type="button" class="secondary" hidden>Remove connection</button>
+    </section>
+  </aside>
+  <section class="workspace" aria-labelledby="build-heading">
+    <header class="workspace-head">
+      <h1 id="build-heading">What are we building?</h1>
+      <p>Describe a feature and see what passes on your Paper server.</p>
+    </header>
+    <section class="entry" id="sign-in" aria-labelledby="sign-in-heading">
+      <h2 id="sign-in-heading">Join the pilot</h2>
+      <form id="invite-form">
+        <label for="invite">Invitation code</label>
+        <input required id="invite" name="invite" type="password" autocomplete="off" maxlength="150">
+        <button type="submit">Open chat</button>
+      </form>
+    </section>
+    <section class="entry" id="pairing" aria-labelledby="pair-heading" hidden>
+      <h2 id="pair-heading">Connect one feature</h2>
+      <form id="pair-form">
+        <label for="feature">Feature ID</label>
+        <input required id="feature" name="feature" placeholder="lobby-welcome" pattern="[a-z][a-z0-9\-]{0,63}" maxlength="64" autocapitalize="none">
+        <p>Run <code id="console-command">ais connect lobby-welcome</code> in the Paper console. Open its link in this browser and choose <strong>Other MCP app</strong>. Return here and continue to approve the selected feature. For live command tests, select an online test player.</p>
+        <button type="submit">Continue to approval</button>
+      </form>
+    </section>
+    <div id="chat" hidden>
+      <section id="messages" class="messages" aria-label="Chat" role="log" aria-live="polite"></section>
+      <form id="build-form" class="composer">
+        <label for="kind">Feature type</label>
+        <select name="kind" id="kind"><option value="welcome">Welcome message</option><option value="command">Command with arguments</option><option value="protection">Spawn protection</option></select>
+        <label for="prompt">Message Aether</label>
+        <textarea name="prompt" id="prompt" maxlength="2000" rows="3" placeholder="Welcome players to my lobby when they join." required></textarea>
+        <div class="composer-actions"><span>Build applies to the connected feature.</span><button type="submit" id="build-button">Build</button></div>
+      </form>
+    </div>
+    <p id="feedback" class="feedback" role="alert"></p>
+  </section>
+</main>
+</body>
+</html>

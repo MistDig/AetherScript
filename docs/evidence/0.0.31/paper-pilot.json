@@ -1,0 +1,27 @@
+[
+  {
+    "test": "native-mcp-aether-ai-welcome",
+    "result": "pass",
+    "detail": "{\"kind\": \"welcome\", \"tests\": [{\"kind\": \"event-preview\", \"event\": \"join\", \"expected\": [\"Welcome to the pilot!\"], \"actual\": [\"Welcome to the pilot!\"], \"cancelled\": false, \"passed\": true}], \"totalMs\": 41929, \"model\": [], \"generated\": false}"
+  },
+  {
+    "test": "native-mcp-aether-ai-command",
+    "result": "pass",
+    "detail": "{\"kind\": \"command\", \"tests\": [{\"kind\": \"command\", \"arguments\": [\"Alex\"], \"actual\": [\"Hello Alex!\"], \"expected\": [\"Hello Alex!\"], \"passed\": true, \"status\": \"completed\"}, {\"kind\": \"command\", \"arguments\": [\"MistDig\"], \"actual\": [\"Hello MistDig!\"], \"expected\": [\"Hello MistDig!\"], \"passed\": true, \"status\": \"completed\"}], \"totalMs\": 58282, \"model\": [], \"generated\": false}"
+  },
+  {
+    "test": "native-mcp-aether-ai-protection",
+    "result": "pass",
+    "detail": "{\"kind\": \"protection\", \"tests\": [{\"kind\": \"event-preview\", \"event\": \"block_break\", \"expected\": [], \"actual\": [], \"expectedCancelled\": true, \"cancelled\": true, \"passed\": true}, {\"kind\": \"event-preview\", \"event\": \"block_place\", \"expected\": [], \"actual\": [], \"expectedCancelled\": false, \"cancelled\": false, \"passed\": true}], \"totalMs\": 46706, \"model\": [], \"generated\": false}"
+  },
+  {
+    "test": "native-mcp-aether-ai-recovery",
+    "result": "pass",
+    "detail": "{\"kind\": \"recovery\", \"passed\": true}"
+  },
+  {
+    "test": "native-mcp-aether-ai-revoked",
+    "result": "pass",
+    "detail": "The hosted grant could not read status after Paper revoked it."
+  }
+]

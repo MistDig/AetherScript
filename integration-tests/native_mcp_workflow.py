@@ -80,7 +80,8 @@ def verify(command, start, stop, server, repo, java, evidence, client_dir):
         else: raise AssertionError('Proxy readiness timeout')
         bot = connect_bot(first_login=True)
         actor = str(uuid.UUID(bytes=hashlib.md5(b'OfflinePlayer:AetherHomeA').digest(), version=3))
-        enroll = 'ais connect --files' if files_mode else 'ais connect visitor-desk' if codex_mode else 'ais connect'
+        pilot_mode = os.environ.get('AETHER_PILOT_SMOKE') == '1'
+        enroll = 'ais connect aether-pilot' if pilot_mode else 'ais connect --files' if files_mode else 'ais connect visitor-desk' if codex_mode else 'ais connect'
         line = command(enroll, '/connect#code=')
         link = re.search(r'https://[^\s]+/connect#code=[^\s]+', line).group()
         origin = 'https://'+urlsplit(link).netloc
@@ -138,7 +139,28 @@ def verify(command, start, stop, server, repo, java, evidence, client_dir):
                     token = http('/oauth/token', dict(grant_type='authorization_code', code=returned['code'][0], client_id=client['client_id'], redirect_uri=redirect, code_verifier=verifier, resource=origin+'/mcp'), form=True)['access_token']
                     return token
                 finally: context.close()
-            token = approve(True, True, link, all_scripts=not codex_mode); live(token)
+            token = approve(True, True, link, all_scripts=not (codex_mode or pilot_mode)); live(token)
+            if pilot_mode:
+                fixture = subprocess.run(['node', str(repo/'aether-ai/paper-fixture.mjs')], cwd=repo,
+                    input=json.dumps(dict(origin=origin,token=token)), text=True, encoding='utf-8',
+                    capture_output=True, timeout=360)
+                if fixture.returncode != 0:
+                    print('Pilot fixture failed: '+re.sub(r'https?://[^\s]+', '[redacted]', fixture.stderr)[-1800:], flush=True)
+                    raise AssertionError('Pilot workflow did not complete')
+                results=[json.loads(line) for line in fixture.stdout.splitlines() if line.startswith('{')]
+                assert [row['kind'] for row in results] == ['welcome','command','protection','recovery']
+                for row in results:
+                    passed('aether-ai-'+row['kind'], json.dumps(row))
+                command('ais disconnect', 'revocation saved'); settled()
+                try:
+                    call(token, 'aether_server_status', {})
+                except HTTPError as failure:
+                    assert failure.code in (401,403)
+                else:
+                    raise AssertionError('Revoked pilot connection could still read status')
+                passed('aether-ai-revoked', 'The hosted grant could not read status after Paper revoked it.')
+                browser.close()
+                return
             if release030:
                 check_docs(call, http, token, passed)
                 if codex_mode:

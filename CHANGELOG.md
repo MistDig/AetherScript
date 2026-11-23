@@ -2,6 +2,13 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.31] - 2026-11-24
+
+- Add the invite-only Aether AI chat pilot with animated mascot states, reduced-motion support and a separate link for existing AI clients.
+- Use the existing hosted relay and the server's version-matched guide to validate, activate and test one owner-approved feature. Report revision, expected and observed results, and timing. Label simulated events as previews.
+- Pass seven Node tests, desktop and mobile Edge checks, and the Java 25 clean build. A deterministic model fixture passes five hosted checks on disposable Paper 26.3 build 245 running AetherScript 0.0.30, including native command execution, event previews, invalid and stale edits, and revocation.
+- The app ships as source with VPS setup instructions. HeroicGamez inference, deployment, the two-PC pilot and the chest-and-gate demo require further verification or implementation.
+
 ## [0.0.30] - 2026-11-23
 
 - Add version-matched hosted MCP documentation with concise task routes, focused guide reads, and quickstart and reference resources. The offline gateway retains its full authoring contract and serves its bundled version.
