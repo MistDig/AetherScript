@@ -1,6 +1,7 @@
 'use strict'
 // Test-only offline protocol client. Server endpoint is deliberately loopback-only.
 const mc = require('minecraft-protocol')
+const gameData = require('minecraft-data')('26.1')
 const readline = require('node:readline')
 const port = Number(process.argv[2] || 25568)
 const username = process.argv[3] || 'AetherHomeTest'
@@ -29,6 +30,9 @@ client.on('window_items', packet => { if (openWindow?.id === packet.windowId) op
 client.on('set_slot', packet => { if (openWindow?.id === packet.windowId) openWindow.stateId = packet.stateId })
 client.on('close_window', packet => { openWindow = null; emit('menu_close', packet) })
 client.on('game_state_change', packet => emit('weather', packet))
+client.on('spawn_entity', packet => {
+  if (gameData.entities[packet.type]?.name === 'villager') emit('villager', { id: packet.entityId, x: packet.x, y: packet.y, z: packet.z })
+})
 client.on('kick_disconnect', packet => emit('kick', { packet }))
 client.on('disconnect', packet => emit('kick', { packet }))
 client.on('error', error => emit('error', { message: error.message }))
@@ -44,6 +48,18 @@ readline.createInterface({ input: process.stdin }).on('line', line => {
     const request = JSON.parse(line)
     if (request.op === 'quit') { client.end('test complete'); return }
     if (request.op === 'position') { emit('position_snapshot', { id: request.id, ...position }); return }
+    if (ready && request.op === 'use_item') {
+      client.write('use_item', { hand: 'main_hand', sequence: ++sequence, rotation: { x: position.yaw, y: position.pitch } })
+      return
+    }
+    if (ready && request.op === 'interact_entity' && Number.isSafeInteger(request.id)) {
+      client.write('use_entity', { target: request.id, hand: 'main_hand', location: { x: 0, y: 1, z: 0 }, sneaking: false })
+      return
+    }
+    if (ready && request.op === 'respawn') {
+      client.write('client_command', { actionId: 'perform_respawn' })
+      return
+    }
     if (request.op === 'menu_click' && openWindow) {
       client.write('window_click', { windowId: openWindow.id, stateId: openWindow.stateId,
         slot: request.slot, mouseButton: request.button, mode: request.mode, changedSlots: [], cursorItem: null })

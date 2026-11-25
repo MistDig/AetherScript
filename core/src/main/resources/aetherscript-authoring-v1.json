@@ -23,6 +23,17 @@
     "player.display",
     "player.sound",
     "runtime.event.block_hearts",
+    "runtime.event.block_drop",
+    "runtime.event.replace_drop",
+    "runtime.event.block_interact",
+    "runtime.event.run_self",
+    "runtime.event.item_interact",
+    "runtime.event.entity_interact",
+    "runtime.event.player_respawn",
+    "runtime.event.player_teleport",
+    "runtime.event.item_consume",
+    "runtime.event.projectile_hit",
+    "runtime.event.player_command",
     "scheduler.repeat",
     "world.block.write",
     "world.read",
@@ -241,6 +252,13 @@
       "runtime.event.replace_drop",
       "runtime.event.block_interact",
       "runtime.event.run_self",
+      "runtime.event.item_interact",
+      "runtime.event.entity_interact",
+      "runtime.event.player_respawn",
+      "runtime.event.player_teleport",
+      "runtime.event.item_consume",
+      "runtime.event.projectile_hit",
+      "runtime.event.player_command",
       "scheduler.repeat",
       "world.block.write",
       "world.read",
@@ -331,9 +349,16 @@
       "block_place",
       "block_drop",
       "block_interact",
+      "item_interact",
+      "entity_interact",
       "entity_damage",
       "entity_death",
-      "entity_target"
+      "entity_target",
+      "player_respawn",
+      "player_teleport",
+      "item_consume",
+      "projectile_hit",
+      "player_command"
     ],
     "snapshotFields": {
       "all": {
@@ -368,6 +393,27 @@
       "entity_death": {
         "killer_uuid": "text",
         "killer_type": "text"
+      },
+      "item_interact/item_consume": {
+        "item_type": "text",
+        "item_id": "text"
+      },
+      "player_respawn/player_teleport/projectile_hit": {
+        "x": "integer",
+        "y": "integer",
+        "z": "integer"
+      },
+      "player_teleport": {
+        "from_world": "text",
+        "cause": "text"
+      },
+      "projectile_hit": {
+        "projectile_type": "text",
+        "hit_block_type": "text",
+        "hit_entity_type": "text"
+      },
+      "player_command": {
+        "command_name": "text"
       }
     },
     "permissions": "Explicit permission required. \"*\" applies to every player; optional bypass skips the handler when the player holds that permission. Checks use the event player.",
@@ -375,13 +421,13 @@
       "let name = expression",
       "send textExpression",
       "if booleanExpression { ... } else { ... }",
-      "cancel (block_break/block_place/block_drop/block_interact/entity_damage/entity_target only)",
+      "cancel (block_break/block_place/block_drop/block_interact/item_interact/entity_interact/entity_damage/entity_target/player_teleport/item_consume/projectile_hit/player_command only)",
       "block_hearts(integer) (block_break only)",
       "replace_drop(itemDescriptor) (block_drop only; replaces an existing drop list with one stack)",
-      "run_self() (block_interact only; queue the same feature's command with no arguments)"
+      "run_self() (block_interact/item_interact/entity_interact only; queue the same feature's command with no arguments)"
     ],
     "purity": "Synchronous immutable snapshots and pure expressions. Item descriptors are available in block_drop. Handlers cannot use command arguments, collections, mutable locals, loops, user functions or host calls. run_self queues a separate ordinary command on the next Paper tick.",
-    "cancellation": "Block break, place, drop and interaction, entity damage and entity target are cancellable. Prior cancellation wins. A cancelled drop keeps the block broken and suppresses drops. A cancelled interaction suppresses a queued command.",
+    "cancellation": "Only the declared cancellable events accept cancel. Prior denial wins. A cancelled drop keeps the block broken and suppresses drops. A cancelled interaction suppresses its queued command. An item-interaction handler cancels item-use only.",
     "threading": "Paper main thread, HIGHEST priority for block handlers; bounded evaluation before the event returns.",
     "ownership": "Subscriptions belong to the active revision and are replaced/removed with reload, rollback, disable and shutdown.",
     "capabilities": [
@@ -397,7 +443,14 @@
       "runtime.event.run_self",
       "runtime.event.entity_damage",
       "runtime.event.entity_death",
-      "runtime.event.entity_target"
+      "runtime.event.entity_target",
+      "runtime.event.item_interact",
+      "runtime.event.entity_interact",
+      "runtime.event.player_respawn",
+      "runtime.event.player_teleport",
+      "runtime.event.item_consume",
+      "runtime.event.projectile_hit",
+      "runtime.event.player_command"
     ],
     "limits": {
       "handlersPerFeature": 16,

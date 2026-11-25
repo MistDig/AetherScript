@@ -1,0 +1,77 @@
+[
+  {
+    "test": "homes-startup-native-denied",
+    "result": "pass",
+    "detail": "[15:39:16 INFO]: AetherScript 0.0.33; 26.3-245-cd1c3b6 (MC: 26.3); ready=true; generation=1; features=1; busy=false; remoteManage=false; recovery=ENABLED"
+  },
+  {
+    "test": "homes-denial-keeps-pure-feature",
+    "result": "pass",
+    "detail": "[15:39:17 INFO]: Hello from AetherScript!"
+  },
+  {
+    "test": "homes-owner-permit",
+    "result": "pass",
+    "detail": "[15:39:17 INFO]: CAPABILITIES_SAVED homes: [player.location.read, player.teleport.self, runtime.message.send, scheduler.delay, state.own]; run ais reload homes to activate an approved edit"
+  },
+  {
+    "test": "homes-activate",
+    "result": "pass",
+    "detail": "[15:39:17 INFO]: ACTIVE generation=2 features=2; saved successfully"
+  },
+  {
+    "test": "hooks-owner-permit",
+    "result": "pass",
+    "detail": "[15:39:24 INFO]: CAPABILITIES_SAVED interaction-hooks: [runtime.event.cancel, runtime.event.entity_interact, runtime.event.item_consume, runtime.event.item_interact, runtime.event.player_command, runtime.event.player_respawn, runtime.event.player_teleport, runtime.event.projectile_hit, runtime.event.run_self, runtime.message.send]; run ais reload interaction-hooks to activate an approved edit"
+  },
+  {
+    "test": "hooks-activate",
+    "result": "pass",
+    "detail": "[15:39:25 INFO]: ACTIVE generation=3 features=3; saved successfully"
+  },
+  {
+    "test": "hook-key-owner-permit",
+    "result": "pass",
+    "detail": "[15:39:25 INFO]: CAPABILITIES_SAVED hook-key: [player.inventory.write, runtime.message.send]; run ais reload hook-key to activate an approved edit"
+  },
+  {
+    "test": "hook-key-activate",
+    "result": "pass",
+    "detail": "[15:39:26 INFO]: ACTIVE generation=4 features=4; saved successfully"
+  },
+  {
+    "test": "hooks-teleport",
+    "result": "pass",
+    "detail": "A player teleport reached the new destination snapshot handler."
+  },
+  {
+    "test": "hooks-key",
+    "result": "pass",
+    "detail": "Main-hand use of a custom key in air and against a block queued the interaction command."
+  },
+  {
+    "test": "hooks-npc",
+    "result": "pass",
+    "detail": "A real right-click packet on the configured villager queued the interaction command."
+  },
+  {
+    "test": "hooks-projectile",
+    "result": "pass",
+    "detail": "A thrown snowball struck a stone block and reached the shooter-scoped event."
+  },
+  {
+    "test": "hooks-consume",
+    "result": "pass",
+    "detail": "A real item-use packet completed a golden apple and reported its material."
+  },
+  {
+    "test": "hooks-command",
+    "result": "pass",
+    "detail": "The player command hook matched the command label and cancelled command execution."
+  },
+  {
+    "test": "hooks-respawn",
+    "result": "pass",
+    "detail": "A real player respawn reached the destination snapshot handler."
+  }
+]

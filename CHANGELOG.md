@@ -2,6 +2,14 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.33] - 2026-11-25
+
+- Added main-hand item and entity interactions. Handlers can use a feature-owned item ID or an entity snapshot to start their own feature's command.
+- Added teleport, respawn, player-fired projectile hit, item consumption, and player command label hooks. The command hook exposes a label without arguments and leaves `/ais` administration accessible.
+- Added an interaction example and extended the version-matched event contract. New capabilities require local owner approval.
+- Fixed delivery of prepared command messages when a feature also declares events.
+- Verification: 401 Java tests passed and one was skipped. Paper 26.3 build 245 passed all 15 focused hook checks with a translated protocol client.
+
 ## [0.0.32] - 2026-11-25
 
 - Added locally approved block-drop replacements with feature-owned item identity and optional resource-pack model keys.

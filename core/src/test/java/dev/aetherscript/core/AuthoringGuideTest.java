@@ -27,16 +27,17 @@ class AuthoringGuideTest {
         var publishedCapabilities = new java.util.HashSet<String>();
         events.path("capabilities").forEach(node -> publishedCapabilities.add(node.asText()));
         assertEquals(CompiledFeature.EVENT_CAPABILITIES, publishedCapabilities);
+        var topLevel = new java.util.HashSet<String>();
+        guide.path("capabilities").forEach(node -> topLevel.add(node.asText()));
+        assertTrue(topLevel.containsAll(publishedCapabilities));
         for (var kind : events.path("ids")) {
             var fields = CompiledFeature.eventFields(kind.asText());
             var described = new java.util.HashMap<String, String>();
-            events.path("snapshotFields").path("all").properties().forEach(entry -> described.put(entry.getKey(), entry.getValue().asText()));
-            if (kind.asText().startsWith("block_"))
-                events.path("snapshotFields").path("block_break/block_place/block_drop/block_interact").properties().forEach(entry -> described.put(entry.getKey(), entry.getValue().asText()));
-            if (kind.asText().startsWith("entity_")) {
-                events.path("snapshotFields").path("entity").properties().forEach(entry -> described.put(entry.getKey(), entry.getValue().asText()));
-                events.path("snapshotFields").path(kind.asText()).properties().forEach(entry -> described.put(entry.getKey(), entry.getValue().asText()));
-            }
+            events.path("snapshotFields").properties().forEach(group -> {
+                if (group.getKey().equals("all") || group.getKey().equals("entity") && kind.asText().startsWith("entity_")
+                    || java.util.Arrays.asList(group.getKey().split("/")).contains(kind.asText()))
+                    group.getValue().properties().forEach(field -> described.put(field.getKey(), field.getValue().asText()));
+            });
             assertEquals(fields.keySet(), described.keySet());
             fields.forEach((name, type) -> assertEquals(type.name().toLowerCase(java.util.Locale.ROOT), described.get(name)));
         }

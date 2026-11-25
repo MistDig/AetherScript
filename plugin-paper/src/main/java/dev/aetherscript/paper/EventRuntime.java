@@ -2,6 +2,8 @@ package dev.aetherscript.paper;
 
 import dev.aetherscript.core.*;
 import net.kyori.adventure.text.Component;
+import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Entity;
@@ -15,11 +17,13 @@ import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 import java.util.*;
 import java.util.function.*;
 
 /** One listener for the runtime lifetime; each delivery captures the current registry. */
 final class EventRuntime implements Listener, AutoCloseable {
+    private static final NamespacedKey CUSTOM_ITEM = Objects.requireNonNull(NamespacedKey.fromString("aetherscript:custom_item"));
     private final Registry registry;
     private final Supplier<ScriptCapabilityPolicy> policy;
     private final BooleanSupplier ready;
@@ -73,12 +77,67 @@ final class EventRuntime implements Listener, AutoCloseable {
         var state = event.getBlockState();
         dispatch("block_drop", event.getPlayer(), blockFields(event.getPlayer(), state.getBlock(), state.getType().name()), event);
     }
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void blockInteract(PlayerInteractEvent event) {
-        if (event.getHand() != EquipmentSlot.HAND || event.getAction() != Action.RIGHT_CLICK_BLOCK
-            || event.useInteractedBlock() == Event.Result.DENY || !interested("block_interact")) return;
+        if (event.getHand() != EquipmentSlot.HAND
+            || event.getAction() != Action.RIGHT_CLICK_BLOCK && event.getAction() != Action.RIGHT_CLICK_AIR) return;
         var block = event.getClickedBlock();
-        if (block != null) dispatch("block_interact", event.getPlayer(), blockFields(event.getPlayer(), block, block.getType().name()), event);
+        if (block != null && event.useInteractedBlock() != Event.Result.DENY && interested("block_interact"))
+            dispatch("block_interact", event.getPlayer(), blockFields(event.getPlayer(), block, block.getType().name()), event);
+        if (event.hasItem() && itemUseAllowed(event) && interested("item_interact")) {
+            dispatch("item_interact", event.getPlayer(), itemFields(event.getPlayer(), event.getItem()), new Cancellable() {
+                public boolean isCancelled() { return !itemUseAllowed(event); }
+                public void setCancelled(boolean cancelled) { if (cancelled) event.setUseItemInHand(Event.Result.DENY); }
+            });
+        }
+    }
+    private static boolean itemUseAllowed(PlayerInteractEvent event) {
+        return event.useItemInHand() != Event.Result.DENY
+            && (event.getAction() == Action.RIGHT_CLICK_AIR || event.useInteractedBlock() != Event.Result.DENY);
+    }
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void entityInteract(PlayerInteractAtEntityEvent event) {
+        if (event.getHand() != EquipmentSlot.HAND || !interested("entity_interact")) return;
+        dispatch("entity_interact", event.getPlayer(), entityFields(event.getPlayer(), event.getRightClicked()), event);
+    }
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void consume(PlayerItemConsumeEvent event) {
+        if (interested("item_consume")) dispatch("item_consume", event.getPlayer(), itemFields(event.getPlayer(), event.getItem()), event);
+    }
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void respawn(PlayerRespawnEvent event) {
+        if (interested("player_respawn"))
+            dispatch("player_respawn", event.getPlayer(), locationFields(event.getPlayer(), event.getRespawnLocation()), null);
+    }
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void teleport(PlayerTeleportEvent event) {
+        if (event.getTo() == null || !interested("player_teleport")) return;
+        var fields = locationFields(event.getPlayer(), event.getTo());
+        fields.put("from_world", text(event.getFrom().getWorld().getKey().toString()));
+        fields.put("cause", text(event.getCause().name()));
+        dispatch("player_teleport", event.getPlayer(), fields, event);
+    }
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void projectileHit(ProjectileHitEvent event) {
+        if (!(event.getEntity().getShooter() instanceof Player player) || !interested("projectile_hit")) return;
+        var fields = locationFields(player, event.getEntity().getLocation());
+        fields.put("projectile_type", text(event.getEntityType().name()));
+        fields.put("hit_block_type", text(event.getHitBlock() == null ? "" : event.getHitBlock().getType().name()));
+        fields.put("hit_entity_type", text(event.getHitEntity() == null ? "" : event.getHitEntity().getType().name()));
+        dispatch("projectile_hit", player, fields, event);
+    }
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void playerCommand(PlayerCommandPreprocessEvent event) {
+        if (!interested("player_command")) return;
+        String message = event.getMessage();
+        if (!message.startsWith("/")) return;
+        int end = 1;
+        while (end < message.length() && end <= 129 && !Character.isWhitespace(message.charAt(end))) end++;
+        String label = message.substring(1, end).toLowerCase(Locale.ROOT);
+        if (!label.matches("[a-z0-9_.:-]{1,128}") || label.equals("ais") || label.endsWith(":ais")) return;
+        var fields = fields(event.getPlayer());
+        fields.put("command_name", text(label));
+        dispatch("player_command", event.getPlayer(), fields, event);
     }
     @EventHandler public void join(PlayerJoinEvent event) { player("join", event.getPlayer()); }
     @EventHandler public void quit(PlayerQuitEvent event) { player("quit", event.getPlayer()); }
@@ -113,11 +172,21 @@ final class EventRuntime implements Listener, AutoCloseable {
         dispatch("entity_death", actor, fields, null);
     }
     private static Map<String, ScriptValue> entityFields(Player actor, Entity entity) {
-        Map<String, ScriptValue> fields = fields(actor);
-        fields.put("world", text(entity.getWorld().getKey().toString()));
+        Map<String, ScriptValue> fields = locationFields(actor, entity.getLocation());
         identity(fields, "entity", entity);
-        var location = entity.getLocation();
+        return fields;
+    }
+    private static Map<String, ScriptValue> locationFields(Player actor, Location location) {
+        Map<String, ScriptValue> fields = fields(actor);
+        fields.put("world", text(location.getWorld().getKey().toString()));
         fields.put("x", integer(location.getBlockX())); fields.put("y", integer(location.getBlockY())); fields.put("z", integer(location.getBlockZ()));
+        return fields;
+    }
+    private static Map<String, ScriptValue> itemFields(Player actor, ItemStack item) {
+        var fields = fields(actor);
+        fields.put("item_type", text(item.getType().name()));
+        String identity = item.getPersistentDataContainer().get(CUSTOM_ITEM, PersistentDataType.STRING);
+        fields.put("item_id", text(identity == null || identity.length() > 129 ? "" : identity));
         return fields;
     }
     private static void identity(Map<String, ScriptValue> fields, String prefix, Entity entity) {
@@ -171,8 +240,8 @@ final class EventRuntime implements Listener, AutoCloseable {
                 if (replacementDrop == null && !result.cancelled() && event instanceof BlockDropItemEvent
                     && result.replacementDrop() != null && dropStack != null)
                     replacementDrop = dropStack.apply(result.replacementDrop(), feature.definition().id());
-                if (result.runOwnCommand() && event instanceof PlayerInteractEvent interaction && !interaction.isCancelled())
-                    queueCommand(captured, subscriber, player, interaction);
+                if (result.runOwnCommand() && event != null && !event.isCancelled())
+                    queueCommand(captured, subscriber, player, event);
                 for (Feature.MessageAction message : result.messages()) player.sendMessage(Component.text(message.text()));
             } catch (RuntimeException failure) {
                 report(feature.definition().id(), kind, failure);
@@ -192,7 +261,7 @@ final class EventRuntime implements Listener, AutoCloseable {
             && (handler.bypassPermission() == null || !player.hasPermission(handler.bypassPermission()));
     }
 
-    private void queueCommand(Registry.Snapshot captured, Subscriber subscriber, Player player, PlayerInteractEvent event) {
+    private void queueCommand(Registry.Snapshot captured, Subscriber subscriber, Player player, Cancellable event) {
         if (nextTick == null || pendingCommands.size() >= 128) return;
         var key = new PendingCommand(subscriber.feature().definition().id(), player.getUniqueId());
         if (!pendingCommands.add(key)) return;
@@ -200,7 +269,7 @@ final class EventRuntime implements Listener, AutoCloseable {
             nextTick.accept(() -> {
                 pendingCommands.remove(key);
                 if (closed || !ready.getAsBoolean() || registry.snapshot() != captured || !player.isOnline()
-                    || event.isCancelled() || event.useInteractedBlock() == Event.Result.DENY
+                    || event.isCancelled()
                     || !receives(player, subscriber.handler())) return;
                 try { runCommand.accept(key.featureId(), player); }
                 catch (RuntimeException failure) { report(key.featureId(), subscriber.handler().kind(), failure); }

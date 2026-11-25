@@ -537,9 +537,12 @@ public final class TextFrontend {
         public List<Feature.MessageAction> evaluate(List<String> arguments) { return evaluate(arguments, null); }
         public List<Feature.MessageAction> evaluate(List<String> arguments, InvocationContext context) {
             if (command == null) throw new ValidationException("$", "Event-only features have no command");
-            if (command.program() == null && !InvocationArguments.checked(arguments).isEmpty())
+            if (command.program() != null) return command.program().evaluate(arguments, context);
+            if (!InvocationArguments.checked(arguments).isEmpty())
                 throw new ValidationException("$.arguments", "This feature takes no invocation arguments");
-            return command.program() == null ? command.definition().command().actions() : command.program().evaluate(arguments, context);
+            var actions = command.definition().command().actions();
+            if (context != null) for (var action : actions) context.send(action.text(), location(null));
+            return actions;
         }
         @Override public boolean equals(Object other) { return other instanceof EventProgram program && sourceHash.equals(program.sourceHash); }
         @Override public int hashCode() { return sourceHash.hashCode(); }
@@ -916,8 +919,8 @@ public final class TextFrontend {
             if (eventKind != null && !List.of("let", "send", "if", "cancel", "block_hearts", "replace_drop", "run_self").contains(start.text()))
                 throw start.error("Unsupported statement in a synchronous event handler");
             if (start.text().equals("run_self") && eventKind != null) {
-                if (!"block_interact".equals(eventKind) || !eventCommandAcceptsNoArguments)
-                    throw start.error("run_self requires a block_interact handler and a command with no required arguments in this feature");
+                if (!CompiledFeature.eventCanRunCommand(eventKind) || !eventCommandAcceptsNoArguments)
+                    throw start.error("run_self requires an interaction handler and a command with no required arguments in this feature");
                 expect("("); expect(")");
                 capabilities.add("runtime.event.run_self");
                 lineEnd(); return new RunOwnCommand(start);

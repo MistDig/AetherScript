@@ -71,6 +71,21 @@ class NativeEventTest {
         assertTrue(feature.program().eventHandlers().getFirst().evaluate(data("block_interact", "world")).runOwnCommand());
         assertTrue(feature.definition().requires().contains("runtime.event.run_self"));
     }
+
+    @Test void mixedFeatureStreamsItsPreparedCommandMessagesThroughTheLiveHost() throws Exception {
+        var feature = compile("""
+            command greet permission "greet.use" sender player { send "Hi" }
+            on item_interact permission "*" { run_self() }
+            """);
+        List<String> messages = new ArrayList<>();
+        var context = new InvocationContext("protect", "test", UUID.randomUUID(), Set.copyOf(feature.definition().requires()),
+            new ExecutionBudget(), () -> true, (descriptor, args, invocation) -> fail("No host callable expected"), messages::add);
+        try (var worker = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+            var returned = worker.submit(() -> feature.program().evaluate(List.of(), context)).get();
+            assertEquals(List.of(new Feature.MessageAction("Hi")), returned);
+        }
+        assertEquals(List.of("Hi"), messages);
+    }
     @ParameterizedTest @ValueSource(strings={
         "on damage permission \"*\" {\nsend \"x\"\n}",
         "on join permission \"*\" {\ncancel\n}",

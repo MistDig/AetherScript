@@ -1,0 +1,32 @@
+feature interaction-hooks version "1.0.0"
+command hookinfo permission "aetherscript.example.hooks" sender player {
+  send "Interaction accepted."
+}
+on item_interact permission "aetherscript.example.hooks" {
+  if item_type == "PAPER" && item_id == "hook-key:station_key" {
+    run_self()
+  }
+}
+on entity_interact permission "aetherscript.example.hooks" {
+  if entity_type == "VILLAGER" && world == "minecraft:overworld" && x == 12 && y == 80 && z == 10 {
+    run_self()
+  }
+}
+on player_teleport permission "aetherscript.example.hooks" {
+  send "Teleport destination: " + world
+}
+on player_respawn permission "aetherscript.example.hooks" {
+  send "Respawn destination: " + world
+}
+on item_consume permission "aetherscript.example.hooks" {
+  if item_type == "GOLDEN_APPLE" { send "Golden apple consumed." }
+}
+on projectile_hit permission "aetherscript.example.hooks" {
+  if projectile_type == "SNOWBALL" && hit_block_type == "STONE" { send "Snowball hit the target." }
+}
+on player_command permission "aetherscript.example.hooks" {
+  if command_name == "version" {
+    cancel
+    send "Version command blocked by the fixture."
+  }
+}

@@ -526,6 +526,20 @@ Every handler receives immutable `player_name`, `player_uuid` and `world` text v
 - `on block_interact` receives allowed main-hand right-clicks on a block. A station should match a world and coordinates, plus the expected block type. Use `run_self()` to queue this feature's command for the next tick, with the invoking player and default arguments. The feature must declare a command without required arguments. Cancellation, disconnect, permission loss or revision replacement prevents the queued invocation. The command can then call the existing menu and player APIs.
 - Both triggers need owner-console approval. The gathering station example needs `runtime.event.block_drop,runtime.event.replace_drop,runtime.event.block_interact,runtime.event.run_self,player.menu`. These new permissions are outside the hosted OAuth capability ceiling.
 
+### Item, entity and player hooks (0.0.33)
+
+| Handler | Additional fields and behavior |
+| --- | --- |
+| `item_interact` | `item_type` (uppercase vanilla material), `item_id` (feature-owned ID such as `hook-key:station_key`, or empty). Main-hand right-click, including in air when Paper allows item use. `cancel` denies the item action. |
+| `entity_interact` | `entity_uuid`, `entity_type`, `x`, `y`, `z`. Main-hand right-click on an entity. `run_self()` works for both new interaction handlers with the same permission and revision checks as block interactions. |
+| `item_consume` | `item_type`, `item_id`. Delivered when consumption reaches Paper's consume event. |
+| `player_teleport` | `from_world`, `cause` and destination `world`, `x`, `y`, `z`. `cancel` denies the teleport. |
+| `player_respawn` | Destination `world`, `x`, `y`, `z`. Observation only. |
+| `projectile_hit` | Projectile position, `projectile_type`, `hit_block_type`, `hit_entity_type`. Missing hit types are empty. The actor is the player who fired it. Cancellation follows Paper's collision semantics. |
+| `player_command` | `command_name` is the normalized label without the leading slash; it includes any namespace. Command arguments are excluded. `/ais` and its namespaced forms bypass this handler. |
+
+These hooks require matching `runtime.event.<id>` approval in the owner console. Ignoring command arguments prevents scripts from reading passwords or other tokens typed to another plugin. Test the specific labels and aliases you intend to restrict. See `examples/interaction-hooks.aether`.
+
 Paper invokes handlers synchronously on its main thread. Block listeners use HIGHEST priority and skip events already cancelled by another plugin. AetherScript cancellation only sets the event's cancelled state; it never clears another cancellation. Active-revision subscriptions are replaced or removed during reload, rollback, disable and shutdown. Each handler infers `runtime.event.<id>`; `cancel` additionally requires `runtime.event.cancel`. The owner approves these with console `ais permit` or fresh hosted browser approval for join, quit, block break, block place and cancellation. Older grants keep their original scope. Sending also requires `runtime.message.send`. The hosted `aether_events_preview` tool can simulate a typed snapshot. Test actual gameplay and permissions on Paper.
 
 ### Starter world protection
