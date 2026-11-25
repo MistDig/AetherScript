@@ -1,0 +1,18 @@
+feature gathering-station version "1.0.0"
+command gatheringstation permission "aetherscript.example.gathering" sender player {
+  let shard = custom_item("raw_crystal", "minecraft:amethyst_shard", "Raw Crystal", 1)
+  let choice = menu_choose("Gathering station", [shard])
+  if choice == 0 {
+    send "Bring Raw Crystals here."
+  }
+}
+on block_drop permission "aetherscript.example.gathering" {
+  if world == "minecraft:overworld" && block_type == "TORCH" && x == 12 && y == 80 && z == 10 {
+    replace_drop(custom_item("raw_crystal", "minecraft:amethyst_shard", "Raw Crystal", 1))
+  }
+}
+on block_interact permission "aetherscript.example.gathering" {
+  if world == "minecraft:overworld" && block_type == "BARREL" && x == 12 && y == 80 && z == 10 {
+    run_self()
+  }
+}

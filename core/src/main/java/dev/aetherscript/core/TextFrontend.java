@@ -479,6 +479,19 @@ public final class TextFrontend {
     private record Cancel(Token token) implements Statement {
         public void prepare(Execution execution) { execution.step(token); execution.eventCancelled = true; }
     }
+    private record ReplaceDrop(Expression item, Token token) implements Statement {
+        public void prepare(Execution execution) {
+            execution.step(token);
+            if (execution.replacementDrop != null) throw token.error("replace_drop may execute only once per handler");
+            execution.replacementDrop = item.evaluate(execution).item();
+        }
+    }
+    private record RunOwnCommand(Token token) implements Statement {
+        public void prepare(Execution execution) {
+            execution.step(token);
+            execution.runOwnCommand = true;
+        }
+    }
     private record Condition(Expression condition, List<Statement> yes, List<Statement> no) implements Statement {
         public void prepare(Execution execution) {
             execution.step();
@@ -494,6 +507,8 @@ public final class TextFrontend {
         private int steps, callDepth;
         private boolean eventCancelled;
         private int blockHearts;
+        private ScriptValue.ItemDescriptor replacementDrop;
+        private boolean runOwnCommand;
         void step() {
             step(null);
         }
@@ -512,7 +527,8 @@ public final class TextFrontend {
             Execution execution = new Execution();
             fields.forEach((name, binding) -> execution.values.put(binding, data.fields().get(name)));
             for (Statement statement : body) statement.prepare(execution);
-            return new CompiledFeature.EventResult(execution.messages, execution.eventCancelled, execution.blockHearts);
+            return new CompiledFeature.EventResult(execution.messages, execution.eventCancelled, execution.blockHearts,
+                execution.replacementDrop, execution.runOwnCommand);
         }
     }
     private record EventProgram(CompiledFeature command, List<NativeEventHandler> handlers, String sourceHash) implements CompiledFeature.Program {
@@ -625,6 +641,8 @@ public final class TextFrontend {
     private static List<Object> statementsDescription(List<Statement> statements) {
         return statements.stream().map(statement -> switch (statement) {
             case BlockHearts hearts -> (Object) List.of("block_hearts", expressionDescription(hearts.count()));
+            case ReplaceDrop drop -> (Object) List.of("replace_drop", expressionDescription(drop.item()));
+            case RunOwnCommand run -> (Object) List.of("run_self");
             case Cancel cancel -> (Object) List.of("cancel");
             case UnitCall call -> (Object) List.of("unit-call", expressionDescription(call.expression()));
             case Let let -> (Object) List.of("let", let.binding().slot(), expressionDescription(let.initializer()));
@@ -649,7 +667,11 @@ public final class TextFrontend {
             case Binary binary -> List.of("binary", binary.operator().text(), expressionDescription(binary.left()), expressionDescription(binary.right()));
             case AsText conversion -> List.of("text", expressionDescription(conversion.operand()));
             case InsideRegion region -> List.of("inside-region-v1", expressionDescription(region.location()), region.corners().stream().map(TextFrontend::expressionDescription).toList());
-            case CustomItemValue item -> List.of("custom-item-v1", item.featureId(), expressionDescription(item.id()), expressionDescription(item.material()), expressionDescription(item.name()), expressionDescription(item.amount()));
+            case CustomItemValue item -> {
+                var descriptor = List.of("custom-item-v1", item.featureId(), expressionDescription(item.id()),
+                    expressionDescription(item.material()), expressionDescription(item.name()), expressionDescription(item.amount()));
+                yield item.model() == null ? descriptor : List.of(descriptor, expressionDescription(item.model()));
+            }
             case ItemValue item -> List.of("item", expressionDescription(item.material()), expressionDescription(item.amount()));
             case ListValue list -> List.of("list", list.type().name(), list.elements().stream().map(TextFrontend::expressionDescription).toList());
             case MapSetValue collection -> List.of("collection", collection.type().name(), collection.elements().stream().map(TextFrontend::expressionDescription).toList());
@@ -675,6 +697,7 @@ public final class TextFrontend {
         private boolean advanced, hostRequired;
         private String currentFeatureId;
         private String eventKind;
+        private boolean eventCommandAcceptsNoArguments;
         private int index, nodes, statements, blockDepth, expressionDepth, bindings, loopDepth;
         Parser(List<Token> tokens, CallableRegistry callables) { this.tokens = tokens; this.callables = callables; }
         CompiledFeature compile(byte[] original) {
@@ -713,6 +736,7 @@ public final class TextFrontend {
         }
         private CompiledFeature events(CompiledFeature command, String id, String version, byte[] original) {
             if (peek().kind() == Kind.END && command != null) return command;
+            eventCommandAcceptsNoArguments = command != null && arguments.stream().allMatch(arg -> arg.defaultValue() != null);
             List<NativeEventHandler> handlers = new ArrayList<>();
             while (matches("on")) {
                 Token start = take();
@@ -889,8 +913,22 @@ public final class TextFrontend {
         }
         private Statement statement() {
             Token start = take();
-            if (eventKind != null && !List.of("let", "send", "if", "cancel", "block_hearts").contains(start.text()))
-                throw start.error("Synchronous event handlers support only let, send, if, cancel and block_hearts");
+            if (eventKind != null && !List.of("let", "send", "if", "cancel", "block_hearts", "replace_drop", "run_self").contains(start.text()))
+                throw start.error("Unsupported statement in a synchronous event handler");
+            if (start.text().equals("run_self") && eventKind != null) {
+                if (!"block_interact".equals(eventKind) || !eventCommandAcceptsNoArguments)
+                    throw start.error("run_self requires a block_interact handler and a command with no required arguments in this feature");
+                expect("("); expect(")");
+                capabilities.add("runtime.event.run_self");
+                lineEnd(); return new RunOwnCommand(start);
+            }
+            if (start.text().equals("replace_drop")) {
+                if (!"block_drop".equals(eventKind)) throw start.error("replace_drop requires a block_drop handler");
+                expect("("); Expression item = expression(); expect(")");
+                requireType(item, ScriptType.ITEM, start, "replace_drop requires an item descriptor");
+                capabilities.add("runtime.event.replace_drop");
+                lineEnd(); return new ReplaceDrop(item, start);
+            }
             if (start.text().equals("block_hearts")) {
                 if (!"block_break".equals(eventKind)) throw start.error("block_hearts requires a block_break handler");
                 expect("("); Expression count = expression(); expect(")");
@@ -1060,7 +1098,7 @@ public final class TextFrontend {
                 return node(new InsideRegion(point, List.copyOf(corners), token), token);
             }
             if (token.text().equals("custom_item") && matches("(") && !functions.containsKey("custom_item")) {
-                if (eventKind != null) throw token.error("Synchronous event handlers do not support item descriptors");
+                if (eventKind != null && !eventKind.equals("block_drop")) throw token.error("Event item descriptors require block_drop");
                 take(); Expression id = expression(); expect(","); Expression material = expression(); expect(","); Expression name = expression(); expect(","); Expression amount = expression();
                 Expression model = null;
                 if (matches(",")) { take(); model = expression(); requireType(model, ScriptType.TEXT, token, "Item model must be text"); }
@@ -1073,7 +1111,7 @@ public final class TextFrontend {
                 return node(new CustomItemValue(currentFeatureId, id, material, name, amount, model, token), token);
             }
             if (token.text().equals("item") && matches("(") && !functions.containsKey("item")) {
-                if (eventKind != null) throw token.error("Synchronous event handlers do not support item descriptors");
+                if (eventKind != null && !eventKind.equals("block_drop")) throw token.error("Event item descriptors require block_drop");
                 take(); Expression material = expression(); expect(","); Expression amount = expression(); expect(")");
                 requireType(material, ScriptType.TEXT, token, "Item material must be text");
                 requireType(amount, ScriptType.INTEGER, token, "Item amount must be integer");

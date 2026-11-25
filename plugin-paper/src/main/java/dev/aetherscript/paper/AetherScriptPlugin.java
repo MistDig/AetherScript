@@ -72,7 +72,9 @@ public final class AetherScriptPlugin extends JavaPlugin implements CommandExecu
                     public <T> T call(Callable<T> action) throws Exception { return onMain(action); }
                 }, () -> scriptPolicy, () -> ready, data.resolve("player-state"), addons));
                 events = onMain(() -> {
-                    EventRuntime listener = new EventRuntime(registry, () -> scriptPolicy, () -> ready, getLogger()::warning);
+                    EventRuntime listener = new EventRuntime(registry, () -> scriptPolicy, () -> ready,
+                        getLogger()::warning, new PaperItems(this)::drop, task -> getServer().getScheduler().runTask(this, task),
+                        (id, player) -> runFeature(id, List.of(), player));
                     getServer().getPluginManager().registerEvents(listener, this); return listener;
                 });
                 manager = new FeatureManager(new ScriptStore(data.resolve("scripts"), () -> parser), new RevisionStore(data.resolve("storage"), settings.retainVersions(), () -> parser), feature -> scriptPolicy.validate(feature));

@@ -4,6 +4,9 @@ import dev.aetherscript.core.*;
 import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
+import org.bukkit.event.Event;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import java.lang.reflect.Proxy;
@@ -16,9 +19,12 @@ class EventRuntimeTest {
     private final Registry registry = new Registry();
     private final List<Component> messages = new ArrayList<>();
     private final Set<String> permissions = new HashSet<>();
+    private final UUID playerId = UUID.randomUUID();
     private final Player player = (Player) Proxy.newProxyInstance(Player.class.getClassLoader(), new Class<?>[]{Player.class}, (p,m,a) -> {
         if (m.getName().equals("hasPermission")) return permissions.contains(a[0]);
         if (m.getName().equals("sendMessage")) { messages.add((Component)a[0]); return null; }
+        if (m.getName().equals("getUniqueId")) return playerId;
+        if (m.getName().equals("isOnline")) return true;
         throw new UnsupportedOperationException(m.getName());
     });
     private static final class Cancellation implements Cancellable {
@@ -109,5 +115,38 @@ class EventRuntimeTest {
         Cancellation cancellation = new Cancellation();
         runtime.dispatch("block_break",player,fields(),cancellation);
         assertTrue(cancellation.cancelled); assertEquals(List.of(Component.text("denied")),messages);
+    }
+
+    @Test void queuedInteractionDeduplicatesAndChecksCancellationAndRevision() throws Exception {
+        var feature = new FeatureParser().parse("""
+            feature station version "1"
+            command station permission "demo.use" sender player { send "Hello" }
+            on block_interact permission "demo.use" { run_self() }
+            """.getBytes(java.nio.charset.StandardCharsets.UTF_8), "aether");
+        var caps = Set.copyOf(feature.definition().requires());
+        var policy = new ScriptCapabilityPolicy(directory.resolve("station.json"), caps);
+        policy.grant("station", caps);
+        var nextTick = new ArrayDeque<Runnable>();
+        var invoked = new ArrayList<String>();
+        var runtime = new EventRuntime(registry, () -> policy, () -> true, failure -> fail(failure),
+            null, nextTick::add, (id, actor) -> invoked.add(id));
+        registry.replace(0, Map.of("station", feature));
+        permissions.add("demo.use");
+        var event = new PlayerInteractEvent(player, Action.RIGHT_CLICK_BLOCK, null, null, org.bukkit.block.BlockFace.UP);
+        event.setUseInteractedBlock(Event.Result.DEFAULT);
+        runtime.dispatch("block_interact", player, fields(), event);
+        runtime.dispatch("block_interact", player, fields(), event);
+        assertEquals(1, nextTick.size());
+        event.setCancelled(true);
+        nextTick.removeFirst().run();
+        assertTrue(invoked.isEmpty());
+        event.setUseInteractedBlock(Event.Result.DEFAULT);
+        runtime.dispatch("block_interact", player, fields(), event);
+        registry.replace(1, Map.of("station", feature));
+        nextTick.removeFirst().run();
+        assertTrue(invoked.isEmpty());
+        runtime.dispatch("block_interact", player, fields(), event);
+        nextTick.removeFirst().run();
+        assertEquals(List.of("station"), invoked);
     }
 }

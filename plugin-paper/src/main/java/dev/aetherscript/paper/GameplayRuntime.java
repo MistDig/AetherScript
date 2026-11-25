@@ -336,10 +336,14 @@ final class GameplayRuntime implements AutoCloseable, Listener {
                     Location place = player().getLocation();
                     return new ScriptValue(ScriptType.LOCATION, new ScriptValue.LocationSnapshot(place.getWorld().getUID(), place.getX(), place.getY(), place.getZ(), place.getYaw(), place.getPitch()));
                 });
-                case "player.inventory.has", "player.inventory.give", "player.inventory.remove", "player.inventory.exchange" -> main.call(() -> {
+                case "player.inventory.has", "player.inventory.give", "player.inventory.remove", "player.inventory.exchange",
+                     "player.inventory.exchange_many" -> main.call(() -> {
                     Player actorPlayer = player();
                     boolean succeeded = items.inventory(descriptor.id(), actorPlayer.getInventory(), values, feature.definition().id());
-                    if (succeeded && !descriptor.id().equals("player.inventory.has")) {
+                    if (succeeded && descriptor.id().equals("player.inventory.exchange_many")) {
+                        receipt(Map.of("operation", descriptor.id(), "paymentEntries", values.getFirst().list().size(),
+                            "rewardEntries", values.get(1).list().size(), "delivered", true));
+                    } else if (succeeded && !descriptor.id().equals("player.inventory.has")) {
                         var item = values.getFirst().item();
                         receipt(Map.of("operation", descriptor.id(), "material", item.material(), "amount", item.amount(), "delivered", true));
                     }

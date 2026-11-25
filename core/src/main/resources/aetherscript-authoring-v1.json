@@ -237,6 +237,10 @@
       "player.display",
       "player.sound",
       "runtime.event.block_hearts",
+      "runtime.event.block_drop",
+      "runtime.event.replace_drop",
+      "runtime.event.block_interact",
+      "runtime.event.run_self",
       "scheduler.repeat",
       "world.block.write",
       "world.read",
@@ -325,6 +329,8 @@
       "quit",
       "block_break",
       "block_place",
+      "block_drop",
+      "block_interact",
       "entity_damage",
       "entity_death",
       "entity_target"
@@ -335,7 +341,7 @@
         "player_uuid": "text",
         "world": "text"
       },
-      "block_break/block_place": {
+      "block_break/block_place/block_drop/block_interact": {
         "block_type": "text",
         "x": "integer",
         "y": "integer",
@@ -369,11 +375,13 @@
       "let name = expression",
       "send textExpression",
       "if booleanExpression { ... } else { ... }",
-      "cancel (block_break/block_place/entity_damage/entity_target only)",
-      "block_hearts(integer) (block_break only)"
+      "cancel (block_break/block_place/block_drop/block_interact/entity_damage/entity_target only)",
+      "block_hearts(integer) (block_break only)",
+      "replace_drop(itemDescriptor) (block_drop only; replaces an existing drop list with one stack)",
+      "run_self() (block_interact only; queue the same feature's command with no arguments)"
     ],
-    "purity": "Synchronous immutable snapshots and pure scalar expressions only. No collection operations, arguments, mutable locals, loops, functions, user function calls, host calls, waits or persistent storage.",
-    "cancellation": "Block break/place, entity damage and entity target are cancellable. Prior cancellation wins.",
+    "purity": "Synchronous immutable snapshots and pure expressions. Item descriptors are available in block_drop. Handlers cannot use command arguments, collections, mutable locals, loops, user functions or host calls. run_self queues a separate ordinary command on the next Paper tick.",
+    "cancellation": "Block break, place, drop and interaction, entity damage and entity target are cancellable. Prior cancellation wins. A cancelled drop keeps the block broken and suppresses drops. A cancelled interaction suppresses a queued command.",
     "threading": "Paper main thread, HIGHEST priority for block handlers; bounded evaluation before the event returns.",
     "ownership": "Subscriptions belong to the active revision and are replaced/removed with reload, rollback, disable and shutdown.",
     "capabilities": [
@@ -383,6 +391,10 @@
       "runtime.event.block_place",
       "runtime.event.cancel",
       "runtime.event.block_hearts",
+      "runtime.event.block_drop",
+      "runtime.event.replace_drop",
+      "runtime.event.block_interact",
+      "runtime.event.run_self",
       "runtime.event.entity_damage",
       "runtime.event.entity_death",
       "runtime.event.entity_target"
@@ -658,7 +670,8 @@
     "interaction": "Cancel all movement while the menu is open, including shift-click, drag, double-click, number-key and offhand transfers. Only normal left/right clicks on populated top slots select. Displayed items are previews, never inventory rewards.",
     "lifecycle": "Owner session/revision authority is checked before continuation; quit, cancellation and revision retirement close owned menus. Menus are transient.",
     "persistence": "Custom item descriptors support equality and typed state persistence. Stable identity is feature ID plus local custom ID; changing either creates another identity.",
-    "transactionBoundary": "inventory_exchange is atomic within the player storage inventory during the host operation. It does not transact with durable state or external systems.",
+    "bundleExchange": "inventory_exchange_many(payments: list<item>, rewards: list<item>) -> boolean requires player.inventory.exchange. Each bundle needs 1..16 entries. Insufficient payment or placement space changes nothing.",
+    "transactionBoundary": "inventory_exchange and inventory_exchange_many are atomic within the player storage inventory during the host operation. They do not transact with durable state or external systems.",
     "exampleFile": "examples/menu-shop.aether",
     "example": "feature menu-shop version \"1.0.0\"\ncommand menushop permission \"aetherscript.example.menushop\" sender player {\n  let reward = custom_item(\"cloud_token\", \"minecraft:paper\", \"Cloud token\", 1)\n  let choice = menu_choose(\"Cloud shop: token costs 1 emerald\", [reward])\n  if choice == 0 {\n    if inventory_exchange(item(\"minecraft:emerald\", 1), reward) {\n      send \"Purchased one Cloud token.\"\n    } else {\n      send \"You need one plain emerald and space for a Cloud token.\"\n    }\n  } else {\n    send \"Shop closed.\"\n  }\n}\n"
   },

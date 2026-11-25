@@ -122,3 +122,42 @@ def verify_protection(command, check, connect, teleport, passed, repo, scripts):
     actor.wait(lambda e: e['event']=='display' and e['kind']=='boss_bar')
     actor.wait(lambda e: e['event']=='display' and e['kind']=='scoreboard_objective')
     passed('dashboard-cleared', 'Revocation removed persistent displays.')
+
+    sample = repo / 'examples/gathering-station.aether'
+    (scripts / sample.name).write_bytes(sample.read_bytes())
+    caps = 'runtime.event.block_drop,runtime.event.replace_drop,runtime.event.block_interact,runtime.event.run_self,player.menu'
+    check('gathering-owner-permit', 'ais permit gathering-station '+caps, 'CAPABILITIES_SAVED gathering-station:')
+    check('gathering-activate', 'ais reload gathering-station', 'ACTIVE generation=')
+    command('gamemode survival AetherHomeA', 'Survival')
+    command('item replace entity AetherHomeA weapon.mainhand with minecraft:air', 'Replaced')
+    teleport(actor, 10, 10)
+    command('setblock 12 79 10 minecraft:cobblestone', 'Changed')
+    command('setblock 12 80 10 minecraft:torch', 'Changed')
+    guard = scripts / 'gathering-guard.aether'
+    guard.write_text('feature gathering-guard version "1"\non block_break permission "*" {\n'
+                     '  if block_type == "TORCH" { cancel }\n}\n', encoding='utf-8')
+    check('gathering-protection-owner-permit', 'ais permit gathering-guard runtime.event.block_break,runtime.event.cancel',
+          'CAPABILITIES_SAVED gathering-guard:')
+    check('gathering-protection-activate', 'ais reload gathering-guard', 'ACTIVE generation=')
+    interact('break')
+    check_block('torch')
+    no_crystal = 'execute positioned 12 80 10 unless entity @e[type=minecraft:item,distance=..3,nbt={Item:{id:"minecraft:amethyst_shard"}}] run say no-protected-drop'
+    command(no_crystal, 'no-protected-drop')
+    passed('gathering-protection', 'Cancellation kept the exact resource node in place and emitted no custom loot.')
+    check('gathering-protection-restrict', 'ais restrict gathering-guard', 'CAPABILITIES_SAVED gathering-guard:')
+    interact('break')
+    check_block('air')
+    crystal = '@e[type=minecraft:item,distance=..3,nbt={Item:{id:"minecraft:amethyst_shard",count:1}},limit=1]'
+    command(f'execute positioned 12 80 10 run data get entity {crystal} Item', 'Raw Crystal')
+    command('scoreboard objectives add gather_smoke dummy', 'Created')
+    command('execute positioned 12 80 10 store result score #drops gather_smoke if entity @e[type=minecraft:item,distance=..3,nbt={Item:{id:"minecraft:amethyst_shard"}}]', 'Count: 1')
+    command('execute positioned 12 80 10 unless entity @e[type=minecraft:item,distance=..3,nbt={Item:{id:"minecraft:torch"}}] run say no-vanilla-drop', 'no-vanilla-drop')
+    passed('gathering-custom-drop', 'A survival break of the exact node produced one entity with one named custom shard and no vanilla torch.')
+    command('setblock 12 80 10 minecraft:barrel', 'Changed')
+    actor.request(op='place', x=12, y=80, z=10)
+    actor.wait(lambda event: event['event']=='menu_open' and 'Gathering station' in json.dumps(event))
+    actor.request(op='menu_click', slot=0, button=0, mode=0)
+    actor.message('Bring Raw Crystals here.')
+    passed('gathering-station-menu', 'Main-hand right-click opened the owned selection menu and the real menu click ran its action.')
+    from menu_workflow import verify_processing
+    verify_processing(command, check, actor, passed, repo, scripts)

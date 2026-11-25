@@ -1,0 +1,10 @@
+feature processing-station version "1.0.0"
+command processbatch permission "aetherscript.example.processing" sender player {
+  let inputs = [item("minecraft:emerald", 1), item("minecraft:iron_ingot", 1)]
+  let outputs = [custom_item("refined_shard", "minecraft:amethyst_shard", "Refined Shard", 1), item("minecraft:paper", 1)]
+  if inventory_exchange_many(inputs, outputs) {
+    send "Batch processed."
+  } else {
+    send "Missing ingredients or inventory space."
+  }
+}

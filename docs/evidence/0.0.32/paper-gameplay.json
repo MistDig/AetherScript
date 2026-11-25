@@ -1,0 +1,192 @@
+[
+  {
+    "test": "homes-startup-native-denied",
+    "result": "pass",
+    "detail": "[15:16:27 INFO]: AetherScript 0.0.32; 26.3-245-cd1c3b6 (MC: 26.3); ready=true; generation=1; features=1; busy=false; remoteManage=false; recovery=ENABLED"
+  },
+  {
+    "test": "homes-denial-keeps-pure-feature",
+    "result": "pass",
+    "detail": "[15:16:27 INFO]: Hello from AetherScript!"
+  },
+  {
+    "test": "homes-owner-permit",
+    "result": "pass",
+    "detail": "[15:16:28 INFO]: CAPABILITIES_SAVED homes: [player.location.read, player.teleport.self, runtime.message.send, scheduler.delay, state.own]; run ais reload homes to activate an approved edit"
+  },
+  {
+    "test": "homes-activate",
+    "result": "pass",
+    "detail": "[15:16:28 INFO]: ACTIVE generation=2 features=2; saved successfully"
+  },
+  {
+    "test": "events-owner-permit",
+    "result": "pass",
+    "detail": "[15:16:36 INFO]: CAPABILITIES_SAVED starter-protection: [runtime.event.block_break, runtime.event.block_place, runtime.event.cancel, runtime.message.send]; run ais reload starter-protection to activate an approved edit"
+  },
+  {
+    "test": "events-activate",
+    "result": "pass",
+    "detail": "[15:16:36 INFO]: ACTIVE generation=3 features=3; saved successfully"
+  },
+  {
+    "test": "join-owner-permit",
+    "result": "pass",
+    "detail": "[15:16:37 INFO]: CAPABILITIES_SAVED event-welcome: [runtime.event.join, runtime.message.send]; run ais reload event-welcome to activate an approved edit"
+  },
+  {
+    "test": "join-activate",
+    "result": "pass",
+    "detail": "[15:16:37 INFO]: ACTIVE generation=4 features=4; saved successfully"
+  },
+  {
+    "test": "events-join",
+    "result": "pass",
+    "detail": "The player received the namespaced world key from the join handler."
+  },
+  {
+    "test": "events-guest-break",
+    "result": "pass",
+    "detail": "Guest received one denial and stone remained in the world."
+  },
+  {
+    "test": "events-replace",
+    "result": "pass",
+    "detail": "[15:16:50 INFO]: ACTIVE generation=5 features=4; saved successfully"
+  },
+  {
+    "test": "events-reload-single-delivery",
+    "result": "pass",
+    "detail": "New denial delivered once, old denial absent, block preserved."
+  },
+  {
+    "test": "events-guest-place",
+    "result": "pass",
+    "detail": "Guest received one denial and target remained air."
+  },
+  {
+    "test": "events-builder-bypass",
+    "result": "pass",
+    "detail": "Same actor with the bypass permission placed dirt and broke it."
+  },
+  {
+    "test": "hearts-owner-permit",
+    "result": "pass",
+    "detail": "[15:16:53 INFO]: CAPABILITIES_SAVED ten-heart-blocks: [runtime.event.block_break, runtime.event.block_hearts, runtime.message.send]; run ais reload ten-heart-blocks to activate an approved edit"
+  },
+  {
+    "test": "hearts-activate",
+    "result": "pass",
+    "detail": "[15:16:54 INFO]: ACTIVE generation=6 features=5; saved successfully"
+  },
+  {
+    "test": "hearts-respects-protection",
+    "result": "pass",
+    "detail": "A denied break produced no heart display or block change."
+  },
+  {
+    "test": "hearts-restrict-protection-fixture",
+    "result": "pass",
+    "detail": "[15:16:55 INFO]: CAPABILITIES_SAVED starter-protection: [runtime.message.send]; run ais reload starter-protection to activate an approved edit"
+  },
+  {
+    "test": "hearts-reload",
+    "result": "pass",
+    "detail": "[15:16:57 INFO]: ACTIVE generation=8 features=4; saved successfully"
+  },
+  {
+    "test": "hearts-tenth-break",
+    "result": "pass",
+    "detail": "After reload, nine hits retained stone and the tenth broke it and removed the display."
+  },
+  {
+    "test": "dashboard-owner-permit",
+    "result": "pass",
+    "detail": "[15:17:04 INFO]: CAPABILITIES_SAVED world-display: [player.display, player.location.read, player.sound, runtime.message.send, scheduler.repeat, world.block.write, world.read]; run ais reload world-display to activate an approved edit"
+  },
+  {
+    "test": "dashboard-activate",
+    "result": "pass",
+    "detail": "[15:17:04 INFO]: ACTIVE generation=9 features=5; saved successfully"
+  },
+  {
+    "test": "dashboard-displays-and-timer",
+    "result": "pass",
+    "detail": "World write/read succeeded and the client received title, sound, boss bar, scoreboard and two timed action bars."
+  },
+  {
+    "test": "dashboard-restrict",
+    "result": "pass",
+    "detail": "[15:17:07 INFO]: CAPABILITIES_SAVED world-display: [runtime.message.send]; run ais reload world-display to activate an approved edit"
+  },
+  {
+    "test": "dashboard-cleared",
+    "result": "pass",
+    "detail": "Revocation removed persistent displays."
+  },
+  {
+    "test": "gathering-owner-permit",
+    "result": "pass",
+    "detail": "[15:17:08 INFO]: CAPABILITIES_SAVED gathering-station: [player.menu, runtime.event.block_drop, runtime.event.block_interact, runtime.event.replace_drop, runtime.event.run_self, runtime.message.send]; run ais reload gathering-station to activate an approved edit"
+  },
+  {
+    "test": "gathering-activate",
+    "result": "pass",
+    "detail": "[15:17:08 INFO]: ACTIVE generation=11 features=5; saved successfully"
+  },
+  {
+    "test": "gathering-protection-owner-permit",
+    "result": "pass",
+    "detail": "[15:17:10 INFO]: CAPABILITIES_SAVED gathering-guard: [runtime.event.block_break, runtime.event.cancel, runtime.message.send]; run ais reload gathering-guard to activate an approved edit"
+  },
+  {
+    "test": "gathering-protection-activate",
+    "result": "pass",
+    "detail": "[15:17:10 INFO]: ACTIVE generation=12 features=6; saved successfully"
+  },
+  {
+    "test": "gathering-protection",
+    "result": "pass",
+    "detail": "Cancellation kept the exact resource node in place and emitted no custom loot."
+  },
+  {
+    "test": "gathering-protection-restrict",
+    "result": "pass",
+    "detail": "[15:17:11 INFO]: CAPABILITIES_SAVED gathering-guard: [runtime.message.send]; run ais reload gathering-guard to activate an approved edit"
+  },
+  {
+    "test": "gathering-custom-drop",
+    "result": "pass",
+    "detail": "A survival break of the exact node produced one entity with one named custom shard and no vanilla torch."
+  },
+  {
+    "test": "gathering-station-menu",
+    "result": "pass",
+    "detail": "Main-hand right-click opened the owned selection menu and the real menu click ran its action."
+  },
+  {
+    "test": "batch-owner-permit",
+    "result": "pass",
+    "detail": "[15:17:14 INFO]: CAPABILITIES_SAVED processing-station: [player.inventory.exchange, runtime.message.send]; run ais reload processing-station to activate an approved edit"
+  },
+  {
+    "test": "batch-activate",
+    "result": "pass",
+    "detail": "[15:17:14 INFO]: ACTIVE generation=14 features=6; saved successfully"
+  },
+  {
+    "test": "batch-missing-ingredient",
+    "result": "pass",
+    "detail": "A missing second input did not consume the first input or deliver output."
+  },
+  {
+    "test": "batch-exchange",
+    "result": "pass",
+    "detail": "Both inputs were consumed and a tagged shard plus a paper were delivered."
+  },
+  {
+    "test": "batch-full-inventory",
+    "result": "pass",
+    "detail": "Insufficient room for the final output preserved both payments and withheld every output."
+  }
+]

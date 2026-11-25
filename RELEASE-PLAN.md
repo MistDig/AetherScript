@@ -20,6 +20,16 @@ An owner should be able to describe a Minecraft plugin to an AI, install it and 
 | 0.0.29 · End-to-end AI authoring | [Release](https://github.com/MistDig/AetherScript/releases/tag/v0.0.29) | Hosted MCP applied a four-file quest, rejected a stale edit, repaired a failed assertion and previewed an event. Paper verified real player effects, restart and revocation. An actual AI application and an interactive quest shop remain open. |
 | 0.0.30 · Version-matched AI onboarding and blind build challenge | [Release](https://github.com/MistDig/AetherScript/releases/tag/v0.0.30) | Codex CLI discovered the guide with no pasted docs, wrote a visitor desk, and Paper verified its two command branches and join message. Verified scoped config changes and RP Engine staging with console approval. Paper also verified the RP Engine model component and 3D Engine OBJ pack build. Interactive two-PC setup, client rendering, Dialog Engine and other AI apps remain open. |
 | 0.0.31 · Aether AI browser pilot | [Release](https://github.com/MistDig/AetherScript/releases/tag/v0.0.31) | Invite-only chat, animated cloud, scoped build and tests. Local UI and hosted Paper fixture passed. VPS deployment, live model benchmark and in-game chest and gate selection remain open. |
+| 0.0.32 · Gathering, block stations and processing | [Release artifacts](https://github.com/MistDig/AetherScript/releases/tag/v0.0.32) | Paper verified a protected node yielded no reward, a valid break yielded one custom stack, and a right-click opened the station menu. Two-input/two-output exchange preserved inventory on missing inputs or capacity. Event-driven progress, item/entity interactions and registered recipes remain open. |
+
+### Native gameplay expansion
+
+1. Event-driven rewards and progress. Verify cancelled breaks grant nothing, each valid break grants one reward, and kill objectives survive restart without duplicate progress.
+2. Block, item and entity interaction. Verify one main-hand activation, permission denial, and queued actions discarded on reload. Demonstrate an interactive station, a custom key and an NPC.
+3. Recipes and processing. Verify ingredient and output bundles, insufficient space and shift-click behavior, and recipe cleanup on reload.
+4. Region transitions and persistent timers. Verify enter/leave deduplication and a processing job finishing once after restart.
+5. Player lifecycle and combat. Verify respawn, teleport, projectile and item-use snapshots, and narrowly authorized effects.
+6. Administration and addon events. Verify chat and command hooks, explicit permissions to target other players, and addon event discovery and removal.
 
 ### 0.0.30 AI guide delivery
 

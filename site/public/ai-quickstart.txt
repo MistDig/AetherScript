@@ -1,4 +1,4 @@
-AetherScript 0.0.31
+AetherScript 0.0.32
 
 # AetherScript AI quickstart
 

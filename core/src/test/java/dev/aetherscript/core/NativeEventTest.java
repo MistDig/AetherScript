@@ -44,6 +44,33 @@ class NativeEventTest {
         assertEquals("Alex in world", feature.program().eventHandlers().getFirst().evaluate(data(kind, "world")).messages().getFirst().text());
         assertTrue(feature.definition().requires().contains("runtime.event." + kind));
     }
+    @Test void blockDropsCarryAnOwnedCustomItemAndItsModelChangesTheSemanticHash() {
+        String script = """
+            on block_drop permission "*" {
+                replace_drop(custom_item("shard", "amethyst_shard", "Raw Crystal", 1, "demo:shard"))
+            }
+            """;
+        var feature = compile(script);
+        var drop = feature.program().eventHandlers().getFirst().evaluate(data("block_drop", "world")).replacementDrop();
+        assertEquals(new ScriptValue.ItemDescriptor("amethyst_shard", 1, "protect", "shard", "Raw Crystal", "demo:shard"), drop);
+        assertTrue(feature.definition().requires().contains("runtime.event.replace_drop"));
+        assertNotEquals(feature.irHash(), compile(script.replace("demo:shard", "demo:other")).irHash());
+        assertThrows(ValidationException.class, () -> compile(script.replace("block_drop", "block_break")));
+    }
+
+    @Test void interactionCanQueueOnlyTheContainingCommandWithoutRequiredArguments() {
+        String handler = "on block_interact permission \"*\" { run_self() }\n";
+        assertThrows(ValidationException.class, () -> compile(handler));
+        assertThrows(ValidationException.class, () -> compile("""
+            command greet permission "greet.use" sender player {
+                arg name: text
+                send name
+            }
+            """ + handler));
+        var feature = compile("command greet permission \"greet.use\" sender player { send \"Hi\" }\n" + handler);
+        assertTrue(feature.program().eventHandlers().getFirst().evaluate(data("block_interact", "world")).runOwnCommand());
+        assertTrue(feature.definition().requires().contains("runtime.event.run_self"));
+    }
     @ParameterizedTest @ValueSource(strings={
         "on damage permission \"*\" {\nsend \"x\"\n}",
         "on join permission \"*\" {\ncancel\n}",

@@ -2,6 +2,14 @@
 
 Every published change batch receives a new version and GitHub release. Dates use Asia/Calcutta. Entries distinguish tested behavior from planned capabilities.
 
+## [0.0.32] - 2026-11-25
+
+- Added locally approved block-drop replacements with feature-owned item identity and optional resource-pack model keys.
+- Added main-hand block interactions that can queue the same feature's command, including commands that open inventory menus.
+- Added a gathering station example and disposable Paper checks for its drop and menu paths.
+- Added atomic multi-ingredient and multi-output inventory exchanges, with a processing station example.
+- Verification: 400 Java tests passed and one was skipped. Paper 26.3 build 245 passed 38 event and gameplay checks using translated protocol clients. Packaged MCP, legacy language compatibility, and documentation checks passed.
+
 ## [0.0.31] - 2026-11-24
 
 - Add the invite-only Aether AI chat pilot with animated mascot states, reduced-motion support and a separate link for existing AI clients.

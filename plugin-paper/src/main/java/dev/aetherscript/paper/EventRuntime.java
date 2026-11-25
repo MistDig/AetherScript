@@ -13,6 +13,8 @@ import org.bukkit.event.block.*;
 import org.bukkit.event.player.*;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
+import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemStack;
 import java.util.*;
 import java.util.function.*;
 
@@ -22,11 +24,16 @@ final class EventRuntime implements Listener, AutoCloseable {
     private final Supplier<ScriptCapabilityPolicy> policy;
     private final BooleanSupplier ready;
     private final Consumer<String> failures;
+    private final BiFunction<ScriptValue.ItemDescriptor, String, ItemStack> dropStack;
+    private final Consumer<Runnable> nextTick;
+    private final BiConsumer<String, Player> runCommand;
     private boolean closed;
     private Registry.Snapshot indexed;
     private Map<String, List<Subscriber>> subscribers = Map.of();
     private final Set<String> reported = new HashSet<>();
     private final Map<ScriptValue.BlockRef, Hearts> hearts = new HashMap<>();
+    private final Set<PendingCommand> pendingCommands = new HashSet<>();
+    private record PendingCommand(String featureId, UUID playerId) {}
     private record Hearts(String material, int maximum, int remaining, TextDisplay display) {}
     private record Subscriber(CompiledFeature feature, CompiledFeature.EventHandler handler) { }
     private List<Subscriber> subscribers(String kind) {
@@ -46,12 +53,33 @@ final class EventRuntime implements Listener, AutoCloseable {
     }
     private boolean interested(String kind) { return !closed && ready.getAsBoolean() && !subscribers(kind).isEmpty(); }
     EventRuntime(Registry registry, Supplier<ScriptCapabilityPolicy> policy, BooleanSupplier ready, Consumer<String> failures) {
+        this(registry, policy, ready, failures, null, null, null);
+    }
+    EventRuntime(Registry registry, Supplier<ScriptCapabilityPolicy> policy, BooleanSupplier ready,
+                 Consumer<String> failures, BiFunction<ScriptValue.ItemDescriptor, String, ItemStack> dropStack,
+                 Consumer<Runnable> nextTick, BiConsumer<String, Player> runCommand) {
         this.registry = registry; this.policy = policy; this.ready = ready; this.failures = failures;
+        this.dropStack = dropStack;
+        this.nextTick = nextTick;
+        this.runCommand = runCommand;
     }
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void blockBreak(BlockBreakEvent event) { block("block_break", event.getPlayer(), event.getBlock(), event); }
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void blockPlace(BlockPlaceEvent event) { block("block_place", event.getPlayer(), event.getBlockPlaced(), event); }
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void blockDrop(BlockDropItemEvent event) {
+        if (!interested("block_drop") || event.getItems().isEmpty()) return;
+        var state = event.getBlockState();
+        dispatch("block_drop", event.getPlayer(), blockFields(event.getPlayer(), state.getBlock(), state.getType().name()), event);
+    }
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void blockInteract(PlayerInteractEvent event) {
+        if (event.getHand() != EquipmentSlot.HAND || event.getAction() != Action.RIGHT_CLICK_BLOCK
+            || event.useInteractedBlock() == Event.Result.DENY || !interested("block_interact")) return;
+        var block = event.getClickedBlock();
+        if (block != null) dispatch("block_interact", event.getPlayer(), blockFields(event.getPlayer(), block, block.getType().name()), event);
+    }
     @EventHandler public void join(PlayerJoinEvent event) { player("join", event.getPlayer()); }
     @EventHandler public void quit(PlayerQuitEvent event) { player("quit", event.getPlayer()); }
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -98,11 +126,14 @@ final class EventRuntime implements Listener, AutoCloseable {
     }
     private void block(String kind, Player player, Block block, Cancellable event) {
         if (event.isCancelled() || !interested(kind)) return;
+        dispatch(kind, player, blockFields(player, block, block.getType().name()), event, block);
+    }
+    private static Map<String, ScriptValue> blockFields(Player player, Block block, String material) {
         Map<String, ScriptValue> fields = fields(player);
         fields.put("world", text(block.getWorld().getKey().toString()));
-        fields.put("block_type", text(block.getType().name()));
+        fields.put("block_type", text(material));
         fields.put("x", integer(block.getX())); fields.put("y", integer(block.getY())); fields.put("z", integer(block.getZ()));
-        dispatch(kind, player, fields, event, block);
+        return fields;
     }
     private void player(String kind, Player player) { if (interested(kind)) dispatch(kind, player, fields(player), null); }
     private static Map<String, ScriptValue> fields(Player player) {
@@ -123,12 +154,12 @@ final class EventRuntime implements Listener, AutoCloseable {
         Registry.Snapshot captured = indexed;
         CompiledFeature.EventData data = new CompiledFeature.EventData(kind, fields);
         int maximumHearts = 0;
+        ItemStack replacementDrop = null;
         for (Subscriber subscriber : handlers) {
             CompiledFeature feature = subscriber.feature();
             CompiledFeature.EventHandler handler = subscriber.handler();
             if (event != null && event.isCancelled()) return;
-            if (!handler.permission().equals("*") && !player.hasPermission(handler.permission())
-                || handler.bypassPermission() != null && player.hasPermission(handler.bypassPermission())) continue;
+            if (!receives(player, handler)) continue;
             // Owner policy denial is expected after restrict; execution errors are reported separately.
             try { policy.get().validate(feature); }
             catch (ValidationException | SecurityException denied) { continue; }
@@ -137,16 +168,53 @@ final class EventRuntime implements Listener, AutoCloseable {
                 CompiledFeature.EventResult result = handler.evaluate(data);
                 if (result.cancelled() && event != null) event.setCancelled(true);
                 if (maximumHearts == 0) maximumHearts = result.blockHearts();
+                if (replacementDrop == null && !result.cancelled() && event instanceof BlockDropItemEvent
+                    && result.replacementDrop() != null && dropStack != null)
+                    replacementDrop = dropStack.apply(result.replacementDrop(), feature.definition().id());
+                if (result.runOwnCommand() && event instanceof PlayerInteractEvent interaction && !interaction.isCancelled())
+                    queueCommand(captured, subscriber, player, interaction);
                 for (Feature.MessageAction message : result.messages()) player.sendMessage(Component.text(message.text()));
             } catch (RuntimeException failure) {
-                String key = feature.definition().id() + ":" + kind;
-                if (reported.add(key)) failures.accept("Event handler failed for " + feature.definition().id() + " (" + kind + "): "
-                    + FeatureManager.display(failure instanceof ValidationException ? failure.getMessage() : "RUNTIME_FAILED")
-                    + "; further failures suppressed until registry replacement");
+                report(feature.definition().id(), kind, failure);
             }
+        }
+        if (replacementDrop != null && event instanceof BlockDropItemEvent drop && !drop.isCancelled() && !drop.getItems().isEmpty()) {
+            var items = drop.getItems();
+            items.getFirst().setItemStack(replacementDrop);
+            items.subList(1, items.size()).clear();
         }
         if (block != null && event instanceof BlockBreakEvent && !event.isCancelled() && maximumHearts > 0)
             hit(block, event, maximumHearts);
+    }
+
+    private static boolean receives(Player player, CompiledFeature.EventHandler handler) {
+        return (handler.permission().equals("*") || player.hasPermission(handler.permission()))
+            && (handler.bypassPermission() == null || !player.hasPermission(handler.bypassPermission()));
+    }
+
+    private void queueCommand(Registry.Snapshot captured, Subscriber subscriber, Player player, PlayerInteractEvent event) {
+        if (nextTick == null || pendingCommands.size() >= 128) return;
+        var key = new PendingCommand(subscriber.feature().definition().id(), player.getUniqueId());
+        if (!pendingCommands.add(key)) return;
+        try {
+            nextTick.accept(() -> {
+                pendingCommands.remove(key);
+                if (closed || !ready.getAsBoolean() || registry.snapshot() != captured || !player.isOnline()
+                    || event.isCancelled() || event.useInteractedBlock() == Event.Result.DENY
+                    || !receives(player, subscriber.handler())) return;
+                try { runCommand.accept(key.featureId(), player); }
+                catch (RuntimeException failure) { report(key.featureId(), subscriber.handler().kind(), failure); }
+            });
+        } catch (RuntimeException failure) {
+            pendingCommands.remove(key);
+            throw failure;
+        }
+    }
+
+    private void report(String id, String kind, RuntimeException failure) {
+        if (reported.add(id + ":" + kind)) failures.accept("Event handler failed for " + id + " (" + kind + "): "
+            + FeatureManager.display(failure instanceof ValidationException ? failure.getMessage() : "RUNTIME_FAILED")
+            + "; further failures suppressed until registry replacement");
     }
 
     private static ScriptValue.BlockRef key(Block block) {

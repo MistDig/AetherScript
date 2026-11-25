@@ -37,15 +37,37 @@ final class PaperItems {
     }
 
     ItemStack icon(ScriptValue.ItemDescriptor descriptor, String feature) {
+        return singleStack(descriptor, feature, "MENU_ICON_LIMIT");
+    }
+
+    ItemStack drop(ScriptValue.ItemDescriptor descriptor, String feature) {
+        return singleStack(descriptor, feature, "BLOCK_DROP_LIMIT");
+    }
+
+    private ItemStack singleStack(ScriptValue.ItemDescriptor descriptor, String feature, String error) {
         var stack = template(descriptor, feature);
         if (descriptor.amount() > stack.getMaxStackSize())
-            throw new ValidationException("$", "MENU_ICON_LIMIT: amount exceeds the material's stack size");
+            throw new ValidationException("$", error + ": amount exceeds the material's stack size");
         stack.setAmount(descriptor.amount());
         return stack;
     }
 
     boolean inventory(String operation, PlayerInventory inventory, List<ScriptValue> values, String feature) {
         ItemStack[] original = inventory.getStorageContents();
+        if (operation.equals("player.inventory.exchange") || operation.equals("player.inventory.exchange_many")) {
+            boolean bundles = operation.equals("player.inventory.exchange_many");
+            List<ScriptValue> payments = bundles ? values.getFirst().list() : List.of(values.getFirst());
+            List<ScriptValue> rewards = bundles ? values.get(1).list() : List.of(values.get(1));
+            if (payments.isEmpty() || rewards.isEmpty() || payments.size() > 16 || rewards.size() > 16)
+                throw new ValidationException("$", "INVENTORY_EXCHANGE_LIMIT: each bundle needs 1..16 items");
+            int maximum = inventory.getMaxStackSize();
+            ItemStack[] withoutPayments = planBundle(original, payments, feature, maximum, false);
+            if (withoutPayments == null) return false;
+            ItemStack[] withRewards = planBundle(withoutPayments, rewards, feature, maximum, true);
+            if (withRewards == null) return false;
+            inventory.setStorageContents(withRewards);
+            return true;
+        }
         var descriptor = values.getFirst().item();
         var template = template(descriptor, feature);
         int maximum = inventory.getMaxStackSize();
@@ -55,16 +77,22 @@ final class PaperItems {
         var next = operation.equals("player.inventory.give") ? InventoryPlan.give(slots, List.of(item)) : InventoryPlan.remove(slots, item);
         if (next == null) return false;
         ItemStack[] updated = contents(original, slots, next, template);
-        if (operation.equals("player.inventory.exchange")) {
-            var reward = values.get(1).item();
-            var target = template(reward, feature);
-            var available = slots(updated, target, maximum);
-            var exchange = InventoryPlan.give(available, List.of(planItem(target, reward.amount(), maximum)));
-            if (exchange == null) return false;
-            updated = contents(updated, available, exchange, target);
-        }
         inventory.setStorageContents(updated);
         return true;
+    }
+
+    private ItemStack[] planBundle(ItemStack[] contents, List<ScriptValue> bundle, String feature, int maximum, boolean give) {
+        ItemStack[] planned = contents;
+        for (ScriptValue value : bundle) {
+            var descriptor = value.item();
+            var template = template(descriptor, feature);
+            var before = slots(planned, template, maximum);
+            var item = planItem(template, descriptor.amount(), maximum);
+            var after = give ? InventoryPlan.give(before, List.of(item)) : InventoryPlan.remove(before, item);
+            if (after == null) return null;
+            planned = contents(planned, before, after, template);
+        }
+        return planned;
     }
 
     private static InventoryPlan.Item planItem(ItemStack template, int amount, int maximum) {

@@ -32,7 +32,7 @@ class AuthoringGuideTest {
             var described = new java.util.HashMap<String, String>();
             events.path("snapshotFields").path("all").properties().forEach(entry -> described.put(entry.getKey(), entry.getValue().asText()));
             if (kind.asText().startsWith("block_"))
-                events.path("snapshotFields").path("block_break/block_place").properties().forEach(entry -> described.put(entry.getKey(), entry.getValue().asText()));
+                events.path("snapshotFields").path("block_break/block_place/block_drop/block_interact").properties().forEach(entry -> described.put(entry.getKey(), entry.getValue().asText()));
             if (kind.asText().startsWith("entity_")) {
                 events.path("snapshotFields").path("entity").properties().forEach(entry -> described.put(entry.getKey(), entry.getValue().asText()));
                 events.path("snapshotFields").path(kind.asText()).properties().forEach(entry -> described.put(entry.getKey(), entry.getValue().asText()));

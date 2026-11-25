@@ -40,6 +40,9 @@ public final class StandardCallables {
         add(registry, "player.identity.self", "player_key", List.of(), ScriptType.TEXT, PAPER_MAIN, "player.identity.self", "Return the invoking player's stable storage key: p followed by the lowercase UUID without hyphens.");
         add(registry, "player.menu.choose", "menu_choose", List.of(ScriptType.TEXT, ScriptType.list(ScriptType.ITEM)), ScriptType.INTEGER, PAPER_MAIN, "player.menu", "Open a read-only selection menu of 1..54 items; wait for a zero-based clicked slot or -1 on close. Selection grants no authority.");
         add(registry, "player.inventory.exchange", "inventory_exchange", List.of(ScriptType.ITEM, ScriptType.ITEM), ScriptType.BOOLEAN, PAPER_MAIN, "player.inventory.exchange", "Atomically remove payment and give reward in the invoking player's storage; false leaves inventory unchanged.");
+        add(registry, "player.inventory.exchange_many", "inventory_exchange_many",
+            List.of(ScriptType.list(ScriptType.ITEM), ScriptType.list(ScriptType.ITEM)), ScriptType.BOOLEAN, PAPER_MAIN,
+            "player.inventory.exchange", "Atomically exchange bundles of 1..16 payments and rewards in the invoking player's storage. Missing items or space leave inventory unchanged.");
         add(registry, "entity.own.spawn", "entity_spawn", List.of(ScriptType.LOCATION, ScriptType.TEXT, ScriptType.TEXT), ScriptType.TEXT, PAPER_MAIN, "entity.own", "Spawn a bounded allowlisted feature-owned mob; return its UUID text.");
         add(registry, "entity.own.remove", "entity_remove", List.of(ScriptType.TEXT), ScriptType.BOOLEAN, PAPER_MAIN, "entity.own", "Remove only a mob owned by this feature and active revision.");
         add(registry, "entity.own.health", "entity_health", List.of(ScriptType.TEXT, ScriptType.INTEGER), ScriptType.UNIT, PAPER_MAIN, "entity.own", "Set an owned mob's health to 1..100 hearts.");

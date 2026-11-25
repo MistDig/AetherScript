@@ -416,6 +416,21 @@ The implementation reserves the durable cooldown before rechecking and deliverin
 
 ## Synchronous native events (0.0.20)
 
+### Gathering and clickable stations (0.0.32)
+
+Install [gathering-station.aether](https://github.com/MistDig/AetherScript/blob/v0.0.32/examples/gathering-station.aether) in the server's `plugins/AetherScript/scripts` folder. Enter these commands in the Paper console:
+
+```text
+ais permit gathering-station runtime.event.block_drop,runtime.event.replace_drop,runtime.event.block_interact,runtime.event.run_self,player.menu
+ais reload gathering-station
+```
+
+Give test players the example's `aetherscript.example.gathering` permission. In the overworld, the example uses coordinates `12 80 10`. Break a supported torch there in Survival and look for a Raw Crystal drop. Then place a barrel at the same coordinates and right-click it with the main hand. The Gathering station menu should open. Click its first slot to check the message.
+
+`block_drop` is delivered for an allowed player break with existing loot. `replace_drop(item(...))` and `replace_drop(custom_item(...))` replace that loot with one stack. A protected break grants nothing. A drop that exceeds the material's stack size preserves vanilla loot. Use `block_interact` and `run_self()` to queue this feature's command. The command must take no required arguments and the player must have its permission. These new event capabilities require local owner approval.
+
+For processing with several ingredients and outputs, use [processing-station.aether](https://github.com/MistDig/AetherScript/blob/v0.0.32/examples/processing-station.aether). Its `inventory_exchange_many` call needs `player.inventory.exchange` and supports up to 16 entries per bundle. If even one ingredient is missing, or one reward does not fit, the entire inventory stays unchanged.
+
 Native files support `on join`, `on quit`, `on block_break` and `on block_place`. A feature may contain only events, or an optional command followed by handlers. Each handler requires an explicit `permission`; `"*"` includes every player. Optional `bypass "permission.node"` skips holders of that node.
 
 Every handler receives immutable `player_name`, `player_uuid` and `world` text values. The `world` field is a namespaced key such as `minecraft:overworld`. Block events additionally receive `block_type` text (the material name) and signed integer `x`, `y`, `z`. Event bodies support `let`, `send`, `if`/`else` and pure scalar expressions. Collection operations are rejected. Only block handlers support `cancel`. Host calls, delay, state operations, arguments, mutation, loops and user function calls are rejected in handlers. At most 16 handlers are allowed per feature; each evaluation has an 8192-step and 32-message cap.

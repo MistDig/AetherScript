@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/assets/aetherscript-banner.png" alt="AetherScript — little scripts, big possibilities" width="1200"></p>
 
-<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.31"><b>Download 0.0.31</b></a> · <a href="https://mistdig.github.io/AetherScript/">Explore the docs</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
+<p align="center"><a href="https://github.com/MistDig/AetherScript/releases/tag/v0.0.32"><b>Download 0.0.32</b></a> · <a href="https://mistdig.github.io/AetherScript/">Explore the docs</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="docs/roadmap.md">Roadmap</a></p>
 
 [![Build](https://github.com/MistDig/AetherScript/actions/workflows/ci.yml/badge.svg)](https://github.com/MistDig/AetherScript/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/MistDig/AetherScript)](https://github.com/MistDig/AetherScript/releases)
@@ -99,7 +99,7 @@ This experimental implementation supports sender messages, preparation-time lega
 
 ## Get started
 
-1. Stop Paper, back up existing AetherScript data, and install **AetherScript-0.0.31.jar** from the release. Keep only one plugin JAR installed.
+1. Stop Paper, back up existing AetherScript data, and install **AetherScript-0.0.32.jar** from the release. Keep only one plugin JAR installed.
 2. Start with Java 25 and wait for `Ready. Restored ...`. A new install creates and activates `plugins/AetherScript/scripts/hello-ai.yml`.
 3. Run `/ais run hello-ai`. Players need `aetherscript.example.hello` (operators by default).
 4. Edit its quoted `text`, save, then `/ais validate hello-ai` and `/ais reload hello-ai`.
